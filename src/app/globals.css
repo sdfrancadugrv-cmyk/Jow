@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --jow-purple: #6B21A8;
+  --jow-purple-bright: #7C3AED;
+  --jow-purple-glow: #A855F7;
+  --jow-dark: #0A0A0F;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--jow-dark);
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Scrollbar estilo JOW */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F0F1A;
+}
+::-webkit-scrollbar-thumb {
+  background: #6B21A8;
+  border-radius: 3px;
+}
+
+/* Glow text */
+.text-glow {
+  text-shadow: 0 0 20px #A855F7, 0 0 40px #7C3AED;
+}
+
+/* Canvas Three.js ocupa o espaço todo */
+canvas {
+  display: block;
+}
