@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import { useJowStore, JowState } from "@/stores/jowStore";
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    setMobile(window.innerWidth < 768);
+  }, []);
+  return mobile;
+}
+
 // ── Cores por estado ─────────────────────────────────────────────
 function getColors(state: JowState) {
   switch (state) {
@@ -44,58 +52,70 @@ function getCharInterval(state: JowState) {
   }
 }
 
-// ── Dados dos espinhos (calculado uma vez no carregamento) ───────
 const CX = 140;
 const CY = 140;
-const SPIKE_COUNT = 240;
 const CHARS = "0123456789ABCDEF";
 
-// Pseudo-random determinístico para evitar hydration mismatch
 function pr(seed: number) {
   const x = Math.sin(seed + 1) * 10000;
   return x - Math.floor(x);
 }
 
-const SPIKES = Array.from({ length: SPIKE_COUNT }, (_, i) => {
-  const angle = (i / SPIKE_COUNT) * Math.PI * 2;
-  const innerR = 26 + pr(i * 3) * 8;          // 26–34 px
-  const outerR = 70 + pr(i * 7 + 1) * 52;     // 70–122 px
-  const tipR   = outerR + 10;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  return {
-    x1: CX + cos * innerR,
-    y1: CY + sin * innerR,
-    x2: CX + cos * outerR,
-    y2: CY + sin * outerR,
-    tipX: CX + cos * tipR,
-    tipY: CY + sin * tipR,
-    opacity: 0.45 + pr(i * 11) * 0.55,
-    sw: 0.6 + pr(i * 5) * 0.9,
-    showLabel: i % 4 === 0,
-  };
-});
+function buildSpikes(count: number) {
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (i / count) * Math.PI * 2;
+    const innerR = 26 + pr(i * 3) * 8;
+    const outerR = 70 + pr(i * 7 + 1) * 52;
+    const tipR   = outerR + 10;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return {
+      x1: CX + cos * innerR, y1: CY + sin * innerR,
+      x2: CX + cos * outerR, y2: CY + sin * outerR,
+      tipX: CX + cos * tipR, tipY: CY + sin * tipR,
+      opacity: 0.45 + pr(i * 11) * 0.55,
+      sw: 0.6 + pr(i * 5) * 0.9,
+      showLabel: i % 4 === 0,
+    };
+  });
+}
 
-const LABEL_SPIKES = SPIKES.filter((s) => s.showLabel);
-const INIT_CHARS   = LABEL_SPIKES.map((_, i) => CHARS[Math.floor(pr(i * 13) * CHARS.length)]);
+const SPIKES_DESKTOP = buildSpikes(240);
+const SPIKES_MOBILE  = buildSpikes(80);
+
+const LABEL_DESKTOP = SPIKES_DESKTOP.filter((s) => s.showLabel);
+const LABEL_MOBILE  = SPIKES_MOBILE.filter((s) => s.showLabel);
+
+const INIT_CHARS_DESKTOP = LABEL_DESKTOP.map((_, i) => CHARS[Math.floor(pr(i * 13) * CHARS.length)]);
+const INIT_CHARS_MOBILE  = LABEL_MOBILE.map((_, i) => CHARS[Math.floor(pr(i * 13) * CHARS.length)]);
 
 // ── Componente ───────────────────────────────────────────────────
 export default function JowSphere() {
   const state = useJowStore((s) => s.state);
-  const [chars, setChars] = useState<string[]>(INIT_CHARS);
+  const isMobile = useIsMobile();
+  const SPIKES      = isMobile ? SPIKES_MOBILE  : SPIKES_DESKTOP;
+  const LABEL_SPIKES = isMobile ? LABEL_MOBILE  : LABEL_DESKTOP;
+  const INIT_CHARS   = isMobile ? INIT_CHARS_MOBILE : INIT_CHARS_DESKTOP;
+  const svgSize      = isMobile ? 200 : 280;
+
+  const [chars, setChars] = useState<string[]>(INIT_CHARS_DESKTOP);
   const c = getColors(state);
 
-  // Cicla os caracteres nas pontas dos espinhos
   useEffect(() => {
+    setChars(INIT_CHARS);
+  }, [isMobile]); // eslint-disable-line
+
+  useEffect(() => {
+    const interval = isMobile ? Math.max(getCharInterval(state) * 3, 800) : getCharInterval(state);
     const iv = setInterval(() => {
       setChars((prev) =>
         prev.map((ch) => (pr(Date.now() * Math.random()) < 0.35 ? CHARS[Math.floor(Math.random() * CHARS.length)] : ch))
       );
-    }, getCharInterval(state));
+    }, interval);
     return () => clearInterval(iv);
-  }, [state]);
+  }, [state, isMobile]); // eslint-disable-line
 
-  const spinDur  = getSpinDur(state);
+  const spinDur  = isMobile ? getSpinDur(state) * 2 : getSpinDur(state);
   const coreDur  = getCoreDur(state);
 
   const stateLabel: Record<JowState, string> = {
@@ -111,15 +131,15 @@ export default function JowSphere() {
       {/* SVG da esfera */}
       <div
         style={{
-          width: 280,
-          height: 280,
+          width: svgSize,
+          height: svgSize,
           filter: `drop-shadow(0 0 30px ${c.glow})`,
           transition: "filter 0.6s ease",
         }}
       >
         <svg
-          width="280"
-          height="280"
+          width={svgSize}
+          height={svgSize}
           viewBox="0 0 280 280"
           style={{ overflow: "visible" }}
         >

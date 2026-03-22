@@ -73,7 +73,9 @@ export default function AppPage() {
         Sair
       </button>
 
-      <EnergyLines sphereRef={sphereRef} agentRefs={agentRefs} />
+      <div className="hidden md:block">
+        <EnergyLines sphereRef={sphereRef} agentRefs={agentRefs} />
+      </div>
 
       <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10 lg:gap-16 w-full px-4">
         <div className="hidden md:flex">
