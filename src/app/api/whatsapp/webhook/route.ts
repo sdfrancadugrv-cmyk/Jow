@@ -59,11 +59,14 @@ export async function POST(req: NextRequest) {
       : body.video ? "video"
       : "unknown";
 
+    console.log("[Webhook] instanceId:", instanceId, "phone:", phone, "type:", messageType);
+
     // Busca o agente pelo instanceId
     const agent = await prisma.whatsappAgent.findFirst({
       where: { instanceId, active: true },
     });
 
+    console.log("[Webhook] agente encontrado:", agent ? agent.name : "NENHUM");
     if (!agent) return NextResponse.json({ ok: true });
 
     // Busca ou cria conversa com esse contato
