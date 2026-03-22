@@ -13,7 +13,7 @@ export default function ChatHistory() {
   }, [conversation]);
 
   return (
-    <div className="flex flex-col w-48 h-[360px]">
+    <div className="flex flex-col w-full md:w-48 h-48 md:h-[360px]">
       <p className="text-[10px] tracking-widest text-purple-500 uppercase mb-2 text-center">
         Conversa
       </p>
