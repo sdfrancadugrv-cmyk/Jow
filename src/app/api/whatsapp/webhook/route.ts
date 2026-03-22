@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
     });
 
     const response = completion.choices[0]?.message?.content ?? "Desculpe, não entendi. Pode repetir?";
+    console.log("[Webhook] resposta GPT:", response.slice(0, 100));
 
     // Adiciona resposta ao histórico
     history.push({ role: "assistant", content: response });
@@ -137,11 +138,22 @@ export async function POST(req: NextRequest) {
     // Decide se responde por texto ou áudio
     const shouldRespondWithAudio = messageType === "audio";
 
+    console.log("[Webhook] enviando para:", phone, "audio:", shouldRespondWithAudio);
     if (shouldRespondWithAudio) {
       const audioBase64 = await generateAudio(response);
-      await sendAudio(agent.instanceId, agent.token, phone, audioBase64);
+      const sendResult = await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-audio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, audio: audioBase64, delay: 1000 }),
+      });
+      console.log("[Webhook] audio enviado status:", sendResult.status, await sendResult.text());
     } else {
-      await sendText(agent.instanceId, agent.token, phone, response);
+      const sendResult = await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, message: response }),
+      });
+      console.log("[Webhook] texto enviado status:", sendResult.status, await sendResult.text());
     }
 
     return NextResponse.json({ ok: true });
