@@ -74,6 +74,22 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "editar_agente_whatsapp",
+      description: "Edita o nome ou a personalidade de um agente de WhatsApp existente",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "ID do agente a editar" },
+          name: { type: "string", description: "Novo nome do agente (opcional)" },
+          personality: { type: "string", description: "Nova personalidade/prompt do agente (opcional)" },
+        },
+        required: ["id"],
+      },
+    },
+  },
 ];
 
 async function executeTool(name: string, args: any, clientId: string): Promise<string> {
@@ -117,6 +133,14 @@ async function executeTool(name: string, args: any, clientId: string): Promise<s
   if (name === "remover_agente_whatsapp") {
     await prisma.whatsappAgent.deleteMany({ where: { id: args.id, clientId } });
     return `Agente removido com sucesso.`;
+  }
+
+  if (name === "editar_agente_whatsapp") {
+    const data: any = {};
+    if (args.name) data.name = args.name;
+    if (args.personality) data.personality = args.personality;
+    await prisma.whatsappAgent.updateMany({ where: { id: args.id, clientId }, data });
+    return `Agente atualizado com sucesso!`;
   }
 
   return "Ferramenta não reconhecida.";
