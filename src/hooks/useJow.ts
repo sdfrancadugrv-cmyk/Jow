@@ -19,6 +19,18 @@ function getAudioEl(): HTMLAudioElement {
   return _audioEl;
 }
 
+// Para o áudio imediatamente
+export function stopJowAudio() {
+  try {
+    if (_audioEl) {
+      _audioEl.pause();
+      if (_audioEl.src.startsWith("blob:")) URL.revokeObjectURL(_audioEl.src);
+      _audioEl.src = "";
+    }
+    if (typeof window !== "undefined") speechSynthesis.cancel();
+  } catch {}
+}
+
 // Chama isso dentro de um handler de clique do usuário para desbloquear
 export function unlockJowAudio() {
   if (_audioUnlocked) return;

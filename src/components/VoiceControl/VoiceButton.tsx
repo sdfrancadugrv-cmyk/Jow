@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useJowStore } from "@/stores/jowStore";
-import { useJow, unlockJowAudio } from "@/hooks/useJow";
+import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 
 const WAKE_WORDS = ["fala jow", "fala jo", "fala joe", "fala djo"];
 const STOP_WORDS = ["encerrar conversa", "encerra conversa", "encerrar a conversa"];
@@ -217,12 +217,34 @@ export default function VoiceButton() {
     }
   };
 
+  const handleStop = () => {
+    stopJowAudio();
+    stopRecording();
+    activeConversationRef.current = false;
+    setState("idle");
+  };
+
   const isActive = isListening;
   const isProcessing = state === "thinking" || state === "speaking";
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="relative">
+      <div className="relative flex items-center gap-4">
+        {isProcessing && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={handleStop}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{
+              background: "linear-gradient(135deg, #7F1D1D, #DC2626)",
+              boxShadow: "0 0 20px rgba(220,38,38,0.5)",
+            }}
+            title="Parar"
+          >
+            <span className="text-base">⏹</span>
+          </motion.button>
+        )}
         <motion.button
           onClick={handleClick}
           disabled={isProcessing}
@@ -262,6 +284,7 @@ export default function VoiceButton() {
             sem voz... {silenceCountdown}s
           </motion.div>
         )}
+        </div>
       </div>
 
       <p className="text-[10px] tracking-widest uppercase transition-all duration-300"
