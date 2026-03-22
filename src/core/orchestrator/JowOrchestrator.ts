@@ -2,10 +2,13 @@ import OpenAI from "openai";
 import { selectAgents, AgentDef } from "../agents/agents";
 import { getMemorySystemPrompt, checkAndSummarize, saveExchange } from "../memory/MemoryManager";
 import { webSearch, needsWebSearch } from "../tools/webSearch";
+import prisma from "@/lib/prisma";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const JOW_SYSTEM_PROMPT = `Você é JOW, um assistente pessoal de IA altamente especializado em análise e construção de software.
+const ZAPI_BASE = "https://api.z-api.io/instances";
+
+const JOW_SYSTEM_PROMPT = `Você é JOW, um assistente pessoal de IA altamente especializado, capaz de executar tarefas reais.
 
 PERSONALIDADE:
 - Confiante, direto e inteligente
@@ -15,15 +18,108 @@ PERSONALIDADE:
 - Sempre entrega a MELHOR resposta possível
 - Lembra de tudo que já foi conversado e usa esse contexto
 
+CAPACIDADES:
+- Criar agentes de WhatsApp que atendem clientes automaticamente
+- Configurar personalidades e especialidades dos agentes
+- Listar, editar e remover agentes existentes
+
 REGRAS:
 - Responda SEMPRE em português
 - Seja conciso mas completo
-- Nunca mencione "agentes" ou processo interno ao usuário
 - Responda como JOW, uma entidade única e coesa
 - Use a memória de conversas anteriores para personalizar respostas
-- Se o usuário mencionar algo que foi dito antes, demonstre que lembra
-- Você tem acesso à internet em tempo real — use para dar respostas atualizadas
-- Quando tiver resultado de busca web, priorize essa informação como fonte`;
+- Você tem acesso à internet em tempo real
+- Quando criar um agente, confirme o que foi configurado de forma clara`;
+
+// Ferramentas que o JOW pode executar
+const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "criar_agente_whatsapp",
+      description: "Cria um agente de IA que atende automaticamente no WhatsApp com uma personalidade específica",
+      parameters: {
+        type: "object",
+        properties: {
+          instanceId: { type: "string", description: "ID da instância Z-API" },
+          token: { type: "string", description: "Token da instância Z-API" },
+          phone: { type: "string", description: "Número do WhatsApp no formato 5511999999999" },
+          name: { type: "string", description: "Nome do agente" },
+          personality: { type: "string", description: "Prompt de personalidade e especialidade do agente" },
+        },
+        required: ["instanceId", "token", "phone", "name", "personality"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "listar_agentes_whatsapp",
+      description: "Lista todos os agentes de WhatsApp criados pelo usuário",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "remover_agente_whatsapp",
+      description: "Remove um agente de WhatsApp pelo ID ou nome",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "ID do agente a remover" },
+        },
+        required: ["id"],
+      },
+    },
+  },
+];
+
+async function executeTool(name: string, args: any, clientId: string): Promise<string> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+  if (name === "criar_agente_whatsapp") {
+    try {
+      const agent = await prisma.whatsappAgent.create({
+        data: {
+          clientId,
+          instanceId: args.instanceId,
+          token: args.token,
+          phone: args.phone,
+          name: args.name,
+          personality: args.personality,
+        },
+      });
+
+      // Configura webhook na Z-API
+      const webhookUrl = `${appUrl}/api/whatsapp/webhook`;
+      await fetch(`${ZAPI_BASE}/${args.instanceId}/token/${args.token}/update-webhook-received`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: webhookUrl }),
+      });
+
+      return `Agente "${agent.name}" criado com sucesso! ID: ${agent.id}. O webhook foi configurado automaticamente. O agente já está pronto para atender no WhatsApp.`;
+    } catch (err) {
+      return `Erro ao criar agente: ${err}`;
+    }
+  }
+
+  if (name === "listar_agentes_whatsapp") {
+    const agents = await prisma.whatsappAgent.findMany({
+      where: { clientId, active: true },
+    });
+    if (agents.length === 0) return "Nenhum agente criado ainda.";
+    return agents.map((a) => `• ${a.name} — ${a.phone} (ID: ${a.id})`).join("\n");
+  }
+
+  if (name === "remover_agente_whatsapp") {
+    await prisma.whatsappAgent.deleteMany({ where: { id: args.id, clientId } });
+    return `Agente removido com sucesso.`;
+  }
+
+  return "Ferramenta não reconhecida.";
+}
 
 export interface OrchestrationResult {
   response: string;
@@ -82,22 +178,54 @@ export async function orchestrate(
   if (agentContext) {
     messages.push({
       role: "system",
-      content: `Insights dos especialistas (use para enriquecer sua resposta):\n${agentContext}`,
+      content: `Insights dos especialistas:\n${agentContext}`,
     });
   }
 
   messages.push({ role: "user", content: query });
 
+  // Primeira chamada — com ferramentas
   const completion = await openai.chat.completions.create({
     model: "gpt-4o",
     messages,
-    max_tokens: 600,
+    tools: TOOLS,
+    tool_choice: "auto",
+    max_tokens: 800,
     temperature: 0.8,
   });
 
-  const response =
-    completion.choices[0]?.message?.content ??
-    "Desculpe, não consegui processar sua solicitação.";
+  const choice = completion.choices[0];
+  let response = "";
+
+  // Verifica se o modelo quer chamar uma ferramenta
+  if (choice.finish_reason === "tool_calls" && choice.message.tool_calls) {
+    const toolCall = choice.message.tool_calls[0];
+    const toolName = toolCall.function.name;
+    const toolArgs = JSON.parse(toolCall.function.arguments);
+
+    const toolResult = await executeTool(toolName, toolArgs, clientId);
+    agentsUsed.push("executor");
+
+    // Segunda chamada — com resultado da ferramenta
+    const followUp = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        ...messages,
+        choice.message,
+        {
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: toolResult,
+        },
+      ],
+      max_tokens: 600,
+      temperature: 0.8,
+    });
+
+    response = followUp.choices[0]?.message?.content ?? toolResult;
+  } else {
+    response = choice.message?.content ?? "Desculpe, não consegui processar sua solicitação.";
+  }
 
   await saveExchange(query, response, clientId);
   const fullHistory = [
