@@ -284,7 +284,6 @@ export default function VoiceButton() {
             sem voz... {silenceCountdown}s
           </motion.div>
         )}
-        </div>
       </div>
 
       <p className="text-[10px] tracking-widest uppercase transition-all duration-300"
