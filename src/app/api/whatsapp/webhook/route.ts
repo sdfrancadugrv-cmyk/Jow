@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Decide se responde por texto ou áudio
-    const shouldRespondWithAudio = messageType === "audio" || messageType === "ptt";
+    const shouldRespondWithAudio = messageType === "audio";
 
     if (shouldRespondWithAudio) {
       const audioBase64 = await generateAudio(response);
