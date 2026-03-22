@@ -173,6 +173,10 @@ export default function VoiceButton() {
       rec.maxAlternatives = 5;
 
       rec.onresult = (e: any) => {
+        // Ignora tudo enquanto JOW está falando ou processando — evita loop de eco
+        const currentState = useJowStore.getState().state;
+        if (currentState === "speaking" || currentState === "thinking") return;
+
         for (let i = e.resultIndex; i < e.results.length; i++) {
           for (let j = 0; j < e.results[i].length; j++) {
             const transcript = e.results[i][j].transcript;
