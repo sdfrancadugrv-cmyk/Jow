@@ -5,11 +5,12 @@ import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 
 const ZAPI_BASE = "https://api.z-api.io/instances";
+const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || "";
 
 async function configureZAPIWebhook(instanceId: string, token: string, webhookUrl: string) {
   await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/update-webhook-received`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN },
     body: JSON.stringify({ value: webhookUrl }),
   });
 }

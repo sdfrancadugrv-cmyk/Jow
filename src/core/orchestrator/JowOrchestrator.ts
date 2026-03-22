@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const ZAPI_BASE = "https://api.z-api.io/instances";
+const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || "";
 
 const JOW_SYSTEM_PROMPT = `Você é JOW, um assistente pessoal de IA altamente especializado, capaz de executar tarefas reais.
 
@@ -95,7 +96,7 @@ async function executeTool(name: string, args: any, clientId: string): Promise<s
       const webhookUrl = `${appUrl}/api/whatsapp/webhook`;
       await fetch(`${ZAPI_BASE}/${args.instanceId}/token/${args.token}/update-webhook-received`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN },
         body: JSON.stringify({ value: webhookUrl }),
       });
 

@@ -8,16 +8,22 @@ import prisma from "@/lib/prisma";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const ZAPI_BASE = "https://api.z-api.io/instances";
+const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || "";
 
 async function downloadMedia(url: string): Promise<Buffer> {
   const res = await fetch(url);
   return Buffer.from(await res.arrayBuffer());
 }
 
+const ZAPI_HEADERS = {
+  "Content-Type": "application/json",
+  "Client-Token": ZAPI_CLIENT_TOKEN,
+};
+
 async function sendText(instanceId: string, token: string, phone: string, text: string) {
   await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/send-text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: ZAPI_HEADERS,
     body: JSON.stringify({ phone, message: text }),
   });
 }
@@ -25,7 +31,7 @@ async function sendText(instanceId: string, token: string, phone: string, text: 
 async function sendAudio(instanceId: string, token: string, phone: string, audioBase64: string) {
   await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/send-audio`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: ZAPI_HEADERS,
     body: JSON.stringify({ phone, audio: audioBase64, delay: 1000 }),
   });
 }
@@ -139,21 +145,26 @@ export async function POST(req: NextRequest) {
     const shouldRespondWithAudio = messageType === "audio";
 
     console.log("[Webhook] enviando para:", phone, "audio:", shouldRespondWithAudio);
+    console.log("[Webhook] usando instanceId:", agent.instanceId, "token:", agent.token.slice(0, 6) + "...");
     if (shouldRespondWithAudio) {
       const audioBase64 = await generateAudio(response);
       const sendResult = await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-audio`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: ZAPI_HEADERS,
         body: JSON.stringify({ phone, audio: audioBase64, delay: 1000 }),
       });
-      console.log("[Webhook] audio enviado status:", sendResult.status, await sendResult.text());
+      const sendBody = await sendResult.text();
+      console.log("[Webhook] audio status:", sendResult.status);
+      console.log("[Webhook] audio body:", sendBody);
     } else {
       const sendResult = await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-text`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: ZAPI_HEADERS,
         body: JSON.stringify({ phone, message: response }),
       });
-      console.log("[Webhook] texto enviado status:", sendResult.status, await sendResult.text());
+      const sendBody = await sendResult.text();
+      console.log("[Webhook] texto status:", sendResult.status);
+      console.log("[Webhook] texto body:", sendBody);
     }
 
     return NextResponse.json({ ok: true });
