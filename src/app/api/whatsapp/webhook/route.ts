@@ -44,6 +44,7 @@ async function generateAudio(text: string): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("[WhatsApp Webhook] Recebido:", JSON.stringify(body).slice(0, 500));
 
     // Ignora mensagens enviadas pelo próprio bot
     if (body.fromMe) return NextResponse.json({ ok: true });
