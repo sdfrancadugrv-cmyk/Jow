@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       const sendResult = await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-audio`, {
         method: "POST",
         headers: ZAPI_HEADERS,
-        body: JSON.stringify({ phone, audio: audioBase64, delay: 1000 }),
+        body: JSON.stringify({ phone, audio: `data:audio/mp3;base64,${audioBase64}`, delay: 1000 }),
       });
       const sendBody = await sendResult.text();
       console.log("[Webhook] audio status:", sendResult.status);
