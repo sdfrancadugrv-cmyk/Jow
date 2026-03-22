@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     } else if (messageType === "audio" || messageType === "ptt") {
       const mediaUrl = body.audio?.audioUrl || body.audioUrl;
       const audioBuffer = await downloadMedia(mediaUrl);
-      const audioFile = new File([audioBuffer], "audio.ogg", { type: "audio/ogg" });
+      const audioFile = new File([audioBuffer.buffer as ArrayBuffer], "audio.ogg", { type: "audio/ogg" });
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
         model: "whisper-1",
