@@ -128,15 +128,25 @@ export async function POST(req: NextRequest) {
     // Adiciona mensagem do usuário ao histórico
     history.push({ role: "user", content: userContent });
 
+    // Verifica se já houve contato hoje
+    const today = new Date().toLocaleDateString("pt-BR");
+    const lastUpdate = convo?.updatedAt;
+    const lastUpdateDay = lastUpdate ? new Date(lastUpdate).toLocaleDateString("pt-BR") : null;
+    const isFirstContactToday = !lastUpdateDay || lastUpdateDay !== today;
+
+    const dailyContext = isFirstContactToday
+      ? `CONTEXTO: Primeiro contato do dia (${today}). Apresente-se pelo nome escolhido como atendente da Economize H2O.`
+      : `CONTEXTO: Cliente já foi atendido hoje (${today}). NÃO se apresente novamente. Retome o assunto de onde parou.`;
+
     // Chama o GPT-4o com a personalidade do agente
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `${agent.personality}\n\nREGRAS:\n- Responda sempre em português brasileiro\n- Seja natural e humanizado\n- Nunca mencione que é uma IA a menos que perguntado diretamente\n- Mantenha o contexto da conversa`,
+          content: `${agent.personality}\n\n${dailyContext}`,
         },
-        ...history.slice(-20), // últimas 20 mensagens
+        ...history.slice(-20),
       ],
       max_tokens: 500,
     });
