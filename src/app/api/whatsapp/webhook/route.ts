@@ -50,8 +50,14 @@ export async function POST(req: NextRequest) {
     if (body.fromMe) return NextResponse.json({ ok: true });
 
     const instanceId = body.instanceId as string;
-    const phone = (body.phone || body.from) as string;
-    const messageType = body.type as string; // text | image | audio | video | document
+    const phone = body.phone as string;
+
+    // Z-API envia type="ReceivedCallback" — detecta o tipo pelo conteúdo
+    const messageType = body.text ? "text"
+      : body.image ? "image"
+      : body.audio ? "audio"
+      : body.video ? "video"
+      : "unknown";
 
     // Busca o agente pelo instanceId
     const agent = await prisma.whatsappAgent.findFirst({
@@ -73,16 +79,16 @@ export async function POST(req: NextRequest) {
     let userContent: any;
 
     if (messageType === "text") {
-      userContent = body.text?.message || body.text || "";
+      userContent = body.text?.message || "";
     } else if (messageType === "image") {
-      const mediaUrl = body.image?.imageUrl || body.imageUrl;
+      const mediaUrl = body.image?.imageUrl;
       const caption = body.image?.caption || "";
       userContent = [
         { type: "image_url", image_url: { url: mediaUrl } },
         { type: "text", text: caption || "O que está nessa imagem?" },
       ];
-    } else if (messageType === "audio" || messageType === "ptt") {
-      const mediaUrl = body.audio?.audioUrl || body.audioUrl;
+    } else if (messageType === "audio") {
+      const mediaUrl = body.audio?.audioUrl;
       const audioBuffer = await downloadMedia(mediaUrl);
       const audioFile = new File([audioBuffer.buffer as ArrayBuffer], "audio.ogg", { type: "audio/ogg" });
       const transcription = await openai.audio.transcriptions.create({
