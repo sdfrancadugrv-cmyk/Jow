@@ -39,7 +39,7 @@ async function sendAudio(instanceId: string, token: string, phone: string, audio
 async function generateAudio(text: string): Promise<string> {
   const audio = await openai.audio.speech.create({
     model: "tts-1",
-    voice: "onyx",
+    voice: "nova",
     input: text,
     response_format: "mp3",
   });
