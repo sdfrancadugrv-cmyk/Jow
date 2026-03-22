@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -59,7 +59,6 @@ export default function LoginPage() {
       style={{ background: "radial-gradient(ellipse at center, #0D0520 0%, #060610 60%, #0A0A0F 100%)" }}
     >
       <div className="w-full max-w-sm px-6">
-        {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold tracking-[0.5em] text-purple-300"
             style={{ textShadow: "0 0 30px rgba(192,132,252,0.5)" }}>
@@ -68,14 +67,12 @@ export default function LoginPage() {
           <p className="text-xs tracking-widest text-purple-600 mt-2 uppercase">Assistente de IA Pessoal</p>
         </div>
 
-        {/* Mensagem de sucesso/info */}
         {message && (
           <div className="mb-4 px-4 py-3 rounded-lg bg-purple-900/30 border border-purple-700/50 text-purple-300 text-sm text-center">
             {message}
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <input
@@ -125,5 +122,13 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
