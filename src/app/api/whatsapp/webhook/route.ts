@@ -55,6 +55,10 @@ export async function POST(req: NextRequest) {
     // Ignora mensagens enviadas pelo próprio bot
     if (body.fromMe) return NextResponse.json({ ok: true });
 
+    // Ignora se não tem messageId (status/notificação)
+    const messageId = body.messageId as string;
+    if (!messageId) return NextResponse.json({ ok: true });
+
     const instanceId = body.instanceId as string;
     const phone = body.phone as string;
 
@@ -64,6 +68,9 @@ export async function POST(req: NextRequest) {
       : body.audio ? "audio"
       : body.video ? "video"
       : "unknown";
+
+    // Ignora mensagens sem conteúdo reconhecível
+    if (messageType === "unknown") return NextResponse.json({ ok: true });
 
     console.log("[Webhook] instanceId:", instanceId, "phone:", phone, "type:", messageType);
 
@@ -79,6 +86,13 @@ export async function POST(req: NextRequest) {
     let convo = await prisma.whatsappConversation.findUnique({
       where: { agentId_contact: { agentId: agent.id, contact: phone } },
     });
+
+    // Evita processar a mesma mensagem duas vezes (Z-API pode reenviar)
+    const processedIds = (convo as any)?.processedIds as string[] | undefined;
+    if (processedIds?.includes(messageId)) {
+      console.log("[Webhook] messageId duplicado, ignorando:", messageId);
+      return NextResponse.json({ ok: true });
+    }
 
     const history: { role: "user" | "assistant"; content: any }[] = convo
       ? (convo.messages as any[])
@@ -134,11 +148,12 @@ export async function POST(req: NextRequest) {
     // Adiciona resposta ao histórico
     history.push({ role: "assistant", content: response });
 
-    // Salva histórico
+    // Salva histórico e registra messageId para evitar duplicatas
+    const updatedIds = [...(processedIds ?? []), messageId].slice(-100);
     await prisma.whatsappConversation.upsert({
       where: { agentId_contact: { agentId: agent.id, contact: phone } },
-      create: { agentId: agent.id, contact: phone, messages: history },
-      update: { messages: history },
+      create: { agentId: agent.id, contact: phone, messages: history, processedIds: updatedIds } as any,
+      update: { messages: history, processedIds: updatedIds } as any,
     });
 
     // Decide se responde por texto ou áudio
