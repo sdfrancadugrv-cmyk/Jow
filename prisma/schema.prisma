@@ -83,8 +83,9 @@ model WhatsappConversation {
   id        String   @id @default(cuid())
   agentId   String
   contact   String   // número do contato
-  messages  Json     @default("[]")
-  updatedAt DateTime @updatedAt
+  messages      Json     @default("[]")
+  processedIds  Json     @default("[]")
+  updatedAt     DateTime @updatedAt
   agent     WhatsappAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, contact])
