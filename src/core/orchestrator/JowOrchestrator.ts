@@ -90,6 +90,21 @@ const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "gerar_link_pagamento",
+      description: "Gera um link de pagamento do Mercado Pago para cobrar um cliente. Use quando o usuário pedir para criar um link de pagamento, cobrar um cliente ou gerar um link de cobrança.",
+      parameters: {
+        type: "object",
+        properties: {
+          valor: { type: "number", description: "Valor em reais a cobrar. Ex: 147 para R$147,00" },
+          descricao: { type: "string", description: "Descrição do que está sendo cobrado. Ex: 'Instalação dispositivo de retenção de ar'" },
+        },
+        required: ["valor", "descricao"],
+      },
+    },
+  },
 ];
 
 async function executeTool(name: string, args: any, clientId: string): Promise<string> {
@@ -133,6 +148,38 @@ async function executeTool(name: string, args: any, clientId: string): Promise<s
   if (name === "remover_agente_whatsapp") {
     await prisma.whatsappAgent.deleteMany({ where: { id: args.id, clientId } });
     return `Agente removido com sucesso.`;
+  }
+
+  if (name === "gerar_link_pagamento") {
+    const mpToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+    if (!mpToken) return "Erro: MERCADO_PAGO_ACCESS_TOKEN não configurada no Vercel.";
+    try {
+      const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${mpToken}`,
+        },
+        body: JSON.stringify({
+          items: [{
+            title: args.descricao,
+            quantity: 1,
+            unit_price: args.valor,
+            currency_id: "BRL",
+          }],
+          payment_methods: {
+            excluded_payment_types: [],
+            installments: 12,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) return `Erro Mercado Pago: ${JSON.stringify(data)}`;
+      const link = data.init_point;
+      return `Link de pagamento gerado com sucesso!\n\n💳 **R$${args.valor.toFixed(2).replace(".", ",")} — ${args.descricao}**\n\n🔗 ${link}\n\nÉ só copiar e mandar pro cliente. Ele pode pagar com cartão de crédito, débito ou Pix.`;
+    } catch (err) {
+      return `Erro ao gerar link: ${err}`;
+    }
   }
 
   if (name === "editar_agente_whatsapp") {
