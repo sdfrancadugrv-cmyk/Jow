@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useJowStore } from "@/stores/jowStore";
 import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 
-const WAKE_WORDS = ["fala kadosh", "fala kadoch", "fala kadox"];
+const WAKE_WORDS = ["oi kadosh", "oi kadoch", "hey kadosh"];
 const STOP_WORDS = ["encerrar conversa", "encerra conversa", "encerrar a conversa"];
 
 function matchesWakeWord(transcript: string): boolean {
@@ -257,20 +257,20 @@ export default function VoiceButton() {
           className="relative w-16 h-16 rounded-full flex items-center justify-center cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             background: isActive
-              ? "linear-gradient(135deg, #1D4ED8, #3B82F6)"
+              ? "linear-gradient(135deg, #E8C030, #FFD700, #E8C030)"
               : isProcessing
               ? "linear-gradient(135deg, #D97706, #F59E0B)"
-              : "linear-gradient(135deg, #4C1D95, #7C3AED)",
+              : "radial-gradient(circle at 38% 35%, #FFE57A, #D4A017 50%, #7A5A00 100%)",
             boxShadow: isActive
-              ? "0 0 30px rgba(59,130,246,0.6)"
+              ? "0 0 40px rgba(255,215,0,0.8), 0 0 80px rgba(255,215,0,0.3)"
               : isProcessing
               ? "0 0 30px rgba(245,158,11,0.6)"
-              : "0 0 20px rgba(124,58,237,0.4)",
+              : "0 0 30px rgba(212,160,23,0.8), 0 0 60px rgba(212,160,23,0.35)",
           }}
         >
           {isActive && (
             <motion.div
-              className="absolute inset-0 rounded-full border-2 border-blue-400"
+              className="absolute inset-0 rounded-full border-2 border-yellow-300"
               animate={{ scale: [1, 1.6], opacity: [0.8, 0] }}
               transition={{ duration: 0.9, repeat: Infinity }}
             />
@@ -292,10 +292,10 @@ export default function VoiceButton() {
       </div>
 
       <p className="text-[10px] tracking-widest uppercase transition-all duration-300"
-        style={{ color: isActive ? "#60A5FA" : isProcessing ? "#F59E0B" : "#7C3AED" }}>
-        {isActive ? "ouvindo voz • 5s sem falar envia"
+        style={{ color: isActive ? "#FFD700" : isProcessing ? "#F59E0B" : "#7A6010" }}>
+        {isActive ? "ouvindo • 5s sem falar envia"
           : isProcessing ? "processando..."
-          : wakeWordReady ? '"fala Kadosh" ou clique'
+          : wakeWordReady ? '"oi Kadosh" ou clique'
           : "clique para falar"}
       </p>
     </div>
