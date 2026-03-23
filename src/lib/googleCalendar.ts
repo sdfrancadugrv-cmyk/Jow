@@ -91,8 +91,11 @@ export async function bookInstallation(input: BookingInput): Promise<BookingResu
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = getCalendarId();
 
-  const start = new Date(`${input.date}T${String(input.hour).padStart(2, "0")}:00:00`);
-  const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 hora
+  // Usa offset fixo -03:00 (Brasil não tem horário de verão desde 2019)
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const startStr = `${input.date}T${pad(input.hour)}:00:00-03:00`;
+  const endHour = input.hour + 1;
+  const endStr = `${input.date}T${pad(endHour)}:00:00-03:00`;
 
   const res = await calendar.events.insert({
     calendarId,
@@ -100,11 +103,11 @@ export async function bookInstallation(input: BookingInput): Promise<BookingResu
       summary: `Instalação - ${input.clientName}`,
       description: `Telefone: ${input.clientPhone}\nEndereço: ${input.clientAddress}`,
       start: {
-        dateTime: start.toISOString(),
+        dateTime: startStr,
         timeZone: TIMEZONE,
       },
       end: {
-        dateTime: end.toISOString(),
+        dateTime: endStr,
         timeZone: TIMEZONE,
       },
     },
