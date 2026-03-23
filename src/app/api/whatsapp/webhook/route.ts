@@ -206,8 +206,9 @@ export async function POST(req: NextRequest) {
 
     history.push({ role: "user", content: userContent });
 
-    const today = new Date().toLocaleDateString("pt-BR");
-    const todayISO = new Date().toISOString().split("T")[0];
+    const brasiliaDate = nowBrasilia();
+    const today = brasiliaDate.toLocaleDateString("pt-BR");
+    const todayISO = `${brasiliaDate.getFullYear()}-${String(brasiliaDate.getMonth() + 1).padStart(2, "0")}-${String(brasiliaDate.getDate()).padStart(2, "0")}`;
     const lastUpdate = convo?.updatedAt;
     const lastUpdateDay = lastUpdate ? new Date(lastUpdate).toLocaleDateString("pt-BR") : null;
     const isFirstContactToday = !lastUpdateDay || lastUpdateDay !== today;
