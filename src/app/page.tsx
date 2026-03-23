@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-// Partículas determinísticas
 function pr(seed: number) {
   const x = Math.sin(seed + 1) * 10000;
   return x - Math.floor(x);
@@ -50,71 +49,117 @@ function getMicStyle(s: VoiceState) {
 
 export default function LandingPage() {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [conversationActive, setConversationActive] = useState(false);
   const [statusText, setStatusText] = useState('diga "oi Kadosh"');
   const [bubble, setBubble] = useState("");
   const [srReady, setSrReady] = useState(false);
-  const historyRef = useRef<{ role: string; content: string }[]>([]);
-  const activeRef = useRef(false);
+
+  const historyRef   = useRef<{ role: string; content: string }[]>([]);
+  const activeRef    = useRef(false);
+  const abortRef     = useRef(false);
+  const audioRef     = useRef<HTMLAudioElement | null>(null);
   const router = useRouter();
 
-  // ── TTS via OpenAI (voz real do Kadosh) ─────────────────────────
+  // ── TTS via OpenAI ───────────────────────────────────────────────
   const speak = useCallback(async (text: string): Promise<void> => {
+    if (abortRef.current) return;
     try {
       const res = await fetch("/api/landing-speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) return;
+      if (!res.ok || abortRef.current) return;
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audioRef.current = audio;
       return new Promise((resolve) => {
-        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-        audio.play().catch(() => resolve());
+        const cleanup = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+        audio.onended = cleanup;
+        audio.onerror = cleanup;
+        audio.play().catch(cleanup);
       });
-    } catch {
-      // fallback silencioso
-    }
+    } catch { /* silencioso */ }
   }, []);
 
-  // ── Gravar e transcrever (SpeechRecognition) ────────────────────
+  // ── Ouve UMA mensagem com 4s de inércia ─────────────────────────
   const listenOnce = useCallback((): Promise<string> => {
     return new Promise((resolve) => {
+      if (abortRef.current) { resolve(""); return; }
       const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SR) { resolve(""); return; }
+
       const rec = new SR();
       rec.lang = "pt-BR";
       rec.continuous = false;
-      rec.interimResults = false;
+      rec.interimResults = true;
       rec.maxAlternatives = 3;
 
+      let bestTranscript = "";
+      let lastActivity = Date.now();
       let done = false;
-      const finish = (text: string) => { if (!done) { done = true; resolve(text); } };
+
+      const finish = (text: string) => {
+        if (done) return;
+        done = true;
+        clearInterval(silenceTimer);
+        try { rec.stop(); } catch {}
+        resolve(text);
+      };
+
+      // Verifica 4s de silêncio a cada 300ms
+      const silenceTimer = setInterval(() => {
+        if (abortRef.current) { finish(""); return; }
+        if (Date.now() - lastActivity >= 4000) finish(bestTranscript);
+      }, 300);
 
       rec.onresult = (e: any) => {
-        const text = e.results[0][0].transcript;
-        finish(text);
+        lastActivity = Date.now();
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) { finish(e.results[i][0].transcript); return; }
+          bestTranscript = e.results[i][0].transcript;
+        }
       };
-      rec.onerror = () => finish("");
-      rec.onend = () => finish("");
-      rec.start();
-
-      // timeout de segurança 15s
-      setTimeout(() => finish(""), 15000);
+      rec.onerror = () => finish(bestTranscript);
+      rec.onend   = () => finish(bestTranscript);
+      try { rec.start(); } catch { finish(""); }
     });
   }, []);
 
-  // ── Processar mensagem ──────────────────────────────────────────
+  // ── Encerrar conversa ────────────────────────────────────────────
+  const stopConversation = useCallback(() => {
+    abortRef.current  = true;
+    activeRef.current = false;
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setConversationActive(false);
+    setVoiceState("idle");
+    setBubble("");
+    setStatusText('diga "oi Kadosh" ou clique no microfone');
+    historyRef.current = [];
+  }, []);
+
+  // ── Processar mensagem em loop ───────────────────────────────────
   const processMessage = useCallback(async (userText: string) => {
+    if (abortRef.current) return;
+
+    // Silêncio: continua ouvindo
     if (!userText.trim()) {
-      setVoiceState("idle");
-      setStatusText('diga "oi Kadosh" ou clique no microfone');
-      activeRef.current = false;
+      if (!abortRef.current && activeRef.current) {
+        setVoiceState("listening");
+        setStatusText("ouvindo...");
+        const next = await listenOnce();
+        await processMessage(next);
+      } else {
+        setVoiceState("idle");
+        setConversationActive(false);
+        activeRef.current = false;
+        setStatusText('diga "oi Kadosh" ou clique no microfone');
+      }
       return;
     }
 
+    if (abortRef.current) return;
     setVoiceState("thinking");
     setStatusText("processando...");
     setBubble("");
@@ -125,6 +170,7 @@ export default function LandingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userText, history: historyRef.current }),
       });
+      if (abortRef.current) return;
       const { text, action } = await res.json();
 
       historyRef.current = [
@@ -133,39 +179,48 @@ export default function LandingPage() {
         { role: "assistant", content: text },
       ].slice(-10);
 
+      if (abortRef.current) return;
       setBubble(text);
       setVoiceState("speaking");
       setStatusText("respondendo...");
       await speak(text);
 
+      if (abortRef.current) return;
+
       if (action === "goto_register") { router.push("/register"); return; }
-      if (action === "goto_login") { router.push("/login"); return; }
+      if (action === "goto_login")    { router.push("/login"); return; }
       if (action === "close") {
         setBubble("");
         setVoiceState("idle");
-        setStatusText('diga "oi Kadosh" para continuar');
+        setConversationActive(false);
         activeRef.current = false;
+        setStatusText('diga "oi Kadosh" para continuar');
         return;
       }
 
-      // Continua a conversa — escuta próxima pergunta
-      setVoiceState("listening");
-      setStatusText("ouvindo...");
-      const next = await listenOnce();
-      await processMessage(next);
-
+      // Continua ouvindo no loop
+      if (!abortRef.current) {
+        setVoiceState("listening");
+        setStatusText("ouvindo...");
+        const next = await listenOnce();
+        await processMessage(next);
+      }
     } catch {
-      setVoiceState("idle");
-      setStatusText('diga "oi Kadosh" ou clique no microfone');
-      activeRef.current = false;
+      if (!abortRef.current) {
+        setVoiceState("idle");
+        setConversationActive(false);
+        activeRef.current = false;
+        setStatusText('diga "oi Kadosh" ou clique no microfone');
+      }
     }
   }, [speak, listenOnce, router]);
 
-  // ── Iniciar conversa ────────────────────────────────────────────
+  // ── Iniciar conversa ─────────────────────────────────────────────
   const startConversation = useCallback(async () => {
     if (activeRef.current) return;
+    abortRef.current  = false;
     activeRef.current = true;
-    window.speechSynthesis.cancel();
+    setConversationActive(true);
     setVoiceState("listening");
     setStatusText("ouvindo...");
     setBubble("");
@@ -173,7 +228,7 @@ export default function LandingPage() {
     await processMessage(text);
   }, [listenOnce, processMessage]);
 
-  // ── Wake word em background ─────────────────────────────────────
+  // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -202,7 +257,7 @@ export default function LandingPage() {
         }
       };
       rec.onerror = (e: any) => { if (e.error === "not-allowed") stopped = true; };
-      rec.onend = () => { if (!stopped && !activeRef.current) setTimeout(startWake, 400); };
+      rec.onend   = () => { if (!stopped && !activeRef.current) setTimeout(startWake, 400); };
       try { rec.start(); setSrReady(true); } catch {}
     }
 
@@ -239,8 +294,9 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Link de login discreto */}
-      <a href="/login" className="absolute top-5 right-6 z-20 text-[10px] tracking-widest uppercase transition-opacity hover:opacity-70"
+      {/* Login discreto */}
+      <a href="/login"
+        className="absolute top-5 right-6 z-20 text-[10px] tracking-widest uppercase transition-opacity hover:opacity-70"
         style={{ color: "#4A3A08", letterSpacing: "0.2em" }}>
         Já tenho acesso
       </a>
@@ -264,12 +320,12 @@ export default function LandingPage() {
           — AI ORCHESTRATOR —
         </p>
 
-        {/* Microfone com anéis — clicável */}
+        {/* Microfone com anéis */}
         <button
-          onClick={startConversation}
+          onClick={conversationActive ? stopConversation : startConversation}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
-          aria-label="Falar com Kadosh"
+          aria-label={conversationActive ? "Encerrar conversa" : "Falar com Kadosh"}
         >
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="absolute rounded-full" style={{
@@ -281,13 +337,11 @@ export default function LandingPage() {
             }} />
           ))}
 
-          {/* Círculo dourado */}
           <div className="absolute rounded-full transition-all duration-500" style={{
             width: 100, height: 100,
             ...getMicStyle(voiceState),
           }} />
 
-          {/* SVG Microfone */}
           <svg className="relative z-10" width="52" height="52" viewBox="0 0 52 52" fill="none">
             <rect x="18" y="4" width="16" height="26" rx="8" fill="url(#micGrad)" />
             <path d="M10 26c0 8.837 7.163 16 16 16s16-7.163 16-16" stroke="url(#micGrad)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
@@ -303,14 +357,10 @@ export default function LandingPage() {
           </svg>
         </button>
 
-        {/* Balão de fala do Kadosh */}
+        {/* Balão do Kadosh */}
         {bubble ? (
-          <div className="mb-6 px-5 py-3 rounded-2xl max-w-xs text-sm leading-relaxed transition-all duration-300"
-            style={{
-              background: "rgba(212,160,23,0.1)",
-              border: "1px solid rgba(212,160,23,0.3)",
-              color: "#FFE082",
-            }}>
+          <div className="mb-6 px-5 py-3 rounded-2xl max-w-xs text-sm leading-relaxed"
+            style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.3)", color: "#FFE082" }}>
             {bubble}
           </div>
         ) : (
@@ -319,23 +369,29 @@ export default function LandingPage() {
           </p>
         )}
 
-        {/* Status de voz */}
+        {/* Status */}
         <p className="text-[11px] tracking-widest uppercase mb-10 transition-all duration-300"
           style={{ color: voiceState === "idle" ? "#4A3A08" : "#D4A017" }}>
-          {srReady ? statusText : 'clique no microfone para falar'}
+          {srReady ? statusText : "clique no microfone para falar"}
         </p>
 
-        {/* Botão CTA */}
+        {/* Botão CTA — alterna entre dourado e laranja */}
         <button
-          onClick={startConversation}
-          className="px-10 py-4 rounded-full font-bold text-sm transition-transform hover:scale-105 active:scale-95"
-          style={{
+          onClick={conversationActive ? stopConversation : startConversation}
+          className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+          style={conversationActive ? {
+            background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
+            color: "#fff",
+            boxShadow: "0 0 30px rgba(249,115,22,0.7), 0 4px 20px rgba(0,0,0,0.4)",
+          } : {
             background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
             color: "#0A0808",
             boxShadow: "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
           }}
         >
-          diga &quot;oi Kadosh&quot; ou aperte aqui e faça uma pergunta
+          {conversationActive
+            ? "aperte para encerrar o diálogo"
+            : 'diga "oi Kadosh" ou aperte aqui e faça uma pergunta'}
         </button>
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
