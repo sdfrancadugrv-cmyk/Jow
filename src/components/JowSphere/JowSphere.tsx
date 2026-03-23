@@ -14,10 +14,10 @@ function useIsMobile() {
 // ── Cores por estado ─────────────────────────────────────────────
 function getColors(state: JowState) {
   switch (state) {
-    case "idle":      return { spike: "#C084FC", bright: "#EDE9FE", core: "#A855F7", glow: "rgba(192,132,252,0.5)" };
-    case "listening": return { spike: "#A855F7", bright: "#DDD6FE", core: "#7C3AED", glow: "rgba(168,85,247,0.65)" };
+    case "idle":      return { spike: "#C4A8A4", bright: "#E0D4D0", core: "#8B1A2E", glow: "rgba(139,26,46,0.5)" };
+    case "listening": return { spike: "#E0D4D0", bright: "#F0E8E4", core: "#6B1520", glow: "rgba(139,26,46,0.65)" };
     case "thinking":  return { spike: "#FCD34D", bright: "#FEF9C3", core: "#F59E0B", glow: "rgba(252,211,77,0.6)" };
-    case "speaking":  return { spike: "#D8B4FE", bright: "#F3E8FF", core: "#9333EA", glow: "rgba(216,180,254,0.6)" };
+    case "speaking":  return { spike: "#E8D0CC", bright: "#F4EAE8", core: "#9A2535", glow: "rgba(196,168,164,0.6)" };
     case "error":     return { spike: "#F87171", bright: "#FEE2E2", core: "#DC2626", glow: "rgba(248,113,113,0.6)" };
   }
 }

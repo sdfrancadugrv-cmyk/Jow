@@ -56,19 +56,19 @@ function LoginForm() {
   return (
     <main
       className="min-h-screen flex items-center justify-center"
-      style={{ background: "radial-gradient(ellipse at center, #0D0520 0%, #060610 60%, #0A0A0F 100%)" }}
+      style={{ background: "radial-gradient(ellipse at center, #100810 0%, #060608 60%, #080810 100%)" }}
     >
       <div className="w-full max-w-sm px-6">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold tracking-[0.5em] text-purple-300"
-            style={{ textShadow: "0 0 30px rgba(192,132,252,0.5)" }}>
+          <h1 className="text-5xl font-bold tracking-[0.5em]"
+            style={{ color: "#E0D4D0", textShadow: "0 0 30px rgba(139,26,46,0.5)" }}>
             KADOSH
           </h1>
-          <p className="text-xs tracking-widest text-purple-600 mt-2 uppercase">Assistente de IA Pessoal</p>
+          <p className="text-xs tracking-widest mt-2 uppercase" style={{ color: "#7A4040" }}>Assistente de IA Pessoal</p>
         </div>
 
         {message && (
-          <div className="mb-4 px-4 py-3 rounded-lg bg-purple-900/30 border border-purple-700/50 text-purple-300 text-sm text-center">
+          <div className="mb-4 px-4 py-3 rounded-lg text-sm text-center" style={{ background: "rgba(139,26,46,0.15)", border: "1px solid rgba(139,26,46,0.4)", color: "#E0D4D0" }}>
             {message}
           </div>
         )}
@@ -81,8 +81,8 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-purple-700 outline-none focus:ring-1 focus:ring-purple-500"
-              style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.3)" }}
+              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-[#5A3030] outline-none focus:ring-1 focus:ring-[#8B1A2E]"
+              style={{ background: "rgba(139,26,46,0.1)", border: "1px solid rgba(139,26,46,0.3)" }}
             />
           </div>
           <div>
@@ -92,8 +92,8 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-purple-700 outline-none focus:ring-1 focus:ring-purple-500"
-              style={{ background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.3)" }}
+              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-[#5A3030] outline-none focus:ring-1 focus:ring-[#8B1A2E]"
+              style={{ background: "rgba(139,26,46,0.1)", border: "1px solid rgba(139,26,46,0.3)" }}
             />
           </div>
 
@@ -106,17 +106,17 @@ function LoginForm() {
             disabled={loading}
             className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wider uppercase transition-all disabled:opacity-50"
             style={{
-              background: "linear-gradient(135deg, #6D28D9, #7C3AED)",
-              boxShadow: "0 0 20px rgba(124,58,237,0.4)",
+              background: "linear-gradient(135deg, #6B1520, #8B1A2E)",
+              boxShadow: "0 0 20px rgba(139,26,46,0.4)",
             }}
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 
-        <p className="text-center text-purple-700 text-xs mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: "#5A3030" }}>
           Não tem conta?{" "}
-          <Link href="/register" className="text-purple-400 hover:text-purple-300 underline">
+          <Link href="/register" className="underline" style={{ color: "#C4A8A4" }}>
             Assinar o KADOSH
           </Link>
         </p>

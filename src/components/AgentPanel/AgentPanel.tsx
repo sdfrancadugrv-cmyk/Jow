@@ -12,7 +12,7 @@ export default function AgentPanel({ agentRefs }: AgentPanelProps) {
 
   return (
     <div className="flex flex-col gap-2 w-40">
-      <p className="text-[10px] tracking-widest text-purple-500 uppercase mb-1 text-center">
+      <p className="text-[10px] tracking-widest uppercase mb-1 text-center" style={{ color: "#5A3030" }}>
         Agentes
       </p>
       {AGENTS.map((agent, i) => {
@@ -30,8 +30,8 @@ export default function AgentPanel({ agentRefs }: AgentPanelProps) {
             transition={{ duration: 0.3, delay: i * 0.04 }}
             className="relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors duration-300 overflow-hidden"
             style={{
-              borderColor: isActive ? agent.color : "#1F1F35",
-              backgroundColor: isActive ? `${agent.color}18` : "#0F0F1A",
+              borderColor: isActive ? agent.color : "#1F0A0A",
+              backgroundColor: isActive ? `${agent.color}18` : "#0D0808",
               boxShadow: isActive ? `0 0 18px ${agent.color}55, inset 0 0 12px ${agent.color}15` : "none",
             }}
           >
@@ -79,7 +79,7 @@ export default function AgentPanel({ agentRefs }: AgentPanelProps) {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="text-[9px] text-purple-400 leading-none"
+                    className="text-[9px] leading-none" style={{ color: "#7A4040" }}
                   >
                     consultando...
                   </motion.p>

@@ -14,7 +14,7 @@ export default function ChatHistory() {
 
   return (
     <div className="flex flex-col w-full md:w-48 h-48 md:h-[360px]">
-      <p className="text-[10px] tracking-widest text-purple-500 uppercase mb-2 text-center">
+      <p className="text-[10px] tracking-widest uppercase mb-2 text-center" style={{ color: "#5A3030" }}>
         Conversa
       </p>
 
@@ -24,9 +24,9 @@ export default function ChatHistory() {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center text-purple-700 text-xs mt-8"
+              className="text-center text-xs mt-8" style={{ color: "#5A3030" }}
             >
-              Diga "fala Kadosh" para começar
+              Diga "oi Kadosh" para começar
             </motion.p>
           ) : (
             conversation.map((msg, i) => (
@@ -35,16 +35,16 @@ export default function ChatHistory() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className={`px-3 py-2 rounded-lg text-xs leading-relaxed ${
+                className="px-3 py-2 rounded-lg text-xs leading-relaxed"
+                style={
                   msg.role === "user"
-                    ? "bg-purple-900/40 border border-purple-700/30 text-purple-200 ml-2"
-                    : "bg-[#0F0F1A] border border-purple-800/20 text-gray-300 mr-2"
-                }`}
+                    ? { background: "rgba(139,26,46,0.2)", border: "1px solid rgba(139,26,46,0.3)", color: "#E0D4D0", marginLeft: 8 }
+                    : { background: "#0D0808", border: "1px solid rgba(139,26,46,0.15)", color: "#C4A8A4", marginRight: 8 }
+                }
               >
                 <span
-                  className={`block text-[9px] tracking-wider mb-1 ${
-                    msg.role === "user" ? "text-purple-400" : "text-purple-600"
-                  }`}
+                  className="block text-[9px] tracking-wider mb-1"
+                  style={{ color: msg.role === "user" ? "#C4A8A4" : "#7A4040" }}
                 >
                   {msg.role === "user" ? "VOCÊ" : "KADOSH"}
                 </span>
