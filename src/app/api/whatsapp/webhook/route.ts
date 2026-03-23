@@ -4,7 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import prisma from "@/lib/prisma";
-import { checkAvailability, bookInstallation, formatAvailability } from "@/lib/googleCalendar";
+import { checkAvailability, bookInstallation, formatAvailability, findInstallation, cancelInstallationById } from "@/lib/googleCalendar";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -135,6 +135,17 @@ function extractBookingTag(text: string): {
   };
 }
 
+// Detecta tag de cancelamento no texto do GPT
+function extractCancelTag(text: string): boolean {
+  return /\[CANCELAR\]/i.test(text);
+}
+
+// Palavras que indicam intenção de cancelar
+function hasCancelIntent(text: string): boolean {
+  const t = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return ["cancelar", "cancela", "desmarcar", "desmarca", "nao quero mais", "desisti", "nao vou conseguir"].some((k) => t.includes(k));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -223,7 +234,20 @@ export async function POST(req: NextRequest) {
 
     let calendarContext = "";
 
-    if (inSchedulingContext && process.env.GOOGLE_CALENDAR_ID) {
+    // Verifica intenção de cancelamento
+    if (hasCancelIntent(userText) && process.env.GOOGLE_CALENDAR_ID) {
+      try {
+        const found = await findInstallation(phone);
+        if (found) {
+          const [y, m, d] = found.date.split("-");
+          calendarContext = `\n\nCANCELAMENTO: O cliente tem uma instalação agendada para ${d}/${m}/${y} às ${found.hour}h (${found.clientName}). Confirme se deseja cancelar. Se confirmar, inclua [CANCELAR] na resposta.`;
+        } else {
+          calendarContext = `\n\nCANCELAMENTO: Não encontrei nenhuma instalação agendada para este cliente. Informe isso ao cliente com simpatia.`;
+        }
+      } catch (err) {
+        console.error("[Webhook] erro ao buscar instalação:", err);
+      }
+    } else if (inSchedulingContext && process.env.GOOGLE_CALENDAR_ID) {
       // Tenta pegar a data mencionada pelo cliente
       const mentionedDate = parseDateFromText(userText)
         || history.slice(-4).reverse().reduce((found: string | null, m: any) => {
@@ -267,6 +291,22 @@ export async function POST(req: NextRequest) {
 
     let response = completion.choices[0]?.message?.content ?? "Desculpe, não entendi. Pode repetir?";
     console.log("[Webhook] resposta GPT:", response.slice(0, 150));
+
+    // Processa cancelamento se detectado
+    if (extractCancelTag(response)) {
+      response = response.replace(/\[CANCELAR\]/i, "").trim();
+      try {
+        const found = await findInstallation(phone);
+        if (found) {
+          await cancelInstallationById(found.eventId);
+          const [y, m, d] = found.date.split("-");
+          await notifyOwner(agent.instanceId, agent.token, found.clientName, phone, "CANCELAMENTO", found.date, found.hour);
+          console.log("[Webhook] instalação cancelada:", found);
+        }
+      } catch (err) {
+        console.error("[Webhook] erro ao cancelar:", err);
+      }
+    }
 
     // Processa tag de agendamento se presente na resposta
     const booking = extractBookingTag(response);

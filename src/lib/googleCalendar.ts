@@ -120,6 +120,74 @@ export async function bookInstallation(input: BookingInput): Promise<BookingResu
   };
 }
 
+// Cancela uma instalação pelo nome do cliente e data
+export async function cancelInstallation(clientName: string, date: string): Promise<boolean> {
+  const auth = getAuth();
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarId = getCalendarId();
+
+  const timeMin = new Date(`${date}T00:00:00-03:00`);
+  const timeMax = new Date(`${date}T23:59:59-03:00`);
+
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin: timeMin.toISOString(),
+    timeMax: timeMax.toISOString(),
+    singleEvents: true,
+    q: clientName,
+  });
+
+  const event = (res.data.items ?? []).find((e) =>
+    e.summary?.toLowerCase().includes(clientName.toLowerCase())
+  );
+
+  if (!event?.id) return false;
+
+  await calendar.events.delete({ calendarId, eventId: event.id });
+  return true;
+}
+
+// Busca agendamento futuro de um cliente pelo nome
+export async function findInstallation(clientPhone: string): Promise<{
+  eventId: string; date: string; hour: number; clientName: string;
+} | null> {
+  const auth = getAuth();
+  const calendar = google.calendar({ version: "v3", auth });
+  const calendarId = getCalendarId();
+
+  const now = new Date();
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin: now.toISOString(),
+    singleEvents: true,
+    orderBy: "startTime",
+    maxResults: 50,
+  });
+
+  const event = (res.data.items ?? []).find((e) =>
+    e.description?.includes(clientPhone)
+  );
+
+  if (!event || !event.start?.dateTime) return null;
+
+  const start = new Date(event.start.dateTime);
+  const dateStr = start.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  const hour = parseInt(start.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/Sao_Paulo" }));
+
+  return {
+    eventId: event.id ?? "",
+    date: dateStr,
+    hour,
+    clientName: event.summary?.replace("Instalação - ", "") ?? "",
+  };
+}
+
+export async function cancelInstallationById(eventId: string): Promise<void> {
+  const auth = getAuth();
+  const calendar = google.calendar({ version: "v3", auth });
+  await calendar.events.delete({ calendarId: getCalendarId(), eventId });
+}
+
 // Formata disponibilidade em texto legível para o agente
 export function formatAvailability(av: AvailabilityResult): string {
   const dateLabel = formatDateBR(av.date);
