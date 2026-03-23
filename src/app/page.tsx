@@ -57,26 +57,26 @@ export default function LandingPage() {
   const activeRef = useRef(false);
   const router = useRouter();
 
-  // ── TTS via Web Speech API ───────────────────────────────────────
-  const speak = useCallback((text: string): Promise<void> => {
-    return new Promise((resolve) => {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = "pt-BR";
-      utter.rate = 1.0;
-      utter.pitch = 1.05;
-
-      // Preferência: voz feminina pt-BR se disponível
-      const voices = window.speechSynthesis.getVoices();
-      const ptVoice = voices.find((v) =>
-        v.lang.startsWith("pt") && v.name.toLowerCase().includes("female")
-      ) || voices.find((v) => v.lang.startsWith("pt"));
-      if (ptVoice) utter.voice = ptVoice;
-
-      utter.onend = () => resolve();
-      utter.onerror = () => resolve();
-      window.speechSynthesis.speak(utter);
-    });
+  // ── TTS via OpenAI (voz real do Kadosh) ─────────────────────────
+  const speak = useCallback(async (text: string): Promise<void> => {
+    try {
+      const res = await fetch("/api/landing-speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      return new Promise((resolve) => {
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch {
+      // fallback silencioso
+    }
   }, []);
 
   // ── Gravar e transcrever (SpeechRecognition) ────────────────────
