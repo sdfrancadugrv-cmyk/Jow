@@ -1,148 +1,195 @@
 import Link from "next/link";
 
-const FEATURES = [
-  {
-    icon: "🎙️",
-    title: "Voz Natural",
-    desc: 'Fale "KADOSH" e ele responde. Sem apertar botão. Igual ao Jarvis do Homem de Ferro.',
-  },
-  {
-    icon: "🧠",
-    title: "Memória Permanente",
-    desc: "Lembra de tudo que você já conversou. Cada sessão começa de onde parou.",
-  },
-  {
-    icon: "⚡",
-    title: "Agentes Especializados",
-    desc: "Analista, Dev, Arquiteto, QA, PM e UX trabalhando em paralelo nas suas demandas.",
-  },
-  {
-    icon: "🌐",
-    title: "Internet em Tempo Real",
-    desc: "Pesquisa e traz informações atualizadas direto na conversa, sem você precisar pedir.",
-  },
-];
-
 export default function LandingPage() {
   return (
     <main
-      className="min-h-screen flex flex-col"
-      style={{ background: "radial-gradient(ellipse at center, #0D0520 0%, #060610 50%, #0A0A0F 100%)" }}
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)",
+      }}
     >
-      {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 max-w-5xl mx-auto w-full">
-        <span className="text-2xl font-bold tracking-[0.4em] text-purple-300">KADOSH</span>
-        <Link
-          href="/login"
-          className="text-xs tracking-widest uppercase text-purple-400 hover:text-purple-200 transition-colors"
-        >
-          Entrar
-        </Link>
-      </nav>
+      {/* Névoa azul-cinza — lado esquerdo */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%),
+            radial-gradient(ellipse 55% 45% at 90% 45%, rgba(18,28,70,0.35) 0%, transparent 65%),
+            radial-gradient(ellipse 80% 30% at 50% 80%, rgba(8,12,30,0.6) 0%, transparent 70%)
+          `,
+        }}
+      />
 
-      {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20">
-        <div
-          className="w-24 h-24 rounded-full flex items-center justify-center mb-8"
-          style={{
-            background: "linear-gradient(135deg, #4C1D95, #7C3AED)",
-            boxShadow: "0 0 60px rgba(124,58,237,0.5), 0 0 120px rgba(124,58,237,0.15)",
-          }}
-        >
-          <span className="text-4xl">🎙️</span>
-        </div>
+      {/* Partículas douradas */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden>
+        {PARTICLES.map((p, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${p.x}%`,
+              top: `${p.y}%`,
+              width: p.s,
+              height: p.s,
+              background: `rgba(212,170,0,${p.o})`,
+              boxShadow: `0 0 ${p.s * 2}px rgba(212,170,0,${p.o * 0.8})`,
+              animation: `twinkle ${p.d}s ease-in-out ${p.delay}s infinite alternate`,
+            }}
+          />
+        ))}
+      </div>
 
+      {/* Conteúdo central */}
+      <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
+
+        {/* Título */}
         <h1
-          className="text-6xl md:text-7xl font-bold tracking-[0.3em] text-purple-200 mb-4"
-          style={{ textShadow: "0 0 40px rgba(192,132,252,0.4)" }}
+          className="font-bold tracking-[0.35em] leading-none mb-2"
+          style={{
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontSize: "clamp(3.5rem, 12vw, 7rem)",
+            background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
+          }}
         >
           KADOSH
         </h1>
 
-        <p className="text-xl text-purple-400 mb-3 max-w-lg">
-          Seu assistente de IA pessoal com voz, memória e agentes especializados.
-        </p>
-        <p className="text-sm text-purple-700 mb-10 max-w-md">
-          Fala com ele como se fosse um humano. Ele executa tarefas, pesquisa na internet e lembra de tudo.
+        {/* Subtítulo */}
+        <p
+          className="text-xs tracking-[0.55em] mb-14 uppercase"
+          style={{ color: "#7A6010", letterSpacing: "0.55em" }}
+        >
+          — AI ORCHESTRATOR —
         </p>
 
+        {/* Microfone com anéis */}
+        <div
+          className="relative flex items-center justify-center mb-14"
+          style={{ width: 220, height: 220 }}
+        >
+          {/* Anéis radiantes */}
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: 90 + i * 38,
+                height: 90 + i * 38,
+                border: `1.5px solid rgba(212,160,23,${0.55 - i * 0.1})`,
+                boxShadow: `0 0 ${8 + i * 4}px rgba(212,160,23,${0.25 - i * 0.04})`,
+                animation: `ringPulse 2.4s ease-out ${i * 0.4}s infinite`,
+              }}
+            />
+          ))}
+
+          {/* Círculo central dourado */}
+          <div
+            className="absolute rounded-full"
+            style={{
+              width: 100,
+              height: 100,
+              background:
+                "radial-gradient(circle at 38% 35%, #FFE57A, #D4A017 50%, #7A5A00 100%)",
+              boxShadow:
+                "0 0 40px rgba(212,160,23,0.8), 0 0 80px rgba(212,160,23,0.35), inset 0 0 20px rgba(255,230,100,0.2)",
+            }}
+          />
+
+          {/* SVG Microfone */}
+          <svg
+            className="relative z-10"
+            width="52"
+            height="52"
+            viewBox="0 0 52 52"
+            fill="none"
+          >
+            {/* Corpo do microfone */}
+            <rect x="18" y="4" width="16" height="26" rx="8" fill="url(#micGrad)" />
+            {/* Suporte */}
+            <path
+              d="M10 26c0 8.837 7.163 16 16 16s16-7.163 16-16"
+              stroke="url(#micGrad)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              fill="none"
+            />
+            {/* Haste */}
+            <line x1="26" y1="42" x2="26" y2="48" stroke="url(#micGrad)" strokeWidth="2.5" strokeLinecap="round" />
+            {/* Base */}
+            <line x1="18" y1="48" x2="34" y2="48" stroke="url(#micGrad)" strokeWidth="2.5" strokeLinecap="round" />
+            <defs>
+              <linearGradient id="micGrad" x1="26" y1="4" x2="26" y2="52" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#FFE082" />
+                <stop offset="50%" stopColor="#D4A017" />
+                <stop offset="100%" stopColor="#7A5A00" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        {/* Tagline */}
+        <p
+          className="text-base md:text-lg mb-10 max-w-sm leading-relaxed"
+          style={{ color: "#C8CDD8" }}
+        >
+          Ordene seus 300 agentes de IA e conquiste sua missão.
+        </p>
+
+        {/* CTA */}
         <Link
           href="/register"
-          className="px-10 py-4 rounded-full text-white font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
+          className="px-14 py-4 rounded-full font-bold text-sm tracking-widest uppercase transition-transform hover:scale-105 active:scale-95"
           style={{
-            background: "linear-gradient(135deg, #6D28D9, #7C3AED)",
-            boxShadow: "0 0 30px rgba(124,58,237,0.5)",
+            background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
+            color: "#0A0808",
+            boxShadow:
+              "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
+            letterSpacing: "0.2em",
           }}
         >
-          Começar por R$97/mês →
+          COMANDAR AGORA
         </Link>
 
-        <p className="text-xs text-purple-800 mt-4">Cancele quando quiser · Sem fidelidade</p>
-      </section>
-
-      {/* Features */}
-      <section className="px-6 pb-20 max-w-4xl mx-auto w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {FEATURES.map((f) => (
-            <div
-              key={f.title}
-              className="p-6 rounded-xl"
-              style={{
-                background: "rgba(124,58,237,0.06)",
-                border: "1px solid rgba(124,58,237,0.2)",
-              }}
-            >
-              <div className="text-3xl mb-3">{f.icon}</div>
-              <h3 className="text-purple-200 font-semibold mb-2">{f.title}</h3>
-              <p className="text-purple-600 text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="px-6 pb-24 flex justify-center">
-        <div
-          className="w-full max-w-sm p-8 rounded-2xl text-center"
-          style={{
-            background: "rgba(124,58,237,0.08)",
-            border: "1px solid rgba(124,58,237,0.35)",
-            boxShadow: "0 0 40px rgba(124,58,237,0.15)",
-          }}
+        {/* Login link discreto */}
+        <Link
+          href="/login"
+          className="mt-8 text-xs tracking-widest uppercase transition-opacity hover:opacity-80"
+          style={{ color: "#4A3A08", letterSpacing: "0.2em" }}
         >
-          <p className="text-purple-500 text-xs tracking-widest uppercase mb-3">Plano único</p>
-          <div className="flex items-end justify-center gap-1 mb-1">
-            <span className="text-purple-400 text-lg">R$</span>
-            <span className="text-white text-6xl font-bold">97</span>
-            <span className="text-purple-500 mb-2">/mês</span>
-          </div>
-          <p className="text-purple-600 text-xs mb-6">Recorrente · Cancele quando quiser</p>
-          <ul className="text-left text-sm text-purple-400 space-y-2 mb-8">
-            {["Acesso completo ao KADOSH", "Voz, memória e agentes de IA", "Atualizações automáticas incluídas", "Até 2 dispositivos por conta", "Suporte por e-mail"].map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <span className="text-purple-500">✓</span> {item}
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/register"
-            className="block w-full py-3 rounded-full text-white font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
-            style={{
-              background: "linear-gradient(135deg, #6D28D9, #7C3AED)",
-              boxShadow: "0 0 20px rgba(124,58,237,0.4)",
-            }}
-          >
-            Assinar agora →
-          </Link>
-        </div>
-      </section>
+          Já tenho acesso
+        </Link>
+      </div>
 
-      {/* Footer */}
-      <footer className="pb-8 text-center">
-        <p className="text-[10px] tracking-widest text-purple-900 uppercase">
-          KADOSH AI · Powered by GPT-4o
-        </p>
-      </footer>
+      <style>{`
+        @keyframes twinkle {
+          from { opacity: 0.2; transform: scale(0.8); }
+          to   { opacity: 1;   transform: scale(1.3); }
+        }
+        @keyframes ringPulse {
+          0%   { transform: scale(1);   opacity: 1; }
+          70%  { transform: scale(1.15); opacity: 0.4; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+      `}</style>
     </main>
   );
 }
+
+// Partículas geradas deterministicamente para SSR
+function pr(seed: number) {
+  const x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+const PARTICLES = Array.from({ length: 80 }, (_, i) => ({
+  x: pr(i * 7.3) * 100,
+  y: pr(i * 3.7) * 100,
+  s: 1 + pr(i * 11.1) * 2.5,
+  o: 0.25 + pr(i * 5.9) * 0.65,
+  d: 2 + pr(i * 2.3) * 3,
+  delay: pr(i * 1.7) * 4,
+}));
