@@ -62,10 +62,15 @@ async function notifyOwner(
   await sendText(instanceId, token, OWNER_PHONE, msg);
 }
 
+// Retorna data atual no fuso de Brasília
+function nowBrasilia(): Date {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+}
+
 // Mapeia dia da semana mencionado para data YYYY-MM-DD
 function parseDateFromText(text: string): string | null {
   const t = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const now = new Date();
+  const now = nowBrasilia();
 
   // "amanhã"
   if (t.includes("amanha")) {
