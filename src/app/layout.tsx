@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "JOW — AI Orchestrator",
+  title: "KADOSH — AI Orchestrator",
   description: "Seu assistente pessoal de IA",
 };
 

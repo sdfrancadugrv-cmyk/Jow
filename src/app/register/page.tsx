@@ -58,7 +58,7 @@ export default function RegisterPage() {
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold tracking-[0.5em] text-purple-300"
             style={{ textShadow: "0 0 30px rgba(192,132,252,0.5)" }}>
-            JOW
+            KADOSH
           </h1>
           <p className="text-xs tracking-widest text-purple-600 mt-2 uppercase">Criar conta — R$97/mês</p>
         </div>

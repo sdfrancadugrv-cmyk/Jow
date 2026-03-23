@@ -8,9 +8,15 @@ const ZAPI_BASE = "https://api.z-api.io/instances";
 const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || "";
 
 async function configureZAPIWebhook(instanceId: string, token: string, webhookUrl: string) {
+  const headers = { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN };
+  // Webhook de mensagens recebidas (do lead)
   await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/update-webhook-received`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN },
+    method: "POST", headers,
+    body: JSON.stringify({ value: webhookUrl }),
+  });
+  // Webhook de mensagens enviadas (pelo humano ou pelo bot) — necessário para detectar takeover humano
+  await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/update-webhook-send`, {
+    method: "POST", headers,
     body: JSON.stringify({ value: webhookUrl }),
   });
 }

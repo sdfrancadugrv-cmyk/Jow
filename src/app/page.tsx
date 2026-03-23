@@ -4,7 +4,7 @@ const FEATURES = [
   {
     icon: "🎙️",
     title: "Voz Natural",
-    desc: 'Fale "JOW" e ele responde. Sem apertar botão. Igual ao Jarvis do Homem de Ferro.',
+    desc: 'Fale "KADOSH" e ele responde. Sem apertar botão. Igual ao Jarvis do Homem de Ferro.',
   },
   {
     icon: "🧠",
@@ -31,7 +31,7 @@ export default function LandingPage() {
     >
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 max-w-5xl mx-auto w-full">
-        <span className="text-2xl font-bold tracking-[0.4em] text-purple-300">JOW</span>
+        <span className="text-2xl font-bold tracking-[0.4em] text-purple-300">KADOSH</span>
         <Link
           href="/login"
           className="text-xs tracking-widest uppercase text-purple-400 hover:text-purple-200 transition-colors"
@@ -56,7 +56,7 @@ export default function LandingPage() {
           className="text-6xl md:text-7xl font-bold tracking-[0.3em] text-purple-200 mb-4"
           style={{ textShadow: "0 0 40px rgba(192,132,252,0.4)" }}
         >
-          JOW
+          KADOSH
         </h1>
 
         <p className="text-xl text-purple-400 mb-3 max-w-lg">
@@ -118,7 +118,7 @@ export default function LandingPage() {
           </div>
           <p className="text-purple-600 text-xs mb-6">Recorrente · Cancele quando quiser</p>
           <ul className="text-left text-sm text-purple-400 space-y-2 mb-8">
-            {["Acesso completo ao JOW", "Voz, memória e agentes de IA", "Atualizações automáticas incluídas", "Até 2 dispositivos por conta", "Suporte por e-mail"].map((item) => (
+            {["Acesso completo ao KADOSH", "Voz, memória e agentes de IA", "Atualizações automáticas incluídas", "Até 2 dispositivos por conta", "Suporte por e-mail"].map((item) => (
               <li key={item} className="flex items-center gap-2">
                 <span className="text-purple-500">✓</span> {item}
               </li>
@@ -140,7 +140,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="pb-8 text-center">
         <p className="text-[10px] tracking-widest text-purple-900 uppercase">
-          JOW AI · Powered by GPT-4o
+          KADOSH AI · Powered by GPT-4o
         </p>
       </footer>
     </main>

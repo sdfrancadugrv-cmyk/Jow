@@ -18,7 +18,7 @@ const JowSphere = dynamic(() => import("@/components/JowSphere/JowSphere"), {
       <div className="w-[280px] h-[280px] flex items-center justify-center">
         <div className="w-40 h-40 rounded-full bg-purple-900/40 animate-pulse shadow-[0_0_60px_#7C3AED55]" />
       </div>
-      <h1 className="text-5xl font-bold tracking-[0.4em] text-purple-300">JOW</h1>
+      <h1 className="text-5xl font-bold tracking-[0.4em] text-purple-300">KADOSH</h1>
       <p className="text-xs tracking-widest text-purple-700">INICIANDO...</p>
     </div>
   ),
@@ -73,6 +73,23 @@ export default function AppPage() {
         Sair
       </button>
 
+      {/* Atalho conversas WhatsApp */}
+      <a
+        href="/app/whatsapp"
+        className="absolute top-4 left-5 z-20"
+        style={{
+          background: "#128C7E",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          textDecoration: "none",
+          padding: "6px 14px",
+          borderRadius: 20,
+        }}
+      >
+        💬 Leads
+      </a>
+
       <div className="hidden md:block">
         <EnergyLines sphereRef={sphereRef} agentRefs={agentRefs} />
       </div>
@@ -94,7 +111,7 @@ export default function AppPage() {
 
       <div className="absolute bottom-5 text-center">
         <p className="text-[9px] tracking-[0.5em] text-purple-900 uppercase">
-          JOW AI Orchestrator v0.1 — Powered by GPT-4o
+          KADOSH AI Orchestrator v0.1 — Powered by GPT-4o
         </p>
       </div>
 
@@ -123,9 +140,9 @@ export default function AppPage() {
               >
                 <span className="text-5xl">🎙️</span>
               </div>
-              <h1 className="text-4xl font-bold tracking-[0.5em] text-purple-300">JOW</h1>
+              <h1 className="text-4xl font-bold tracking-[0.5em] text-purple-300">KADOSH</h1>
               <p className="text-sm tracking-widest text-purple-400 uppercase">Clique para ativar</p>
-              <p className="text-xs text-purple-700 tracking-wider">Depois diga &quot;fala Jow&quot; a qualquer momento</p>
+              <p className="text-xs text-purple-700 tracking-wider">Depois diga &quot;fala Kadosh&quot; a qualquer momento</p>
             </motion.div>
           </motion.div>
         )}

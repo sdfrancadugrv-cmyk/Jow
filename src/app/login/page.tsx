@@ -15,7 +15,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (params.get("payment") === "success") {
-      setMessage("Pagamento confirmado! Faça login para acessar o JOW.");
+      setMessage("Pagamento confirmado! Faça login para acessar o KADOSH.");
     }
     if (params.get("expired") === "true") {
       setMessage("Sua assinatura expirou. Renove para continuar.");
@@ -62,7 +62,7 @@ function LoginForm() {
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold tracking-[0.5em] text-purple-300"
             style={{ textShadow: "0 0 30px rgba(192,132,252,0.5)" }}>
-            JOW
+            KADOSH
           </h1>
           <p className="text-xs tracking-widest text-purple-600 mt-2 uppercase">Assistente de IA Pessoal</p>
         </div>
@@ -117,7 +117,7 @@ function LoginForm() {
         <p className="text-center text-purple-700 text-xs mt-6">
           Não tem conta?{" "}
           <Link href="/register" className="text-purple-400 hover:text-purple-300 underline">
-            Assinar o JOW
+            Assinar o KADOSH
           </Link>
         </p>
       </div>

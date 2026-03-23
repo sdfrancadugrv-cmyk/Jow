@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             unit_amount: 9700, // R$97,00
             recurring: { interval: "month" },
             product_data: {
-              name: "JOW — Assistente de IA Pessoal",
+              name: "KADOSH — Assistente de IA Pessoal",
               description: "Voz, memória, agentes de IA e busca web em tempo real",
             },
           },

@@ -28,7 +28,7 @@ export async function GET() {
     },
     body: JSON.stringify({
       phone: agent.phone,
-      message: "Teste de conexão JOW ✓",
+      message: "Teste de conexão KADOSH ✓",
     }),
   });
 

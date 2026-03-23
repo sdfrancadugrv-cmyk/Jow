@@ -80,7 +80,7 @@ export async function checkAndSummarize(
 
   try {
     const conversation = toSummarize
-      .map((m) => `${m.role === "user" ? "Usuário" : "JOW"}: ${m.content}`)
+      .map((m) => `${m.role === "user" ? "Usuário" : "KADOSH"}: ${m.content}`)
       .join("\n");
 
     const completion = await openai.chat.completions.create({
@@ -88,7 +88,7 @@ export async function checkAndSummarize(
       messages: [
         {
           role: "system",
-          content: `Você é um sistema de memória para JOW, um assistente de IA.
+          content: `Você é um sistema de memória para KADOSH, um assistente de IA.
 Crie um resumo DENSO e DETALHADO da conversa abaixo.
 O resumo deve capturar:
 - Tópicos discutidos
@@ -96,9 +96,9 @@ O resumo deve capturar:
 - Preferências e características do usuário
 - Projetos e tarefas mencionadas
 - Informações importantes sobre o usuário
-- Qualquer fato relevante que JOW deva lembrar
+- Qualquer fato relevante que KADOSH deva lembrar
 
-Seja específico e detalhado. Este resumo será usado para dar contexto ao JOW em conversas futuras.`,
+Seja específico e detalhado. Este resumo será usado para dar contexto ao KADOSH em conversas futuras.`,
         },
         { role: "user", content: `Resumir esta conversa:\n\n${conversation}` },
       ],

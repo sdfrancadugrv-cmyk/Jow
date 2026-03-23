@@ -26,7 +26,7 @@ export default function ChatHistory() {
               animate={{ opacity: 1 }}
               className="text-center text-purple-700 text-xs mt-8"
             >
-              Diga "fala Jow" para começar
+              Diga "fala Kadosh" para começar
             </motion.p>
           ) : (
             conversation.map((msg, i) => (
@@ -46,7 +46,7 @@ export default function ChatHistory() {
                     msg.role === "user" ? "text-purple-400" : "text-purple-600"
                   }`}
                 >
-                  {msg.role === "user" ? "VOCÊ" : "JOW"}
+                  {msg.role === "user" ? "VOCÊ" : "KADOSH"}
                 </span>
                 {msg.content}
               </motion.div>

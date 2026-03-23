@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useJowStore } from "@/stores/jowStore";
 import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 
-const WAKE_WORDS = ["fala jow", "fala jo", "fala joe", "fala djo"];
+const WAKE_WORDS = ["fala kadosh", "fala kadoch", "fala kadox"];
 const STOP_WORDS = ["encerrar conversa", "encerra conversa", "encerrar a conversa"];
 
 function matchesWakeWord(transcript: string): boolean {
@@ -155,9 +155,10 @@ export default function VoiceButton() {
     });
   }, [setOnReady, startRecording]);
 
-  // Wake word detection
+  // Wake word detection — desativado no mobile (evita microfone sempre aberto)
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (window.innerWidth < 768) return; // no mobile usa só o botão
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
 
@@ -294,7 +295,7 @@ export default function VoiceButton() {
         style={{ color: isActive ? "#60A5FA" : isProcessing ? "#F59E0B" : "#7C3AED" }}>
         {isActive ? "ouvindo voz • 5s sem falar envia"
           : isProcessing ? "processando..."
-          : wakeWordReady ? '"fala Jow" ou clique'
+          : wakeWordReady ? '"fala Kadosh" ou clique'
           : "clique para falar"}
       </p>
     </div>

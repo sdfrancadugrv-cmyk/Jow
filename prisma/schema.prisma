@@ -83,9 +83,16 @@ model WhatsappConversation {
   id        String   @id @default(cuid())
   agentId   String
   contact   String   // número do contato
-  messages      Json     @default("[]")
-  processedIds  Json     @default("[]")
-  updatedAt     DateTime @updatedAt
+  messages         Json     @default("[]")
+  processedIds     Json     @default("[]")
+  // Buffer de debounce: agrupa msgs rápidas antes de responder
+  pendingMessages  Json     @default("[]")  // msgs aguardando processamento
+  pendingMsgIds    Json     @default("[]")  // IDs no buffer (dedup)
+  bufferUpdatedAt  DateTime?               // última atualização do buffer
+  bufferVersion    String   @default("")   // lock otimista anti-duplicação
+  bufferIsFirst    Boolean  @default(false) // primeiro contato do dia desta sessão
+  humanMode        Boolean  @default(false) // humano assumiu — bot pausado
+  updatedAt        DateTime @updatedAt
   agent     WhatsappAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, contact])

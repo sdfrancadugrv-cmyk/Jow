@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     if (client.status !== "active") {
       return NextResponse.json({
-        error: "Assinatura inativa. Verifique seu pagamento ou assine em jow.ai",
+        error: "Assinatura inativa. Verifique seu pagamento ou assine em kadosh.ai",
         code: "INACTIVE",
       }, { status: 403 });
     }
