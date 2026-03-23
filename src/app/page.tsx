@@ -326,20 +326,17 @@ export default function LandingPage() {
         </p>
 
         {/* Botão CTA */}
-        <a
-          href="/register"
-          className="px-14 py-4 rounded-full font-bold text-sm tracking-widest uppercase transition-transform hover:scale-105 active:scale-95"
+        <button
+          onClick={startConversation}
+          className="px-10 py-4 rounded-full font-bold text-sm transition-transform hover:scale-105 active:scale-95"
           style={{
             background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
             color: "#0A0808",
             boxShadow: "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
-            letterSpacing: "0.2em",
-            textDecoration: "none",
-            display: "inline-block",
           }}
         >
-          COMANDAR AGORA
-        </a>
+          diga &quot;oi Kadosh&quot; ou aperte aqui e faça uma pergunta
+        </button>
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
           R$97/mês · cancele quando quiser
