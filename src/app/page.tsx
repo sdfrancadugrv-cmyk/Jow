@@ -67,9 +67,10 @@ export default function LandingPage() {
           — AI ORCHESTRATOR —
         </p>
 
-        {/* Microfone com anéis */}
-        <div
-          className="relative flex items-center justify-center mb-14"
+        {/* Microfone com anéis — clicável vai pro registro */}
+        <Link
+          href="/register"
+          className="relative flex items-center justify-center mb-14 cursor-pointer"
           style={{ width: 220, height: 220 }}
         >
           {/* Anéis radiantes */}
@@ -130,7 +131,7 @@ export default function LandingPage() {
               </linearGradient>
             </defs>
           </svg>
-        </div>
+        </Link>
 
         {/* Tagline */}
         <p
