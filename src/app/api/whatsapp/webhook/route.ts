@@ -187,7 +187,7 @@ export async function processConversationBuffer(convoId: string): Promise<void> 
 
   if (!convo || !convo.bufferVersion || convo.bufferVersion === "") return;
 
-  const pending = convo.pendingMessages as BufferedMessage[];
+  const pending = convo.pendingMessages as unknown as BufferedMessage[];
   if (pending.length === 0) return;
 
   // Lock otimista: tenta marcar como PROCESSING
@@ -522,7 +522,7 @@ export async function POST(req: NextRequest) {
     const isFirstContactToday = !lastUpdateDay || lastUpdateDay !== today;
 
     // Adiciona mensagem ao buffer
-    const existingPending = (convo?.pendingMessages as BufferedMessage[]) ?? [];
+    const existingPending = (convo?.pendingMessages as unknown as BufferedMessage[]) ?? [];
     const newPending: BufferedMessage[] = [...existingPending, { msgId: messageId, content: userContent, type: messageType }];
     const newPendingIds = [...pendingMsgIds, messageId];
     const newVersion = uuidv4();
@@ -537,14 +537,14 @@ export async function POST(req: NextRequest) {
         contact: phone,
         messages: [],
         processedIds: [],
-        pendingMessages: newPending,
+        pendingMessages: newPending as any,
         pendingMsgIds: newPendingIds,
         bufferUpdatedAt: new Date(),
         bufferVersion: newVersion,
         bufferIsFirst: isFirstContactToday,
       },
       update: {
-        pendingMessages: newPending,
+        pendingMessages: newPending as any,
         pendingMsgIds: newPendingIds,
         bufferUpdatedAt: new Date(),
         bufferVersion: newVersion,
