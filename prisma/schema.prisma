@@ -119,6 +119,7 @@ model ServiceProvider {
   stripeCustomerId String?  @unique
   subscriptionId   String?
   status           String   @default("inactive")
+  expiresAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   bids             Bid[]

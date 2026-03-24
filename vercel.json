@@ -1,1 +1,12 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/process-buffer",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/provider-renewal",
+      "schedule": "0 12 * * *"
+    }
+  ]
+}

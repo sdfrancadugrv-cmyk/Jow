@@ -12,25 +12,23 @@ export async function POST() {
   const provider = await prisma.serviceProvider.findUnique({ where: { id: auth.sub } });
   if (!provider) return NextResponse.json({ error: "Prestador não encontrado" }, { status: 404 });
 
-  // Se já tem assinatura ativa, vai pro dashboard
-  if (provider.status === "active") {
+  if (provider.status === "active" && provider.expiresAt && provider.expiresAt > new Date()) {
     return NextResponse.json({ url: `${APP_URL}/provider/dashboard` });
   }
 
   const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    payment_method_types: ["card"],
+    mode: "payment",
+    payment_method_types: ["card", "pix"],
     customer_email: provider.email || undefined,
     line_items: [
       {
         price_data: {
           currency: "brl",
           product_data: {
-            name: "Kadosh Prestador",
-            description: "Receba pedidos de clientes próximos a você via WhatsApp.",
+            name: "Kadosh Prestador — 30 dias",
+            description: "Receba pedidos de clientes próximos a você via WhatsApp por 30 dias.",
           },
           unit_amount: 2990,
-          recurring: { interval: "month" },
         },
         quantity: 1,
       },

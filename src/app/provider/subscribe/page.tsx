@@ -36,7 +36,8 @@ export default function ProviderSubscribePage() {
 
         <div style={{ padding: "28px 24px", borderRadius: 20, border: "1px solid rgba(212,160,23,0.35)", background: "rgba(212,160,23,0.06)", marginBottom: 24 }}>
           <p style={{ color: GOLD_LIGHT, fontSize: 36, fontWeight: 700, marginBottom: 4 }}>R$29,90</p>
-          <p style={{ color: MUTED, fontSize: 13, marginBottom: 24 }}>por mês · cancele quando quiser</p>
+          <p style={{ color: MUTED, fontSize: 13, marginBottom: 4 }}>por 30 dias · cartão ou PIX</p>
+          <p style={{ color: MUTED, fontSize: 11, marginBottom: 24 }}>você recebe aviso 7 dias antes de vencer</p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24, textAlign: "left" }}>
             {[

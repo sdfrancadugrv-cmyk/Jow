@@ -17,11 +17,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pagamento não confirmado" }, { status: 402 });
     }
 
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
     const provider = await prisma.serviceProvider.update({
       where: { id: auth.sub },
       data: {
         status: "active",
-        subscriptionId: session.subscription as string,
+        expiresAt,
         stripeCustomerId: session.customer as string,
       },
     });
