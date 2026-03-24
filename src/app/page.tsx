@@ -251,8 +251,9 @@ export default function LandingPage() {
 
       if (abortRef.current) return;
 
-      if (action === "goto_register") { router.push("/register"); return; }
-      if (action === "goto_login")    { router.push("/login"); return; }
+      if (action === "goto_register")   { router.push("/register"); return; }
+      if (action === "goto_login")       { router.push("/login"); return; }
+      if (action === "goto_services")    { router.push("/services/new"); return; }
       if (action === "close") {
         setBubble("");
         setVoiceState("idle");
