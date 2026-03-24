@@ -102,14 +102,17 @@ model WhatsappConversation {
 
 model ServiceProvider {
   id               String   @id @default(cuid())
-  email            String   @unique
-  password         String
+  email            String?  @unique
+  password         String?
   name             String
-  phone            String   @unique
-  serviceType      String
-  lat              Float
-  lng              Float
-  city             String
+  phone            String?  @unique
+  googleId         String?  @unique
+  facebookId       String?  @unique
+  authProvider     String   @default("email") // email | google | facebook | phone
+  serviceType      String?
+  lat              Float?
+  lng              Float?
+  city             String?
   rating           Float    @default(5.0)
   reviewCount      Int      @default(0)
   stripeCustomerId String?  @unique
@@ -119,6 +122,16 @@ model ServiceProvider {
   updatedAt        DateTime @updatedAt
   bids             Bid[]
   reviews          ServiceReview[]
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }
 
 model ServiceRequest {
