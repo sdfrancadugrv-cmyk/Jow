@@ -22,24 +22,39 @@ export default function ProviderDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/provider/me")
-      .then(r => { if (r.status === 401) { router.push("/provider/login"); return null; } return r.json(); })
-      .then(data => {
-        if (data) {
-          if (data.provider?.status !== "active") {
+    const fromPayment = window.location.search.includes("payment=success");
+    let attempts = 0;
+
+    const checkStatus = () => {
+      fetch("/api/provider/me")
+        .then(r => { if (r.status === 401) { router.push("/provider/login"); return null; } return r.json(); })
+        .then(data => {
+          if (!data) return;
+          if (data.provider?.status === "active") {
+            setProvider(data.provider);
+            setLoading(false);
+          } else if (fromPayment && attempts < 10) {
+            // Aguarda webhook do Stripe ativar a conta (tenta por até 20s)
+            attempts++;
+            setTimeout(checkStatus, 2000);
+          } else {
             router.push("/provider/subscribe");
-            return;
           }
-          setProvider(data.provider);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+        })
+        .catch(() => setLoading(false));
+    };
+
+    checkStatus();
   }, [router]);
 
   if (loading) return (
-    <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <p style={{ color: "#6A5010" }}>Carregando...</p>
+    <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
+      <p style={{ color: "#D4A017", fontSize: 15, fontWeight: 600 }}>
+        {window?.location?.search?.includes("payment=success") ? "Confirmando pagamento..." : "Carregando..."}
+      </p>
+      <p style={{ color: "#6A5010", fontSize: 12 }}>
+        {window?.location?.search?.includes("payment=success") ? "Aguarde alguns segundos." : ""}
+      </p>
     </main>
   );
 
