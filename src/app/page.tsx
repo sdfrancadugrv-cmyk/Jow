@@ -55,11 +55,17 @@ export default function LandingPage() {
   const [bubble, setBubble] = useState("");
   const [srReady, setSrReady] = useState(false);
 
+  const [textMode, setTextMode] = useState(false);
+  const [textInput, setTextInput] = useState("");
+
   const historyRef        = useRef<{ role: string; content: string }[]>([]);
   const activeRef         = useRef(false);
   const abortRef          = useRef(false);
   const audioRef          = useRef<HTMLAudioElement | null>(null);
   const audioUnlockedRef  = useRef(false);
+  const textModeRef       = useRef(false);
+  const textResolveRef    = useRef<((v: string) => void) | null>(null);
+  const cancelListenRef   = useRef(false);
   const router = useRouter();
 
   // Desbloqueia autoplay no gesto do usuário (deve ser síncrono)
@@ -123,7 +129,7 @@ export default function LandingPage() {
 
       // Verifica 4s de silêncio a cada 300ms
       const silenceTimer = setInterval(() => {
-        if (abortRef.current) { finish(""); return; }
+        if (abortRef.current || cancelListenRef.current) { cancelListenRef.current = false; finish(""); return; }
         if (Date.now() - lastActivity >= 4000) finish(bestTranscript);
       }, 300);
 
@@ -140,11 +146,56 @@ export default function LandingPage() {
     });
   }, []);
 
+  // ── Aguarda input de texto ────────────────────────────────────────
+  const waitForText = useCallback((): Promise<string> => {
+    return new Promise((resolve) => {
+      textResolveRef.current = resolve;
+    });
+  }, []);
+
+  // ── Input unificado (voz ou texto) ───────────────────────────────
+  const getInput = useCallback((): Promise<string> => {
+    if (textModeRef.current) {
+      setVoiceState("listening");
+      setStatusText("aguardando mensagem...");
+      return waitForText();
+    }
+    return listenOnce();
+  }, [listenOnce, waitForText]);
+
+  // ── Enviar mensagem de texto ──────────────────────────────────────
+  const handleTextSubmit = useCallback(() => {
+    const val = textInput.trim();
+    if (!val) return;
+    setTextInput("");
+    if (textResolveRef.current) {
+      textResolveRef.current(val);
+      textResolveRef.current = null;
+    }
+  }, [textInput]);
+
+  // ── Alternar modo voz / texto ─────────────────────────────────────
+  const toggleTextMode = useCallback(() => {
+    const next = !textModeRef.current;
+    textModeRef.current = next;
+    setTextMode(next);
+    if (next && voiceState === "listening") {
+      // aborta microfone atual para entrar no waitForText
+      cancelListenRef.current = true;
+    }
+    if (!next && textResolveRef.current) {
+      // volta pra voz: cancela espera de texto pendente
+      textResolveRef.current("");
+      textResolveRef.current = null;
+    }
+  }, [voiceState]);
+
   // ── Encerrar conversa ────────────────────────────────────────────
   const stopConversation = useCallback(() => {
     abortRef.current  = true;
     activeRef.current = false;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (textResolveRef.current) { textResolveRef.current(""); textResolveRef.current = null; }
     setConversationActive(false);
     setVoiceState("idle");
     setBubble("");
@@ -161,7 +212,7 @@ export default function LandingPage() {
       if (!abortRef.current && activeRef.current) {
         setVoiceState("listening");
         setStatusText("ouvindo...");
-        const next = await listenOnce();
+        const next = await getInput();
         await processMessage(next);
       } else {
         setVoiceState("idle");
@@ -215,7 +266,7 @@ export default function LandingPage() {
       if (!abortRef.current) {
         setVoiceState("listening");
         setStatusText("ouvindo...");
-        const next = await listenOnce();
+        const next = await getInput();
         await processMessage(next);
       }
     } catch {
@@ -226,7 +277,7 @@ export default function LandingPage() {
         setStatusText('diga "oi Kadosh" ou clique no microfone');
       }
     }
-  }, [speak, listenOnce, router]);
+  }, [speak, getInput, router]);
 
   // ── Iniciar conversa ─────────────────────────────────────────────
   const startConversation = useCallback(async () => {
@@ -237,9 +288,9 @@ export default function LandingPage() {
     setVoiceState("listening");
     setStatusText("ouvindo...");
     setBubble("");
-    const text = await listenOnce();
+    const text = await getInput();
     await processMessage(text);
-  }, [listenOnce, processMessage]);
+  }, [getInput, processMessage]);
 
   // ── Saudação ao ativar ───────────────────────────────────────────
   useEffect(() => {
@@ -313,7 +364,7 @@ export default function LandingPage() {
       if (action === "goto_login")    { router.push("/login"); return; }
       setVoiceState("listening");
       setStatusText("ouvindo...");
-      const next = await listenOnce();
+      const next = await getInput();
       await processMessage(next);
     } catch {
       activeRef.current = false;
@@ -321,7 +372,7 @@ export default function LandingPage() {
       setVoiceState("idle");
       setStatusText('diga "oi Kadosh" ou clique no microfone');
     }
-  }, [speak, listenOnce, processMessage, router]);
+  }, [speak, getInput, processMessage, router]);
 
   // ── Ativar com um clique ─────────────────────────────────────────
   const handleActivate = useCallback(() => {
@@ -492,10 +543,57 @@ export default function LandingPage() {
         )}
 
         {/* Status */}
-        <p className="text-[11px] tracking-widest uppercase mb-10 transition-all duration-300"
+        <p className="text-[11px] tracking-widest uppercase mb-3 transition-all duration-300"
           style={{ color: voiceState === "idle" ? "#4A3A08" : "#D4A017" }}>
           {srReady ? statusText : "clique no microfone para falar"}
         </p>
+
+        {/* Toggle voz / texto */}
+        <button
+          onClick={toggleTextMode}
+          title={textMode ? "Voltar para conversa por voz" : "Conversar por texto"}
+          className="mb-4 px-3 py-1 rounded-full text-[9px] tracking-widest uppercase transition-all duration-300 hover:opacity-80 focus:outline-none"
+          style={{
+            border: "1px solid rgba(212,160,23,0.3)",
+            color: textMode ? "#D4A017" : "#3A2C06",
+            background: textMode ? "rgba(212,160,23,0.08)" : "transparent",
+          }}
+        >
+          {textMode ? "usar voz" : "usar texto"}
+        </button>
+
+        {/* Campo de texto (visível só em modo texto com conversa ativa) */}
+        {textMode && conversationActive && (
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleTextSubmit(); }}
+            className="flex gap-2 w-full max-w-xs mb-4"
+          >
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="escreva aqui..."
+              autoFocus
+              className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-kadosh"
+              style={{
+                border: "1px solid rgba(212,160,23,0.35)",
+                color: "#FFE082",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!textInput.trim()}
+              className="px-4 py-2 rounded-full text-[10px] tracking-widest uppercase font-bold transition-all hover:opacity-80 disabled:opacity-30 focus:outline-none"
+              style={{
+                border: "1px solid rgba(212,160,23,0.35)",
+                color: "#D4A017",
+                background: "rgba(212,160,23,0.08)",
+              }}
+            >
+              enviar
+            </button>
+          </form>
+        )}
 
         {/* Botão CTA — alterna entre dourado e laranja */}
         <button
@@ -531,6 +629,7 @@ export default function LandingPage() {
           70%  { transform: scale(1.15); opacity: 0.4; }
           100% { transform: scale(1);    opacity: 1; }
         }
+        .text-input-kadosh::placeholder { color: #3A2C06; }
       `}</style>
     </main>
   );
