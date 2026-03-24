@@ -105,7 +105,10 @@ PLANOS KADOSH VENDEDOR:
 - Pro: R$197/mês — produtos ilimitados, até 3.000 conversas
 - Scale: R$397/mês — tudo ilimitado
 
-(Kadosh Secretária e Kadosh Expert: quando o usuário perguntar sobre valores desses modos, informe que os planos são apresentados no momento do cadastro e convide a assinar.) [ASSINAR]
+PLANO KADOSH EXPERT:
+- R$899/mês — acesso completo, cria qualquer aplicação que desejar
+
+PLANO KADOSH SECRETÁRIA: quando o usuário perguntar sobre valores, informe que os planos são apresentados no momento do cadastro e convide a assinar. [ASSINAR]
 
 ---
 
