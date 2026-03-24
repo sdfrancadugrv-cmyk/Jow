@@ -3,18 +3,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+import { SERVICE_LABELS } from "@/lib/service-types";
+
 const GOLD = "#D4A017";
 const GOLD_LIGHT = "#FFE082";
 const BG = "#070B18";
-
-const SERVICE_LABELS: Record<string, string> = {
-  faxineira: "Faxina / Diarista",
-  pedreiro: "Pedreiro",
-  eletricista: "Eletricista",
-  encanador: "Encanador",
-  pintor: "Pintor",
-  outros: "Serviço geral",
-};
+const TEXT = "#D8C890";
+const LABEL = "#A08030";
+const MUTED = "#7A6018";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -97,39 +93,39 @@ export default function ServiceBidsPage() {
         </p>
 
         {request && (
-          <div style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(212,160,23,0.2)", background: "rgba(212,160,23,0.04)", marginBottom: 20 }}>
+          <div style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(212,160,23,0.25)", background: "rgba(212,160,23,0.06)", marginBottom: 20 }}>
             <p style={{ color: GOLD_LIGHT, fontWeight: 700, fontSize: 15 }}>
               {SERVICE_LABELS[request.serviceType] || request.serviceType}
             </p>
-            <p style={{ color: "#C8CDD8", fontSize: 12, marginTop: 2 }}>Data: {request.scheduledDate}</p>
-            {request.description && <p style={{ color: "#6A5010", fontSize: 12, marginTop: 2 }}>{request.description}</p>}
+            <p style={{ color: TEXT, fontSize: 13, marginTop: 2 }}>Data: {request.scheduledDate}</p>
+            {request.description && <p style={{ color: LABEL, fontSize: 13, marginTop: 2 }}>{request.description}</p>}
           </div>
         )}
 
-        {error && <p style={{ color: "#F97316", fontSize: 12, textAlign: "center", marginBottom: 12 }}>{error}</p>}
+        {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center", marginBottom: 12 }}>{error}</p>}
 
-        {loading && <p style={{ textAlign: "center", color: "#6A5010", fontSize: 13 }}>Aguardando propostas...</p>}
+        {loading && <p style={{ textAlign: "center", color: LABEL, fontSize: 13 }}>Aguardando propostas...</p>}
 
         {!loading && bids.length === 0 && (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <p style={{ color: "#6A5010", fontSize: 13 }}>Nenhuma proposta ainda.</p>
-            <p style={{ color: "#3A2C06", fontSize: 11, marginTop: 8 }}>Os prestadores foram notificados pelo WhatsApp. Esta página atualiza automaticamente.</p>
+            <p style={{ color: LABEL, fontSize: 14 }}>Nenhuma proposta ainda.</p>
+            <p style={{ color: MUTED, fontSize: 12, marginTop: 8 }}>Os prestadores foram notificados pelo WhatsApp. Esta página atualiza a cada 15 segundos.</p>
           </div>
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {bids.map(bid => (
-            <div key={bid.id} style={{ padding: "16px 18px", borderRadius: 16, border: "1px solid rgba(212,160,23,0.25)", background: "rgba(212,160,23,0.05)" }}>
+            <div key={bid.id} style={{ padding: "16px 18px", borderRadius: 16, border: "1px solid rgba(212,160,23,0.3)", background: "rgba(212,160,23,0.06)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div>
-                  <p style={{ color: GOLD_LIGHT, fontWeight: 700, fontSize: 15 }}>{bid.providerName}</p>
-                  <p style={{ color: "#6A5010", fontSize: 11, marginTop: 2 }}>{bid.providerCity}</p>
+                  <p style={{ color: GOLD_LIGHT, fontWeight: 700, fontSize: 16 }}>{bid.providerName}</p>
+                  <p style={{ color: LABEL, fontSize: 12, marginTop: 2 }}>{bid.providerCity}</p>
                 </div>
-                <p style={{ color: GOLD, fontWeight: 700, fontSize: 18 }}>R$ {bid.price.toFixed(2).replace(".", ",")}</p>
+                <p style={{ color: GOLD, fontWeight: 700, fontSize: 20 }}>R$ {bid.price.toFixed(2).replace(".", ",")}</p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
                 <StarRating rating={bid.providerRating} />
-                <span style={{ color: "#6A5010", fontSize: 11 }}>
+                <span style={{ color: TEXT, fontSize: 12 }}>
                   {bid.providerRating.toFixed(1)} · {bid.providerReviewCount} {bid.providerReviewCount === 1 ? "avaliação" : "avaliações"}
                 </span>
               </div>
@@ -144,7 +140,7 @@ export default function ServiceBidsPage() {
           ))}
         </div>
 
-        <p style={{ textAlign: "center", fontSize: 10, color: "#2A2208", marginTop: 24 }}>
+        <p style={{ textAlign: "center", fontSize: 12, color: MUTED, marginTop: 24 }}>
           Após o pagamento de R$9,90 você recebe o WhatsApp do prestador para combinar os detalhes.
         </p>
       </div>

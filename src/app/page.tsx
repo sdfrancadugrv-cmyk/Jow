@@ -522,8 +522,8 @@ export default function LandingPage() {
 
       {/* Login discreto */}
       <a href="/login"
-        className="absolute top-5 right-6 z-20 text-[10px] tracking-widest uppercase transition-opacity hover:opacity-70"
-        style={{ color: "#4A3A08", letterSpacing: "0.2em" }}>
+        className="absolute top-5 right-6 z-20 text-[11px] tracking-widest uppercase transition-opacity hover:opacity-80"
+        style={{ color: "#C8A850", letterSpacing: "0.2em", fontWeight: 600 }}>
         Já tenho acesso
       </a>
 

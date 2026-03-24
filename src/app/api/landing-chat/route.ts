@@ -151,7 +151,7 @@ teaching — pede para aprender, estudar, receber aula, explicação ou informa�
 selling — quer ajuda para vender produto, criar funil ou estratégia de vendas
 building — quer criar sistema, app, agente, automatizar processo ou desenvolver algo
 reception — quer agendar, organizar agenda, atender clientes ou pacientes
-services — quer contratar um serviço local (faxineira, pedreiro, eletricista, pintor, encanador, etc.) ou quer se cadastrar como prestador de serviços para oferecer trabalho
+services — quer contratar qualquer serviço local: saúde (psicólogo, psiquiatra, traumatologista, cardiologista, dentista, fisioterapeuta, nutricionista, etc.), jurídico (advogado trabalhista, criminal, civil, família, etc.), casa e manutenção (faxineira, pedreiro, eletricista, encanador, pintor, etc.), transporte (frete, mudança, motorista, motoboy), beleza (cabeleireiro, personal trainer, etc.) — ou quer se cadastrar como prestador de qualquer desses serviços
 other — dúvida sobre o produto/serviço, saudação, navegação ou qualquer outra coisa`,
       },
       { role: "user", content: message },
