@@ -20,9 +20,11 @@ export default function ProviderDashboardPage() {
   const router = useRouter();
   const [provider, setProvider] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [fromPayment, setFromPayment] = useState(false);
 
   useEffect(() => {
     const fromPayment = window.location.search.includes("payment=success");
+    setFromPayment(fromPayment);
     let attempts = 0;
 
     const checkStatus = () => {
@@ -50,10 +52,10 @@ export default function ProviderDashboardPage() {
   if (loading) return (
     <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
       <p style={{ color: "#D4A017", fontSize: 15, fontWeight: 600 }}>
-        {window?.location?.search?.includes("payment=success") ? "Confirmando pagamento..." : "Carregando..."}
+        {fromPayment ? "Confirmando pagamento..." : "Carregando..."}
       </p>
       <p style={{ color: "#6A5010", fontSize: 12 }}>
-        {window?.location?.search?.includes("payment=success") ? "Aguarde alguns segundos." : ""}
+        {fromPayment ? "Aguarde alguns segundos." : ""}
       </p>
     </main>
   );
