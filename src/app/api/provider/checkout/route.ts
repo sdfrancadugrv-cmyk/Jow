@@ -36,7 +36,7 @@ export async function POST() {
       },
     ],
     metadata: { providerId: provider.id },
-    success_url: `${APP_URL}/provider/dashboard?payment=success`,
+    success_url: `${APP_URL}/provider/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL}/provider/subscribe`,
   });
 

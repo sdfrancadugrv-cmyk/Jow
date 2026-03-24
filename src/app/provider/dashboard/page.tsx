@@ -23,11 +23,12 @@ export default function ProviderDashboardPage() {
   const [fromPayment, setFromPayment] = useState(false);
 
   useEffect(() => {
-    const fromPayment = window.location.search.includes("payment=success");
-    setFromPayment(fromPayment);
-    let attempts = 0;
+    const params = new URLSearchParams(window.location.search);
+    const isPayment = params.get("payment") === "success";
+    const sessionId = params.get("session_id");
+    setFromPayment(isPayment);
 
-    const checkStatus = () => {
+    const loadDashboard = () => {
       fetch("/api/provider/me")
         .then(r => { if (r.status === 401) { router.push("/provider/login"); return null; } return r.json(); })
         .then(data => {
@@ -35,10 +36,6 @@ export default function ProviderDashboardPage() {
           if (data.provider?.status === "active") {
             setProvider(data.provider);
             setLoading(false);
-          } else if (fromPayment && attempts < 10) {
-            // Aguarda webhook do Stripe ativar a conta (tenta por até 20s)
-            attempts++;
-            setTimeout(checkStatus, 2000);
           } else {
             router.push("/provider/subscribe");
           }
@@ -46,7 +43,16 @@ export default function ProviderDashboardPage() {
         .catch(() => setLoading(false));
     };
 
-    checkStatus();
+    if (isPayment && sessionId) {
+      // Confirma o pagamento direto no Stripe e ativa o provider imediatamente
+      fetch("/api/provider/confirm-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      }).then(() => loadDashboard()).catch(() => loadDashboard());
+    } else {
+      loadDashboard();
+    }
   }, [router]);
 
   if (loading) return (
