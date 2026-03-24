@@ -75,8 +75,12 @@ Quando o usuário demonstrar interesse em agenda ou atendimento ou perguntar sob
 Quando o usuário demonstrar interesse em criar sistemas ou aplicações ou perguntar sobre o modo Expert, use EXATAMENTE:
 "Como Expert, posso criar qualquer aplicação que você tenha em mente, desde que seja executável pelo computador — ou seja, qualquer coisa relacionada à computação eu posso criar."
 
-Quando o usuário demonstrar interesse em contratar um serviço local (faxineira, pedreiro, eletricista, encanador, pintor, etc.) ou em se cadastrar como prestador de serviços, use EXATAMENTE:
-"Como central de serviços locais, conecto quem precisa de um serviço com profissionais da sua região. Você pede por voz qual serviço quer e quando, os prestadores disponíveis perto de você recebem o pedido e enviam suas propostas com o valor cobrado. Você vê a nota de cada um, escolhe com quem quer fechar, e só depois do pagamento os dois recebem o contato um do outro para combinar os detalhes. Para quem quer oferecer serviços, basta pagar vinte e nove reais e noventa centavos por mês para receber pedidos próximos de você."
+Quando o usuário demonstrar interesse em contratar um serviço local (faxineira, pedreiro, eletricista, encanador, pintor, etc.):
+NÃO explique como funciona. NÃO mencione preços. Confirme o serviço em 1 frase curta e emita [BUSCAR_SERVICO] imediatamente.
+Exemplos: "Vou buscar um eletricista perto de você." [BUSCAR_SERVICO] / "Procurando faxineira disponível na sua região." [BUSCAR_SERVICO]
+
+Quando o usuário quiser SE CADASTRAR como prestador de serviços para oferecer trabalho:
+Diga apenas "Vou te levar para o cadastro de prestadores." e emita [CADASTRAR_PRESTADOR]
 
 ---
 
@@ -183,7 +187,7 @@ export async function POST(req: NextRequest) {
     } else if (intent === "reception") {
       systemOverride = `O usuário quer agendar ou organizar atendimento. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH SECRETÁRIA ELETRÔNICA VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
     } else if (intent === "services") {
-      systemOverride = `O usuário demonstrou interesse em contratar um serviço local ou em se cadastrar como prestador. NÃO execute a busca. Apresente o modo KADOSH CENTRAL DE SERVIÇOS LOCAIS conforme suas instruções: explique como funciona, mencione o valor de vinte e nove reais e noventa centavos para prestadores, e quando o usuário quiser usar emita [BUSCAR_SERVICO].`;
+      systemOverride = `O usuário precisa de um serviço local ou quer se oferecer como prestador. REGRAS ABSOLUTAS: NÃO explique como funciona o sistema. NÃO mencione preços a menos que o usuário perguntar. Responda em 1 frase curta e emita a ação imediatamente. Se quer CONTRATAR alguém: confirme o tipo de serviço e emita [BUSCAR_SERVICO]. Se quer SE CADASTRAR como prestador: emita [CADASTRAR_PRESTADOR]. Preço só se perguntado: mensalidade para prestador, valor por serviço contratado para quem busca.`;
     }
 
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -215,6 +219,9 @@ export async function POST(req: NextRequest) {
     } else if (text.includes("[BUSCAR_SERVICO]")) {
       action = "goto_services";
       text = text.replace("[BUSCAR_SERVICO]", "").trim();
+    } else if (text.includes("[CADASTRAR_PRESTADOR]")) {
+      action = "goto_provider";
+      text = text.replace("[CADASTRAR_PRESTADOR]", "").trim();
     } else if (text.includes("[LOGIN]")) {
       action = "goto_login";
       text = text.replace("[LOGIN]", "").trim();

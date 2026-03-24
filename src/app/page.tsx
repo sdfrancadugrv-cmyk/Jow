@@ -79,27 +79,64 @@ export default function LandingPage() {
     } catch {}
   }, []);
 
-  // ── TTS via OpenAI ───────────────────────────────────────────────
-  const speak = useCallback(async (text: string): Promise<void> => {
-    if (abortRef.current) return;
+  // ── TTS via OpenAI — retorna texto interrompido ou "" ────────────
+  const speak = useCallback(async (text: string): Promise<string> => {
+    if (abortRef.current) return "";
     try {
       const res = await fetch("/api/landing-speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok || abortRef.current) return;
+      if (!res.ok || abortRef.current) return "";
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
+
       return new Promise((resolve) => {
-        const cleanup = () => { URL.revokeObjectURL(url); audioRef.current = null; resolve(); };
+        let interruptText = "";
+        let rec: any = null;
+
+        // Inicia SR para detectar interrupção humana após 600ms
+        // (evita capturar o próprio TTS no início)
+        const startInterruptSR = () => {
+          if (textModeRef.current || abortRef.current) return;
+          const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+          if (!SR) return;
+          rec = new SR();
+          rec.continuous = false;
+          rec.interimResults = false;
+          rec.lang = "pt-BR";
+          rec.maxAlternatives = 1;
+          rec.onresult = (e: any) => {
+            const detected = (e.results[0]?.[0]?.transcript || "").trim();
+            // Só interrompe se detectou algo que não é parte do TTS atual
+            if (detected.length > 2 && !text.toLowerCase().includes(detected.toLowerCase().slice(0, 12))) {
+              interruptText = detected;
+              audio.pause();
+              try { rec.stop(); } catch {}
+            }
+          };
+          rec.onerror = () => {};
+          try { rec.start(); } catch {}
+        };
+
+        const srTimer = setTimeout(startInterruptSR, 600);
+
+        const cleanup = () => {
+          clearTimeout(srTimer);
+          URL.revokeObjectURL(url);
+          audioRef.current = null;
+          try { rec?.stop(); } catch {}
+          resolve(interruptText);
+        };
+
         audio.onended = cleanup;
         audio.onerror = cleanup;
         audio.play().catch(cleanup);
       });
-    } catch { /* silencioso */ }
+    } catch { return ""; }
   }, []);
 
   // ── Ouve UMA mensagem com 4s de inércia ─────────────────────────
@@ -247,19 +284,28 @@ export default function LandingPage() {
       setBubble(text);
       setVoiceState("speaking");
       setStatusText("respondendo...");
-      await speak(text);
+      const interrupted = await speak(text);
 
       if (abortRef.current) return;
 
       if (action === "goto_register")   { router.push("/register"); return; }
       if (action === "goto_login")       { router.push("/login"); return; }
       if (action === "goto_services")    { router.push("/services/new"); return; }
+      if (action === "goto_provider")    { router.push("/provider/register"); return; }
       if (action === "close") {
         setBubble("");
         setVoiceState("idle");
         setConversationActive(false);
         activeRef.current = false;
         setStatusText('diga "oi Kadosh" para continuar');
+        return;
+      }
+
+      // Se usuário interrompeu: processa o que ele disse imediatamente
+      if (interrupted) {
+        setBubble("");
+        setVoiceState("thinking");
+        await processMessage(interrupted);
         return;
       }
 
@@ -359,10 +405,16 @@ export default function LandingPage() {
       setVoiceState("speaking");
       setStatusText("respondendo...");
       historyRef.current = [{ role: "assistant", content: text }];
-      await speak(text);
+      const interrupted = await speak(text);
       if (abortRef.current) return;
       if (action === "goto_register") { router.push("/register"); return; }
       if (action === "goto_login")    { router.push("/login"); return; }
+      if (interrupted) {
+        setBubble("");
+        setVoiceState("thinking");
+        await processMessage(interrupted);
+        return;
+      }
       setVoiceState("listening");
       setStatusText("ouvindo...");
       const next = await getInput();
