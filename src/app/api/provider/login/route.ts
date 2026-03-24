@@ -11,10 +11,11 @@ export async function POST(req: NextRequest) {
     const provider = await prisma.serviceProvider.findUnique({ where: { email } });
     if (!provider) return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
 
+    if (!provider.password) return NextResponse.json({ error: "Use o login social para esta conta" }, { status: 401 });
     const valid = await bcrypt.compare(password, provider.password);
     if (!valid) return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
 
-    const token = signProviderToken({ sub: provider.id, email: provider.email, name: provider.name, status: provider.status });
+    const token = signProviderToken({ sub: provider.id, email: provider.email || "", name: provider.name, status: provider.status });
     const cookieStore = await cookies();
     cookieStore.set("kadosh_provider_token", token, { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 * 7, path: "/" });
 

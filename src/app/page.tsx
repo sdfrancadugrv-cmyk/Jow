@@ -98,31 +98,40 @@ export default function LandingPage() {
         let interruptText = "";
         let rec: any = null;
 
-        // Inicia SR para detectar interrupção humana após 600ms
-        // (evita capturar o próprio TTS no início)
+        // Inicia SR contínuo para detectar interrupção — começa após 800ms
+        // (evita capturar o próprio eco do TTS no início)
         const startInterruptSR = () => {
           if (textModeRef.current || abortRef.current) return;
           const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
           if (!SR) return;
           rec = new SR();
-          rec.continuous = false;
-          rec.interimResults = false;
+          rec.continuous = true;
+          rec.interimResults = true;
           rec.lang = "pt-BR";
           rec.maxAlternatives = 1;
           rec.onresult = (e: any) => {
-            const detected = (e.results[0]?.[0]?.transcript || "").trim();
-            // Só interrompe se detectou algo que não é parte do TTS atual
-            if (detected.length > 2 && !text.toLowerCase().includes(detected.toLowerCase().slice(0, 12))) {
-              interruptText = detected;
-              audio.pause();
-              try { rec.stop(); } catch {}
+            for (let i = e.resultIndex; i < e.results.length; i++) {
+              const detected = (e.results[i][0]?.transcript || "").trim();
+              // Interrompe ao detectar qualquer fala com > 2 chars
+              if (detected.length > 2) {
+                interruptText = e.results[i].isFinal ? detected : detected;
+                audio.pause();
+                try { rec.stop(); } catch {}
+                return;
+              }
             }
           };
           rec.onerror = () => {};
+          rec.onend = () => {
+            // Reinicia enquanto áudio ainda toca (para não perder a interrupção)
+            if (!interruptText && audioRef.current && !audioRef.current.paused) {
+              try { rec.start(); } catch {}
+            }
+          };
           try { rec.start(); } catch {}
         };
 
-        const srTimer = setTimeout(startInterruptSR, 600);
+        const srTimer = setTimeout(startInterruptSR, 800);
 
         const cleanup = () => {
           clearTimeout(srTimer);

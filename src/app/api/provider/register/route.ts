@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       data: { name, email, password: hashed, phone, serviceType, lat, lng, city: city || "", status: "active" },
     });
 
-    const token = signProviderToken({ sub: provider.id, email: provider.email, name: provider.name, status: provider.status });
+    const token = signProviderToken({ sub: provider.id, email: provider.email || "", name: provider.name, status: provider.status });
     const cookieStore = await cookies();
     cookieStore.set("kadosh_provider_token", token, { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 * 7, path: "/" });
 

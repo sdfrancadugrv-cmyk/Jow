@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       `Data: ${bid.request.scheduledDate}\n\n` +
       `WhatsApp do cliente: *${bid.request.clientPhone}*\n\n` +
       `Entre em contato para combinar os detalhes. Bom trabalho!`;
-    await sendWhatsApp(bid.provider.phone, msg);
+    if (bid.provider.phone) await sendWhatsApp(bid.provider.phone, msg);
 
     return NextResponse.json({ providerPhone: bid.provider.phone, providerName: bid.provider.name });
   } catch (e) {

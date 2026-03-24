@@ -35,10 +35,13 @@ export async function POST(req: NextRequest) {
 
     // Filtra por raio e envia WhatsApp com link de proposta
     const label = SERVICE_LABELS[serviceType] || serviceType;
-    const nearby = providers.filter(p => distanceKm(clientLat, clientLng, p.lat, p.lng) <= RADIUS_KM);
+    const nearby = providers.filter(p =>
+      p.lat != null && p.lng != null && distanceKm(clientLat, clientLng, p.lat!, p.lng!) <= RADIUS_KM
+    );
 
     await Promise.all(
       nearby.map(async (p) => {
+        if (!p.phone) return;
         const bidToken = signBidLinkToken(p.id, request.id);
         const link = `${APP_URL}/provider/bid/${request.id}?t=${bidToken}`;
         const msg =
