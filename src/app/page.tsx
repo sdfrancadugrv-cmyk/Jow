@@ -241,6 +241,12 @@ export default function LandingPage() {
     await processMessage(text);
   }, [listenOnce, processMessage]);
 
+  // ── Saudação ao ativar ───────────────────────────────────────────
+  useEffect(() => {
+    if (activated) greetAndListen();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activated]);
+
   // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
     if (!activated) return;
@@ -278,6 +284,44 @@ export default function LandingPage() {
     startWake();
     return () => { stopped = true; try { rec?.stop(); } catch {} };
   }, [activated, startConversation]);
+
+  // ── Saudação automática ao ativar ────────────────────────────────
+  const greetAndListen = useCallback(async () => {
+    if (activeRef.current) return;
+    abortRef.current  = false;
+    activeRef.current = true;
+    setConversationActive(true);
+    setVoiceState("thinking");
+    setStatusText("iniciando...");
+    setBubble("");
+
+    try {
+      const res = await fetch("/api/landing-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "SYSTEM_START", history: [] }),
+      });
+      const { text, action } = await res.json();
+      if (abortRef.current) return;
+      setBubble(text);
+      setVoiceState("speaking");
+      setStatusText("respondendo...");
+      historyRef.current = [{ role: "assistant", content: text }];
+      await speak(text);
+      if (abortRef.current) return;
+      if (action === "goto_register") { router.push("/register"); return; }
+      if (action === "goto_login")    { router.push("/login"); return; }
+      setVoiceState("listening");
+      setStatusText("ouvindo...");
+      const next = await listenOnce();
+      await processMessage(next);
+    } catch {
+      activeRef.current = false;
+      setConversationActive(false);
+      setVoiceState("idle");
+      setStatusText('diga "oi Kadosh" ou clique no microfone');
+    }
+  }, [speak, listenOnce, processMessage, router]);
 
   // ── Ativar com um clique ─────────────────────────────────────────
   const handleActivate = useCallback(() => {
