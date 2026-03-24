@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SERVICE_CATEGORIES } from "@/lib/service-types";
 
@@ -13,10 +13,13 @@ const MUTED = "#7A6018";
 
 export default function ServicesNewPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"form" | "formatting" | "sending">("form");
+  const [step, setStep] = useState<"form" | "location" | "sending">("form");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cityInput, setCityInput] = useState("");
   const [formattedDesc, setFormattedDesc] = useState("");
+
+  const pendingFormRef = useRef<{ form: typeof form; finalDesc: string } | null>(null);
 
   const [form, setForm] = useState({
     clientName: "", clientPhone: "", serviceType: "", description: "", scheduledDate: "",
@@ -25,13 +28,24 @@ export default function ServicesNewPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = useCallback(async () => {
-    if (!form.clientName || !form.clientPhone || !form.serviceType || !form.scheduledDate || !form.description.trim()) {
-      setError("Preencha todos os campos obrigatórios."); return;
+  const sendRequest = useCallback(async (finalDesc: string, lat: number, lng: number) => {
+    setStep("sending");
+    setFormattedDesc(finalDesc);
+    try {
+      const res = await fetch("/api/services/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, description: finalDesc, clientLat: lat, clientLng: lng }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Erro ao criar pedido"); setStep("form"); setLoading(false); return; }
+      router.push(`/services/${data.requestId}`);
+    } catch {
+      setError("Erro de conexão."); setStep("form"); setLoading(false);
     }
-    setError(""); setLoading(true); setStep("formatting");
+  }, [form, router]);
 
-    // IA formata a descrição
+  const formatDesc = useCallback(async () => {
     let finalDesc = form.description;
     try {
       const ctrl = new AbortController();
@@ -46,41 +60,61 @@ export default function ServicesNewPage() {
       const data = await res.json();
       if (data.formatted) finalDesc = data.formatted;
     } catch { /* usa descrição original se falhar */ }
+    return finalDesc;
+  }, [form.description, form.serviceType]);
 
-    setFormattedDesc(finalDesc);
-
-    // Captura GPS e envia
-    if (!navigator.geolocation) {
-      setError("Seu navegador não suporta geolocalização."); setStep("form"); setLoading(false); return;
+  const handleSubmit = useCallback(async () => {
+    if (!form.clientName || !form.clientPhone || !form.serviceType || !form.scheduledDate || !form.description.trim()) {
+      setError("Preencha todos os campos obrigatórios."); return;
     }
+    setError(""); setLoading(true);
+
+    const finalDesc = await formatDesc();
+
+    if (!navigator.geolocation) {
+      pendingFormRef.current = { form, finalDesc };
+      setStep("location");
+      setLoading(false);
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        setStep("sending");
-        try {
-          const res = await fetch("/api/services/request", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...form, description: finalDesc, clientLat: latitude, clientLng: longitude }),
-          });
-          const data = await res.json();
-          if (!res.ok) { setError(data.error || "Erro ao criar pedido"); setStep("form"); setLoading(false); return; }
-          router.push(`/services/${data.requestId}`);
-        } catch {
-          setError("Erro de conexão."); setStep("form"); setLoading(false);
-        }
+        await sendRequest(finalDesc, latitude, longitude);
       },
-      (err) => {
-        const msg = err.code === 1
-          ? "Permissão de localização negada. Ative o GPS nas configurações do navegador."
-          : err.code === 3
-          ? "Tempo esgotado ao obter localização. Tente novamente."
-          : "Não foi possível obter sua localização.";
-        setError(msg); setStep("form"); setLoading(false);
+      () => {
+        // GPS bloqueado ou falhou — pede cidade manualmente
+        pendingFormRef.current = { form, finalDesc };
+        setStep("location");
+        setLoading(false);
       },
-      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
+      { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
     );
-  }, [form, router]);
+  }, [form, formatDesc, sendRequest]);
+
+  const handleCitySubmit = useCallback(async () => {
+    if (!cityInput.trim()) { setError("Digite sua cidade ou bairro."); return; }
+    setError(""); setLoading(true);
+
+    try {
+      const q = encodeURIComponent(cityInput + ", Brasil");
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { "Accept-Language": "pt-BR", "User-Agent": "Kadosh/1.0" },
+      });
+      const data = await res.json();
+      if (!data || data.length === 0) {
+        setError("Cidade não encontrada. Tente ser mais específico (ex: Campinas SP)."); setLoading(false); return;
+      }
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+      const pending = pendingFormRef.current;
+      if (!pending) { setStep("form"); setLoading(false); return; }
+      await sendRequest(pending.finalDesc, lat, lng);
+    } catch {
+      setError("Erro ao buscar localização. Tente novamente."); setLoading(false);
+    }
+  }, [cityInput, sendRequest]);
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "11px 14px", borderRadius: 12,
@@ -103,19 +137,51 @@ export default function ServicesNewPage() {
           Serviços Locais
         </p>
 
-        {(step === "formatting" || step === "sending") && (
+        {step === "sending" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center" }}>
             <div style={{ width: 64, height: 64, borderRadius: "50%", border: `3px solid ${GOLD}`, borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
-            <p style={{ color: TEXT, fontSize: 14 }}>
-              {step === "formatting" ? "Organizando sua solicitação..." : "Buscando prestadores perto de você..."}
-            </p>
-            {step === "sending" && formattedDesc && (
+            <p style={{ color: TEXT, fontSize: 14 }}>Buscando prestadores perto de você...</p>
+            {formattedDesc && (
               <div style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(212,160,23,0.3)", background: "rgba(212,160,23,0.06)", maxWidth: 320, textAlign: "left" }}>
                 <p style={{ color: LABEL, fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Pedido enviado aos prestadores</p>
                 <p style={{ color: TEXT, fontSize: 13, lineHeight: 1.6 }}>{formattedDesc}</p>
               </div>
             )}
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+
+        {step === "location" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ color: TEXT, fontSize: 14, textAlign: "center", lineHeight: 1.6 }}>
+              Não conseguimos acessar sua localização via GPS.<br />
+              <span style={{ color: LABEL, fontSize: 13 }}>Digite sua cidade ou bairro para encontrar prestadores próximos.</span>
+            </p>
+            <div>
+              <label style={labelStyle}>Sua cidade / bairro</label>
+              <input
+                style={inputStyle}
+                value={cityInput}
+                onChange={e => setCityInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleCitySubmit()}
+                placeholder="Ex: Campinas SP, Lapa São Paulo..."
+                autoFocus
+              />
+            </div>
+            {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
+            <button
+              onClick={handleCitySubmit}
+              disabled={loading}
+              style={{ padding: "13px 0", borderRadius: 24, background: `linear-gradient(135deg, #C8900A, ${GOLD}, #C8900A)`, color: "#0A0808", fontWeight: 700, fontSize: 14, cursor: loading ? "default" : "pointer", border: "none", opacity: loading ? 0.6 : 1 }}
+            >
+              {loading ? "Buscando..." : "Continuar"}
+            </button>
+            <button
+              onClick={() => { setStep("form"); setLoading(false); setError(""); }}
+              style={{ padding: "10px 0", borderRadius: 24, background: "transparent", color: LABEL, fontSize: 13, cursor: "pointer", border: `1px solid rgba(212,160,23,0.3)` }}
+            >
+              Voltar ao formulário
+            </button>
           </div>
         )}
 
@@ -131,7 +197,6 @@ export default function ServicesNewPage() {
             </div>
             <div>
               <label style={labelStyle}>Qual serviço você precisa?</label>
-              {/* Atalhos — 5 mais pedidos */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
                 {[
                   { value: "pedreiro", label: "Pedreiro" },
@@ -188,7 +253,7 @@ export default function ServicesNewPage() {
               disabled={loading}
               style={{ padding: "13px 0", borderRadius: 24, background: `linear-gradient(135deg, #C8900A, ${GOLD}, #C8900A)`, color: "#0A0808", fontWeight: 700, fontSize: 14, cursor: loading ? "default" : "pointer", border: "none", opacity: loading ? 0.6 : 1 }}
             >
-              Buscar prestadores
+              {loading ? "Organizando..." : "Buscar prestadores"}
             </button>
 
             <p style={{ textAlign: "center", fontSize: 13, color: TEXT }}>
