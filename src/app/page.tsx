@@ -95,50 +95,10 @@ export default function LandingPage() {
       audioRef.current = audio;
 
       return new Promise((resolve) => {
-        let interruptText = "";
-        let rec: any = null;
-
-        // Inicia SR contínuo para detectar interrupção — começa após 800ms
-        // (evita capturar o próprio eco do TTS no início)
-        const startInterruptSR = () => {
-          if (textModeRef.current || abortRef.current) return;
-          const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-          if (!SR) return;
-          rec = new SR();
-          rec.continuous = true;
-          rec.interimResults = true;
-          rec.lang = "pt-BR";
-          rec.maxAlternatives = 1;
-          rec.onresult = (e: any) => {
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-              const detected = (e.results[i][0]?.transcript || "").trim();
-              // Interrompe ao detectar qualquer fala com > 2 chars
-              if (detected.length > 2) {
-                interruptText = e.results[i].isFinal ? detected : detected;
-                audio.pause();
-                try { rec.stop(); } catch {}
-                return;
-              }
-            }
-          };
-          rec.onerror = () => {};
-          rec.onend = () => {
-            // Reinicia enquanto áudio ainda toca (para não perder a interrupção)
-            if (!interruptText && audioRef.current && !audioRef.current.paused) {
-              try { rec.start(); } catch {}
-            }
-          };
-          try { rec.start(); } catch {}
-        };
-
-        const srTimer = setTimeout(startInterruptSR, 800);
-
         const cleanup = () => {
-          clearTimeout(srTimer);
           URL.revokeObjectURL(url);
           audioRef.current = null;
-          try { rec?.stop(); } catch {}
-          resolve(interruptText);
+          resolve("");
         };
 
         audio.onended = cleanup;
