@@ -48,17 +48,30 @@ function getMicStyle(s: VoiceState) {
 }
 
 export default function LandingPage() {
+  const [activated, setActivated] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [conversationActive, setConversationActive] = useState(false);
   const [statusText, setStatusText] = useState('diga "oi Kadosh"');
   const [bubble, setBubble] = useState("");
   const [srReady, setSrReady] = useState(false);
 
-  const historyRef   = useRef<{ role: string; content: string }[]>([]);
-  const activeRef    = useRef(false);
-  const abortRef     = useRef(false);
-  const audioRef     = useRef<HTMLAudioElement | null>(null);
+  const historyRef        = useRef<{ role: string; content: string }[]>([]);
+  const activeRef         = useRef(false);
+  const abortRef          = useRef(false);
+  const audioRef          = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef  = useRef(false);
   const router = useRouter();
+
+  // Desbloqueia autoplay no gesto do usuário (deve ser síncrono)
+  const ensureAudioUnlocked = useCallback(() => {
+    if (audioUnlockedRef.current) return;
+    audioUnlockedRef.current = true;
+    try {
+      const silent = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
+      silent.volume = 0.001;
+      silent.play().catch(() => {});
+    } catch {}
+  }, []);
 
   // ── TTS via OpenAI ───────────────────────────────────────────────
   const speak = useCallback(async (text: string): Promise<void> => {
@@ -230,6 +243,7 @@ export default function LandingPage() {
 
   // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
+    if (!activated) return;
     if (typeof window === "undefined") return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
@@ -263,9 +277,73 @@ export default function LandingPage() {
 
     startWake();
     return () => { stopped = true; try { rec?.stop(); } catch {} };
-  }, [startConversation]);
+  }, [activated, startConversation]);
+
+  // ── Ativar com um clique ─────────────────────────────────────────
+  const handleActivate = useCallback(() => {
+    ensureAudioUnlocked();
+    setActivated(true);
+  }, [ensureAudioUnlocked]);
 
   const ringDur = getRingDur(voiceState);
+
+  if (!activated) {
+    return (
+      <main
+        className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden cursor-pointer"
+        style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
+        onClick={handleActivate}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: `
+            radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%),
+            radial-gradient(ellipse 55% 45% at 90% 45%, rgba(18,28,70,0.35) 0%, transparent 65%)
+          `,
+        }} />
+        <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
+          <h1 className="font-bold tracking-[0.35em] leading-none mb-2" style={{
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontSize: "clamp(3.5rem, 12vw, 7rem)",
+            background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
+          }}>
+            KADOSH
+          </h1>
+          <p className="text-xs tracking-[0.55em] mb-16 uppercase" style={{ color: "#7A6010" }}>
+            — AI ORCHESTRATOR —
+          </p>
+          <div className="flex flex-col items-center gap-4 animate-pulse">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{
+              background: "radial-gradient(circle, #FFE082, #D4A017)",
+              boxShadow: "0 0 40px rgba(212,160,23,0.8)",
+            }}>
+              <svg width="32" height="32" viewBox="0 0 52 52" fill="none">
+                <rect x="18" y="4" width="16" height="26" rx="8" fill="#0A0808" />
+                <path d="M10 26c0 8.837 7.163 16 16 16s16-7.163 16-16" stroke="#0A0808" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                <line x1="26" y1="42" x2="26" y2="48" stroke="#0A0808" strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="18" y1="48" x2="34" y2="48" stroke="#0A0808" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <p className="text-sm tracking-widest uppercase" style={{ color: "#D4A017" }}>
+              toque para ativar
+            </p>
+            <p className="text-xs" style={{ color: "#4A3A08" }}>
+              após isso diga "oi Kadosh" a qualquer momento
+            </p>
+          </div>
+        </div>
+        <style>{`
+          @keyframes twinkle {
+            from { opacity: 0.2; transform: scale(0.8); }
+            to   { opacity: 1;   transform: scale(1.3); }
+          }
+        `}</style>
+      </main>
+    );
+  }
 
   return (
     <main
