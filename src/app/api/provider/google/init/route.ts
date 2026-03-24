@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jow-mu.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
 
   if (!clientId) return NextResponse.json({ error: "Google OAuth não configurado" }, { status: 500 });
 

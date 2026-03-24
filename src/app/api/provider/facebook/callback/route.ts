@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { signProviderToken } from "@/lib/provider-auth";
 
 export async function GET(req: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jow-mu.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
   const code = req.nextUrl.searchParams.get("code");
   if (!code) return NextResponse.redirect(`${appUrl}/provider/login?error=fb_cancelled`);
 

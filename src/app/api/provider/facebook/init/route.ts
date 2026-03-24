@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const appId = process.env.FACEBOOK_APP_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jow-mu.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
 
   if (!appId) return NextResponse.json({ error: "Facebook OAuth não configurado" }, { status: 500 });
 
