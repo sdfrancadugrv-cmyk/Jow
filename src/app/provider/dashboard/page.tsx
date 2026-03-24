@@ -24,7 +24,16 @@ export default function ProviderDashboardPage() {
   useEffect(() => {
     fetch("/api/provider/me")
       .then(r => { if (r.status === 401) { router.push("/provider/login"); return null; } return r.json(); })
-      .then(data => { if (data) setProvider(data.provider); setLoading(false); })
+      .then(data => {
+        if (data) {
+          if (data.provider?.status !== "active") {
+            router.push("/provider/subscribe");
+            return;
+          }
+          setProvider(data.provider);
+        }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [router]);
 

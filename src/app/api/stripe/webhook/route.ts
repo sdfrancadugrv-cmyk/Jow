@@ -26,9 +26,20 @@ export async function POST(req: NextRequest) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const clientId = session.metadata?.clientId;
+        const providerId = session.metadata?.providerId;
         if (clientId) {
           await prisma.client.update({
             where: { id: clientId },
+            data: {
+              status: "active",
+              subscriptionId: session.subscription as string,
+              stripeCustomerId: session.customer as string,
+            },
+          });
+        }
+        if (providerId) {
+          await prisma.serviceProvider.update({
+            where: { id: providerId },
             data: {
               status: "active",
               subscriptionId: session.subscription as string,

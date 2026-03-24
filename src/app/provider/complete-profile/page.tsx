@@ -85,7 +85,7 @@ export default function CompleteProfilePage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao salvar"); setLoading(false); return; }
-      router.push("/provider/dashboard");
+      router.push("/provider/subscribe");
     } catch {
       setError("Erro de conexão"); setLoading(false);
     }
