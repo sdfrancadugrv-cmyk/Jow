@@ -108,7 +108,9 @@ PLANOS KADOSH VENDEDOR:
 PLANO KADOSH EXPERT:
 - R$899/mês — acesso completo, cria qualquer aplicação que desejar
 
-PLANO KADOSH SECRETÁRIA: quando o usuário perguntar sobre valores, informe que os planos são apresentados no momento do cadastro e convide a assinar. [ASSINAR]
+PLANOS KADOSH SECRETÁRIA:
+- Pro: R$297/mês — até 200 agendamentos/mês + avisos no WhatsApp + resumos de consulta
+- Scale: R$497/mês — tudo ilimitado
 
 ---
 
