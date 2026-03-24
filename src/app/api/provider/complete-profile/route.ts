@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const auth = await getAuthProvider();
   if (!auth) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-  const { phone, serviceType, lat, lng, city, name } = await req.json();
+  const { phone, serviceType, dailyRate, lat, lng, city, name } = await req.json();
 
   if (!phone || !serviceType || !lat || !lng) {
     return NextResponse.json({ error: "Preencha todos os campos" }, { status: 400 });
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
       data: {
         phone: phone.replace(/\D/g, ""),
         serviceType,
+        dailyRate: dailyRate ?? null,
         lat,
         lng,
         city: city || "",

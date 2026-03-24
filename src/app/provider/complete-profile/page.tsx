@@ -17,11 +17,18 @@ export default function CompleteProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cityInput, setCityInput] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", serviceType: "" });
+  const [form, setForm] = useState({ name: "", phone: "", dailyRate: "" });
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [location, setLocation] = useState<{ lat: number; lng: number; city: string } | null>(null);
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const toggleService = (value: string) => {
+    setSelectedServices(prev =>
+      prev.includes(value) ? prev.filter(s => s !== value) : [...prev, value]
+    );
+  };
 
   const captureGPS = useCallback(() => {
     setLoading(true); setError("");
@@ -69,7 +76,12 @@ export default function CompleteProfilePage() {
       const res = await fetch("/api/provider/complete-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, ...loc }),
+        body: JSON.stringify({
+          ...form,
+          serviceType: selectedServices.join(","),
+          dailyRate: form.dailyRate ? parseFloat(form.dailyRate) : null,
+          ...loc,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao salvar"); setLoading(false); return; }
@@ -77,7 +89,7 @@ export default function CompleteProfilePage() {
     } catch {
       setError("Erro de conexão"); setLoading(false);
     }
-  }, [form, router]);
+  }, [form, selectedServices, router]);
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "11px 14px", borderRadius: 12,
@@ -92,7 +104,7 @@ export default function CompleteProfilePage() {
 
   return (
     <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "2rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", textAlign: "center", marginBottom: 4 }}>
           KADOSH
         </h1>
@@ -114,21 +126,57 @@ export default function CompleteProfilePage() {
               <input style={inputStyle} value={form.phone} onChange={set("phone")} placeholder="55 11 99999-9999" />
             </div>
             <div>
-              <label style={labelStyle}>Sua especialidade / serviço</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={form.serviceType} onChange={set("serviceType")}>
-                <option value="">Selecione...</option>
-                {SERVICE_CATEGORIES.map(cat => (
-                  <optgroup key={cat.label} label={cat.label}>
-                    {cat.services.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              <label style={labelStyle}>Valor médio da diária (R$)</label>
+              <input style={inputStyle} type="number" min="0" value={form.dailyRate} onChange={set("dailyRate")} placeholder="Ex: 250" />
             </div>
+
+            <div>
+              <label style={labelStyle}>Suas habilidades / serviços <span style={{ color: GOLD, fontSize: 11 }}>(selecione quantas quiser)</span></label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
+                {SERVICE_CATEGORIES.map(cat => (
+                  <div key={cat.label}>
+                    <p style={{ fontSize: 11, color: MUTED, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, marginTop: 4 }}>{cat.label}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {cat.services.map(s => {
+                        const selected = selectedServices.includes(s.value);
+                        return (
+                          <button
+                            key={s.value}
+                            type="button"
+                            onClick={() => toggleService(s.value)}
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 20,
+                              fontSize: 13,
+                              cursor: "pointer",
+                              border: selected ? `1.5px solid ${GOLD}` : "1.5px solid rgba(212,160,23,0.25)",
+                              background: selected ? "rgba(212,160,23,0.18)" : "rgba(255,255,255,0.04)",
+                              color: selected ? GOLD_LIGHT : TEXT,
+                              fontWeight: selected ? 600 : 400,
+                              transition: "all 0.15s",
+                            }}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {selectedServices.length > 0 && (
+                <p style={{ fontSize: 12, color: GOLD, marginTop: 8 }}>
+                  {selectedServices.length} selecionado{selectedServices.length > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
             <button
               onClick={() => {
-                if (!form.phone || !form.serviceType) { setError("Preencha WhatsApp e especialidade"); return; }
+                if (!form.phone) { setError("Preencha seu WhatsApp"); return; }
                 if (!form.name) { setError("Digite seu nome"); return; }
+                if (selectedServices.length === 0) { setError("Selecione pelo menos uma habilidade"); return; }
                 setError(""); setStep("gps");
               }}
               style={{ padding: "13px 0", borderRadius: 24, background: `linear-gradient(135deg, #C8900A, ${GOLD}, #C8900A)`, color: "#0A0808", fontWeight: 700, fontSize: 14, cursor: "pointer", border: "none" }}
