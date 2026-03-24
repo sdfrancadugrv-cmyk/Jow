@@ -34,11 +34,15 @@ export default function ServicesNewPage() {
     // IA formata a descrição
     let finalDesc = form.description;
     try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
       const res = await fetch("/api/services/format-description", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ description: form.description, serviceType: form.serviceType }),
+        signal: ctrl.signal,
       });
+      clearTimeout(timer);
       const data = await res.json();
       if (data.formatted) finalDesc = data.formatted;
     } catch { /* usa descrição original se falhar */ }
@@ -46,6 +50,9 @@ export default function ServicesNewPage() {
     setFormattedDesc(finalDesc);
 
     // Captura GPS e envia
+    if (!navigator.geolocation) {
+      setError("Seu navegador não suporta geolocalização."); setStep("form"); setLoading(false); return;
+    }
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -63,7 +70,15 @@ export default function ServicesNewPage() {
           setError("Erro de conexão."); setStep("form"); setLoading(false);
         }
       },
-      () => { setError("Não foi possível obter sua localização."); setStep("form"); setLoading(false); }
+      (err) => {
+        const msg = err.code === 1
+          ? "Permissão de localização negada. Ative o GPS nas configurações do navegador."
+          : err.code === 3
+          ? "Tempo esgotado ao obter localização. Tente novamente."
+          : "Não foi possível obter sua localização.";
+        setError(msg); setStep("form"); setLoading(false);
+      },
+      { timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }
     );
   }, [form, router]);
 
