@@ -1,7 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { sendWhatsApp } from "@/lib/whatsapp-send";
 import { signProviderToken } from "@/lib/provider-auth";
+
+async function sendOtpWhatsApp(phone: string, message: string): Promise<boolean> {
+  // Tenta env vars diretas primeiro (mais confiável para OTP)
+  const instanceId = process.env.ZAPI_INSTANCE_ID;
+  const token = process.env.ZAPI_TOKEN;
+  const clientToken = process.env.ZAPI_CLIENT_TOKEN;
+
+  if (instanceId && token) {
+    const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(clientToken ? { "Client-Token": clientToken } : {}),
+      },
+      body: JSON.stringify({ phone, message }),
+    });
+    return res.ok;
+  }
+
+  // Fallback: usa agente ativo do banco
+  const agent = await prisma.whatsappAgent.findFirst({ where: { active: true } });
+  if (!agent) return false;
+  const url = `https://api.z-api.io/instances/${agent.instanceId}/token/${agent.token}/send-text`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(clientToken ? { "Client-Token": clientToken } : {}),
+    },
+    body: JSON.stringify({ phone, message }),
+  });
+  return res.ok;
+}
 
 // POST /api/provider/otp  { action: "send", phone }
 // POST /api/provider/otp  { action: "verify", phone, code }
@@ -23,7 +56,7 @@ export async function POST(req: NextRequest) {
     await prisma.otpCode.deleteMany({ where: { phone: cleanPhone } });
     await prisma.otpCode.create({ data: { phone: cleanPhone, code: otp, expiresAt } });
 
-    const sent = await sendWhatsApp(
+    const sent = await sendOtpWhatsApp(
       cleanPhone,
       `🔐 *KADOSH* — Seu código de verificação é: *${otp}*\n\nVálido por 10 minutos. Não compartilhe.`
     );
