@@ -268,7 +268,11 @@ export default function LandingPage() {
       }
       if (action === "goto_register")   { router.push("/register"); return; }
       if (action === "goto_login")       { router.push("/login"); return; }
-      if (action === "goto_services")    { router.push("/services/new"); return; }
+      if (action && action.startsWith("goto_services_")) {
+        const s = action.replace("goto_services_", "");
+        router.push(`/services/new${s ? `?s=${encodeURIComponent(s)}` : ""}`);
+        return;
+      }
       if (action === "goto_provider")    { router.push("/provider/register"); return; }
       if (action === "close") {
         setBubble("");
