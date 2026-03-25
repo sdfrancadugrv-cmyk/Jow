@@ -112,7 +112,7 @@ function ServiceSearch() {
             {providers.map(p => (
               <div key={p.id} onClick={() => router.push(`/services/hire/${p.id}`)} style={{ borderRadius: 16, border: "1px solid rgba(212,160,23,0.25)", background: "rgba(212,160,23,0.05)", padding: "16px 18px", cursor: "pointer", transition: "border-color 0.15s" }} onMouseEnter={e => (e.currentTarget.style.borderColor = GOLD)} onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(212,160,23,0.25)")}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                  <p style={{ color: GOLD_LIGHT, fontSize: 15, fontWeight: 700, margin: 0 }}>{p.name}</p>
+                  <p style={{ color: GOLD_LIGHT, fontSize: 15, fontWeight: 700, margin: 0 }}>{p.name.split(" ")[0]}</p>
                   {p.distance !== null && (
                     <span style={{ color: MUTED, fontSize: 12, whiteSpace: "nowrap", marginLeft: 8 }}>
                       {p.distance < 1 ? `${Math.round(p.distance * 1000)}m` : `${p.distance}km`}
