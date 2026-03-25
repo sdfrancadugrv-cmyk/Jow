@@ -21,23 +21,24 @@ function parseDeviceName(ua: string | null): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { phone, password } = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "E-mail e senha são obrigatórios." }, { status: 400 });
+    if (!phone || !password) {
+      return NextResponse.json({ error: "WhatsApp e senha são obrigatórios." }, { status: 400 });
     }
 
-    const client = await prisma.client.findUnique({ where: { email } });
+    const cleanPhone = (phone as string).replace(/\D/g, "");
+    const client = await prisma.client.findUnique({ where: { phone: cleanPhone } });
     if (!client) {
-      return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
+      return NextResponse.json({ error: "Número não encontrado. Verifique ou assine um plano." }, { status: 401 });
     }
 
     if (!client.password) {
-      return NextResponse.json({ error: "Use o WhatsApp para fazer login." }, { status: 400 });
+      return NextResponse.json({ error: "Nenhuma senha cadastrada. Acesse /assinar para criar sua conta." }, { status: 400 });
     }
     const valid = await bcrypt.compare(password, client.password);
     if (!valid) {
-      return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
+      return NextResponse.json({ error: "Número ou senha incorretos." }, { status: 401 });
     }
 
     if (client.status !== "active") {
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     // ── Gera JWT ───────────────────────────────────────────────────
     const token = signToken({
       sub: client.id,
-      email: client.email ?? "",
+      email: client.email ?? client.phone ?? "",
       name: client.name,
       status: client.status,
     });

@@ -14,6 +14,8 @@ function AssinarForm() {
   const isVoice = searchParams.get("voice") === "1";
 
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -47,12 +49,14 @@ function AssinarForm() {
   const handlePhone = async () => {
     const clean = phone.replace(/\D/g, "");
     if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
+    if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres"); return; }
+    if (password !== confirmPassword) { setError("As senhas não coincidem"); return; }
     setLoading(true); setError("");
     try {
       const res = await fetch("/api/assinar/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: clean, slug }),
+        body: JSON.stringify({ phone: clean, slug, password }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao processar"); setLoading(false); return; }
@@ -178,11 +182,13 @@ function AssinarForm() {
           </table>
         </div>
 
-        {/* ── Fase: WhatsApp ── */}
+        {/* ── Fase: WhatsApp + Senha ── */}
         {phase === "phone" && (
           <div>
-            <p style={{ color: "#C8CDD8", fontSize: 14, marginBottom: 12, textAlign: "center" }}>Seu WhatsApp para acessar o Kadosh</p>
-            <input type="tel" placeholder="55 11 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === "Enter" && handlePhone()} style={input} />
+            <p style={{ color: "#C8CDD8", fontSize: 14, marginBottom: 12, textAlign: "center" }}>Seu WhatsApp e uma senha de acesso</p>
+            <input type="tel" placeholder="WhatsApp: 55 11 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} style={input} />
+            <input type="password" placeholder="Crie uma senha (mín. 6 caracteres)" value={password} onChange={e => setPassword(e.target.value)} style={input} />
+            <input type="password" placeholder="Confirme a senha" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handlePhone()} style={input} />
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center", marginBottom: 10 }}>{error}</p>}
             <button onClick={handlePhone} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Aguarde..." : "Ir para pagamento"}
