@@ -45,12 +45,7 @@ export default function ProviderLoginPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao continuar"); setLoading(false); return; }
       setProviderId(data.providerId);
-      if (data.needsProfile) {
-        setStep("services");
-      } else {
-        setIsExisting(true);
-        router.push("/provider/dashboard");
-      }
+      setStep("services");
       setLoading(false);
     } catch {
       setError("Erro de conexão"); setLoading(false);
