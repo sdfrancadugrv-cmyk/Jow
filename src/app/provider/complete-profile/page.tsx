@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { SERVICE_CATEGORIES } from "@/lib/service-types";
+import { SERVICE_CATEGORIES, getProviderPriceLabel } from "@/lib/service-types";
 
 const GOLD = "#D4A017";
 const GOLD_LIGHT = "#FFE082";
@@ -17,7 +17,7 @@ export default function CompleteProfilePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cityInput, setCityInput] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", dailyRate: "" });
+  const [form, setForm] = useState({ name: "", dailyRate: "" });
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [location, setLocation] = useState<{ lat: number; lng: number; city: string } | null>(null);
 
@@ -122,10 +122,6 @@ export default function CompleteProfilePage() {
               <input style={inputStyle} value={form.name} onChange={set("name")} placeholder="Como os clientes vão te ver" />
             </div>
             <div>
-              <label style={labelStyle}>WhatsApp (com DDD)</label>
-              <input style={inputStyle} value={form.phone} onChange={set("phone")} placeholder="55 11 99999-9999" />
-            </div>
-            <div>
               <label style={labelStyle}>Valor médio da diária (R$)</label>
               <input style={inputStyle} type="number" min="0" value={form.dailyRate} onChange={set("dailyRate")} placeholder="Ex: 250" />
             </div>
@@ -174,7 +170,6 @@ export default function CompleteProfilePage() {
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
             <button
               onClick={() => {
-                if (!form.phone) { setError("Preencha seu WhatsApp"); return; }
                 if (!form.name) { setError("Digite seu nome"); return; }
                 if (selectedServices.length === 0) { setError("Selecione pelo menos uma habilidade"); return; }
                 setError(""); setStep("gps");
@@ -195,7 +190,7 @@ export default function CompleteProfilePage() {
               Precisamos da sua localização para enviar pedidos próximos de você.
             </p>
             <p style={{ color: LABEL, fontSize: 13 }}>
-              Plano prestador: <strong style={{ color: GOLD }}>R$29,90/mês</strong>
+              Plano prestador: <strong style={{ color: GOLD }}>{getProviderPriceLabel(selectedServices.join(","))}/mês</strong>
             </p>
             {error && <p style={{ color: "#F97316", fontSize: 13 }}>{error}</p>}
             <button

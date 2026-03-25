@@ -27,20 +27,29 @@ export async function POST(req: NextRequest) {
     const externalRef = data.external_reference;
     if (!externalRef) return NextResponse.json({ ok: true });
 
-    const [clientId, slug] = externalRef.split("|");
-    if (!clientId || !slug) return NextResponse.json({ ok: true });
+    const parts = externalRef.split("|");
+    if (parts.length < 2) return NextResponse.json({ ok: true });
 
-    // Ativa cliente e define vencimento em 30 dias
-    const planExpiresAt = new Date();
-    planExpiresAt.setDate(planExpiresAt.getDate() + 30);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Assinatura de prestador: "provider|providerId"
+    if (parts[0] === "provider") {
+      const providerId = parts[1];
+      await prisma.serviceProvider.update({
+        where: { id: providerId },
+        data: { status: "active", expiresAt },
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Assinatura de cliente: "clientId|slug"
+    const [clientId, slug] = parts;
+    if (!clientId || !slug) return NextResponse.json({ ok: true });
 
     await prisma.client.update({
       where: { id: clientId },
-      data: {
-        status: "active",
-        plan: slug,
-        planExpiresAt,
-      },
+      data: { status: "active", plan: slug, planExpiresAt: expiresAt },
     });
 
     return NextResponse.json({ ok: true });

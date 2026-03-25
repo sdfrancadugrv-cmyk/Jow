@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { Preference } from "mercadopago";
+import { mp } from "@/lib/mercadopago";
 import { getAuthProvider } from "@/lib/provider-auth";
 import prisma from "@/lib/prisma";
+import { getProviderPrice } from "@/lib/service-types";
 
 const APP_URL = "https://kadosh-ai.vercel.app";
 
@@ -16,27 +18,30 @@ export async function POST() {
     return NextResponse.json({ url: `${APP_URL}/provider/dashboard` });
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card", "pix"],
-    customer_email: provider.email || undefined,
-    line_items: [
-      {
-        price_data: {
-          currency: "brl",
-          product_data: {
-            name: "Kadosh Prestador — 30 dias",
-            description: "Receba pedidos de clientes próximos a você via WhatsApp por 30 dias.",
-          },
-          unit_amount: 2990,
-        },
+  const priceAmount = getProviderPrice(provider.serviceType || "");
+
+  const preference = new Preference(mp);
+  const response = await preference.create({
+    body: {
+      items: [{
+        id: "provider-plan",
+        title: "Kadosh Prestador — 30 dias",
         quantity: 1,
+        unit_price: priceAmount / 100,
+        currency_id: "BRL",
+      }],
+      external_reference: `provider|${provider.id}`,
+      notification_url: `${APP_URL}/api/mercadopago/webhook`,
+      back_urls: {
+        success: `${APP_URL}/provider/dashboard?payment=success`,
+        failure: `${APP_URL}/provider/subscribe`,
+        pending: `${APP_URL}/provider/dashboard?payment=pending`,
       },
-    ],
-    metadata: { providerId: provider.id },
-    success_url: `${APP_URL}/provider/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/provider/subscribe`,
+    },
   });
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({
+    preferenceId: response.id,
+    priceAmount,
+  });
 }
