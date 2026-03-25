@@ -261,6 +261,11 @@ export default function LandingPage() {
 
       if (abortRef.current) return;
 
+      if (action && action.startsWith("goto_assinar_")) {
+        const slug = action.replace("goto_assinar_", "");
+        router.push(`/assinar/${slug}`);
+        return;
+      }
       if (action === "goto_register")   { router.push("/register"); return; }
       if (action === "goto_login")       { router.push("/login"); return; }
       if (action === "goto_services")    { router.push("/services/new"); return; }
@@ -329,6 +334,11 @@ export default function LandingPage() {
       }
 
       if (abortRef.current) return;
+      if (action && action.startsWith("goto_assinar_")) {
+        const slug = action.replace("goto_assinar_", "");
+        router.push(`/assinar/${slug}`);
+        return;
+      }
       if (action === "goto_register") { router.push("/register"); return; }
       if (action === "goto_login")    { router.push("/login"); return; }
       if (interrupted) {

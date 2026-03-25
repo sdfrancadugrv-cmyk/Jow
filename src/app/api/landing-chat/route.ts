@@ -134,7 +134,9 @@ A pessoa não pode sair da conversa sem entender o que o Kadosh faz em cada modo
 Máximo 4 frases por resposta (é voz).
 
 AÇÕES (nunca diga em voz alta):
-[ASSINAR] — quando quiser assinar/testar qualquer modo (professor, vendedor, secretária, expert)
+[ASSINAR:{slug}] — quando o usuário quiser assinar um plano específico. Use o slug correto:
+professor-start, professor-pro, professor-scale, vendedor-starter, vendedor-pro, vendedor-scale, secretaria-pro, secretaria-scale, expert
+[ASSINAR] — quando quiser assinar/testar qualquer modo mas ainda não está claro qual plano
 [BUSCAR_SERVICO] — quando quiser usar a central de serviços locais como cliente (contratar alguém) ou como prestador (oferecer serviço)
 [LOGIN] — quando já tem conta
 [FECHAR] — quando quiser encerrar`;
@@ -220,7 +222,11 @@ export async function POST(req: NextRequest) {
     let action: string | null = null;
     let text = raw.trim();
 
-    if (text.includes("[ASSINAR]")) {
+    const assinarMatch = text.match(/\[ASSINAR:([^\]]+)\]/);
+    if (assinarMatch) {
+      action = `goto_assinar_${assinarMatch[1]}`;
+      text = text.replace(assinarMatch[0], "").trim();
+    } else if (text.includes("[ASSINAR]")) {
       action = "goto_register";
       text = text.replace("[ASSINAR]", "").trim();
     } else if (text.includes("[BUSCAR_SERVICO]")) {
