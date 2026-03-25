@@ -73,13 +73,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Notifica clientes nos últimos 7 dias antes do vencimento (aviso diário)
-  const in7days = new Date(now);
-  in7days.setDate(in7days.getDate() + 7);
+  const clientExpiry7 = new Date(now);
+  clientExpiry7.setDate(clientExpiry7.getDate() + 7);
 
   const expiringClients = await prisma.client.findMany({
     where: {
       status: "active",
-      planExpiresAt: { gte: now, lte: in7days },
+      planExpiresAt: { gte: now, lte: clientExpiry7 },
     },
     select: { id: true, phone: true, name: true, plan: true, planExpiresAt: true },
   });
