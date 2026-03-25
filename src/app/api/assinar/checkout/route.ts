@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { Preference } from "mercadopago";
+import { mp } from "@/lib/mercadopago";
 import prisma from "@/lib/prisma";
 import { PLANS } from "@/lib/plans";
 
@@ -19,60 +20,41 @@ export async function POST(req: NextRequest) {
 
     // Busca ou cria cliente pelo telefone
     let client = await prisma.client.findUnique({ where: { phone: cleanPhone } });
-
     if (!client) {
-      const stripeCustomer = await stripe.customers.create({
-        phone: `+${cleanPhone}`,
-        name: `Cliente ${cleanPhone}`,
-      });
       client = await prisma.client.create({
         data: {
           phone: cleanPhone,
           name: `Cliente ${cleanPhone}`,
           status: "inactive",
-          stripeCustomerId: stripeCustomer.id,
         },
       });
-    } else if (!client.stripeCustomerId) {
-      const stripeCustomer = await stripe.customers.create({
-        phone: `+${cleanPhone}`,
-        name: client.name,
-      });
-      await prisma.client.update({
-        where: { id: client.id },
-        data: { stripeCustomerId: stripeCustomer.id },
-      });
-      client = { ...client, stripeCustomerId: stripeCustomer.id };
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: client.stripeCustomerId!,
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "brl",
-            product_data: {
-              name: plan.stripeName,
-              description: plan.features.join(" · "),
-            },
-            unit_amount: plan.priceAmount,
-            recurring: { interval: "month" },
+    // Cria preferência no Mercado Pago (pagamento único)
+    const preference = new Preference(mp);
+    const response = await preference.create({
+      body: {
+        items: [
+          {
+            id: slug,
+            title: plan.stripeName,
+            quantity: 1,
+            unit_price: plan.priceAmount / 100, // MP usa reais, não centavos
+            currency_id: "BRL",
           },
-          quantity: 1,
+        ],
+        external_reference: `${client.id}|${slug}`,
+        notification_url: `${APP_URL}/api/mercadopago/webhook`,
+        back_urls: {
+          success: `${APP_URL}/login?payment=success`,
+          failure: `${APP_URL}/assinar/${slug}`,
+          pending: `${APP_URL}/login?payment=pending`,
         },
-      ],
-      mode: "subscription",
-      metadata: {
-        clientId: client.id,
-        plan: slug,
-        type: "client_plan",
+        auto_return: "approved",
       },
-      success_url: `${APP_URL}/login?payment=success`,
-      cancel_url: `${APP_URL}/assinar/${slug}`,
     });
 
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: response.init_point });
   } catch (err) {
     console.error("[AssinarCheckout]", err);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

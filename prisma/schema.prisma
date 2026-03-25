@@ -18,6 +18,7 @@ model Client {
   subscriptionId   String?
   status           String   @default("inactive") // active | inactive | cancelled
   plan             String   @default("basic")
+  planExpiresAt    DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   devices          Device[]
