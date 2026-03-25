@@ -139,7 +139,7 @@ AÇÕES (nunca diga em voz alta):
 [LOGIN] — quando já tem conta
 [FECHAR] — quando quiser encerrar`;
 
-async function classifyIntent(message: string): Promise<"teaching" | "selling" | "building" | "reception" | "services" | "other"> {
+async function classifyIntent(message: string): Promise<"teaching" | "selling" | "building" | "reception" | "services" | "login" | "other"> {
   const result = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
@@ -147,6 +147,7 @@ async function classifyIntent(message: string): Promise<"teaching" | "selling" |
         role: "system",
         content: `Classifique a mensagem do usuário em uma dessas categorias e responda APENAS com a palavra da categoria, sem mais nada:
 
+login — quer fazer login, conectar, acessar a conta, já tem conta, "conectar kadosh", "entrar", "já sou assinante", "minha conta"
 teaching — pede para aprender, estudar, receber aula, explicação ou informação sobre qualquer tema
 selling — quer ajuda para vender produto, criar funil ou estratégia de vendas
 building — quer criar sistema, app, agente, automatizar processo ou desenvolver algo
@@ -161,6 +162,7 @@ other — dúvida sobre o produto/serviço, saudação, navegação ou qualquer 
   });
 
   const category = result.choices[0].message.content?.trim().toLowerCase();
+  if (category === "login") return "login";
   if (category === "teaching") return "teaching";
   if (category === "selling") return "selling";
   if (category === "building") return "building";
@@ -175,6 +177,11 @@ export async function POST(req: NextRequest) {
 
     // Classifica a intenção antes de chamar o modelo principal
     const intent = await classifyIntent(message);
+
+    // Login — redireciona imediatamente sem chamar o modelo
+    if (intent === "login") {
+      return NextResponse.json({ text: "Vou te levar para a tela de acesso agora.", action: "goto_login" });
+    }
 
     // Se é uma requisição de execução de tarefa, injeta instrução explícita no histórico
     let systemOverride = "";
