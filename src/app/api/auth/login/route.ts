@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     // ── Gera JWT ───────────────────────────────────────────────────
     const token = signToken({
       sub: client.id,
-      email: client.email,
+      email: client.email ?? "",
       name: client.name,
       status: client.status,
     });
