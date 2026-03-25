@@ -33,6 +33,7 @@ export async function POST() {
         quantity: 1,
       },
     ],
+    phone_number_collection: { enabled: false },
     metadata: { providerId: provider.id },
     success_url: `${APP_URL}/provider/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL}/provider/subscribe`,
