@@ -1,21 +1,49 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { PLANS } from "@/lib/plans";
 
-export default function AssinarPage() {
+type Phase = "phone" | "select" | "pix-email" | "pix-qr" | "card" | "success";
+
+function AssinarForm() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
   const plan = PLANS[slug];
+  const isVoice = searchParams.get("voice") === "1";
 
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [phase, setPhase] = useState<"phone" | "payment">("phone");
+  const [phase, setPhase] = useState<Phase>("phone");
   const [clientId, setClientId] = useState("");
+  const [pixQr, setPixQr] = useState("");
+  const [pixCode, setPixCode] = useState("");
+  const [copied, setCopied] = useState(false);
   const brickMounted = useRef(false);
 
+  // Voz do Kadosh ao chegar na página de pagamento
+  useEffect(() => {
+    if (!isVoice) return;
+    fetch("/api/landing-speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: "Agora só preciso que você preencha seus dados conforme está pedindo e escolha a forma de pagamento.",
+      }),
+    })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play().catch(() => {});
+      })
+      .catch(() => {});
+  }, [isVoice]);
+
+  // Fase 1: Registra/busca cliente
   const handlePhone = async () => {
     const clean = phone.replace(/\D/g, "");
     if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
@@ -29,206 +57,198 @@ export default function AssinarPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao processar"); setLoading(false); return; }
       setClientId(data.clientId);
-      setPhase("payment");
+      setPhase("select");
+      setLoading(false);
     } catch {
       setError("Erro de conexão"); setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (phase !== "payment" || !clientId || brickMounted.current) return;
-    brickMounted.current = true;
+  // Fase PIX: gera o QR code
+  const handlePix = async () => {
+    if (!email || !email.includes("@")) { setError("Digite um e-mail válido"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/assinar/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "pix", payerEmail: email, clientId, slug }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setError(data.error || "Erro ao gerar PIX"); setLoading(false); return; }
+      setPixQr(data.pixQrBase64 ? `data:image/png;base64,${data.pixQrBase64}` : "");
+      setPixCode(data.pixQr || "");
+      setPhase("pix-qr");
+      setLoading(false);
+    } catch {
+      setError("Erro de conexão"); setLoading(false);
+    }
+  };
 
+  // Fase Cartão: inicia MP Brick
+  useEffect(() => {
+    if (phase !== "card" || brickMounted.current) return;
+    brickMounted.current = true;
     const publicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!;
-    const amount = plan.priceAmount / 100;
-    const capturedSlug = slug;
     const capturedClientId = clientId;
 
     const initBrick = async (MercadoPago: any) => {
       const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
       const bricks = mp.bricks();
-      await bricks.create("payment", "mp-payment-brick", {
-        initialization: { amount },
+      await bricks.create("payment", "mp-card-brick", {
+        initialization: { amount: plan.priceAmount / 100 },
         customization: {
-          paymentMethods: {
-            bankTransfer: "all",  // PIX
-            creditCard: "all",
-            debitCard: "all",
-            maxInstallments: 1,
-          },
-          visual: {
-            hideFormTitle: true,
-            style: { theme: "dark" },
-          },
+          paymentMethods: { creditCard: "all", debitCard: "all", maxInstallments: 1 },
+          visual: { hideFormTitle: true, style: { theme: "dark" } },
         },
         callbacks: {
           onReady: () => {},
-          onError: (err: unknown) => console.error("[MP Brick error]", err),
-          onSubmit: ({ formData }: { formData: Record<string, unknown> }) => {
-            return new Promise<void>((resolve, reject) => {
+          onError: (err: unknown) => console.error("[MP Brick]", err),
+          onSubmit: ({ formData }: { formData: Record<string, unknown> }) =>
+            new Promise<void>((resolve, reject) => {
               fetch("/api/assinar/payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  formData,
-                  clientId: capturedClientId,
-                  slug: capturedSlug,
-                }),
+                body: JSON.stringify({ method: "card", formData, clientId: capturedClientId, slug }),
               })
                 .then((r) => r.json())
-                .then((data) => {
-                  if (data.error) reject(new Error(data.error));
-                  else resolve();
-                })
+                .then((d) => { if (d.error) reject(new Error(d.error)); else resolve(); })
                 .catch(reject);
-            });
-          },
+            }),
         },
       });
     };
 
-    if ((window as any).MercadoPago) {
-      initBrick((window as any).MercadoPago);
-    } else {
-      const script = document.createElement("script");
-      script.src = "https://sdk.mercadopago.com/js/v2";
-      script.onload = () => initBrick((window as any).MercadoPago);
-      document.head.appendChild(script);
+    if ((window as any).MercadoPago) initBrick((window as any).MercadoPago);
+    else {
+      const s = document.createElement("script");
+      s.src = "https://sdk.mercadopago.com/js/v2";
+      s.onload = () => initBrick((window as any).MercadoPago);
+      document.head.appendChild(s);
     }
   }, [phase, clientId, slug, plan]);
 
-  if (!plan) {
-    return (
-      <main style={{ minHeight: "100vh", background: "#070B18", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: "#D4A017" }}>Plano não encontrado.</p>
-      </main>
-    );
-  }
+  const copyPix = () => {
+    navigator.clipboard.writeText(pixCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  if (!plan) return (
+    <main style={{ minHeight: "100vh", background: "#070B18", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <p style={{ color: "#D4A017" }}>Plano não encontrado.</p>
+    </main>
+  );
+
+  const gold = { background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
+  const btn = { width: "100%", padding: "14px 0", borderRadius: 50, background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)", color: "#0A0808", fontWeight: 700, fontSize: 15, cursor: "pointer", border: "none", boxShadow: "0 0 24px rgba(218,165,32,0.4)" } as const;
+  const input = { width: "100%", padding: "13px 16px", borderRadius: 50, border: "1px solid rgba(212,160,23,0.35)", background: "rgba(255,255,255,0.05)", color: "#FFE082", fontSize: 16, outline: "none", boxSizing: "border-box", textAlign: "center", marginBottom: 12 } as const;
 
   return (
     <main style={{
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "24px 16px",
+      minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", padding: "24px 16px",
       background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)",
-      position: "relative",
-      overflow: "hidden",
+      position: "relative", overflow: "hidden",
     }}>
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background: `
-          radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%),
-          radial-gradient(ellipse 55% 45% at 90% 45%, rgba(18,28,70,0.35) 0%, transparent 65%)
-        `,
-      }} />
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", background: `radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%), radial-gradient(ellipse 55% 45% at 90% 45%, rgba(18,28,70,0.35) 0%, transparent 65%)` }} />
 
       <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 480 }}>
 
-        <h1 style={{
-          fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: "clamp(2rem, 8vw, 3.5rem)",
-          fontWeight: "bold",
-          letterSpacing: "0.35em",
-          textAlign: "center",
-          marginBottom: 4,
-          background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-          filter: "drop-shadow(0 0 20px rgba(212,160,23,0.6))",
-        }}>
-          KADOSH
-        </h1>
-        <p style={{ textAlign: "center", color: "#7A6010", fontSize: 11, letterSpacing: "0.4em", textTransform: "uppercase", marginBottom: 28 }}>
-          — AI ORCHESTRATOR —
-        </p>
+        {/* Header */}
+        <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(2rem, 8vw, 3.5rem)", fontWeight: "bold", letterSpacing: "0.35em", textAlign: "center", marginBottom: 4, filter: "drop-shadow(0 0 20px rgba(212,160,23,0.6))", ...gold }}>KADOSH</h1>
+        <p style={{ textAlign: "center", color: "#7A6010", fontSize: 11, letterSpacing: "0.4em", textTransform: "uppercase", marginBottom: 24 }}>— AI ORCHESTRATOR —</p>
 
         {/* Card do plano */}
-        <div style={{
-          borderRadius: 20,
-          border: "1px solid rgba(212,160,23,0.35)",
-          background: "rgba(212,160,23,0.06)",
-          padding: "20px",
-          marginBottom: 24,
-        }}>
-          <p style={{ color: "#7A6010", fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 4 }}>
-            {plan.modo}
-          </p>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
-            <p style={{ color: "#FFE082", fontSize: 22, fontWeight: 700, margin: 0 }}>{plan.plano}</p>
-            <p style={{ color: "#D4A017", fontSize: 20, fontWeight: 700, margin: 0 }}>{plan.priceLabel}</p>
+        <div style={{ borderRadius: 20, border: "1px solid rgba(212,160,23,0.35)", background: "rgba(212,160,23,0.06)", padding: "18px 20px", marginBottom: 24 }}>
+          <p style={{ color: "#7A6010", fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 4 }}>{plan.modo}</p>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 12 }}>
+            <p style={{ color: "#FFE082", fontSize: 20, fontWeight: 700, margin: 0 }}>{plan.plano}</p>
+            <p style={{ color: "#D4A017", fontSize: 18, fontWeight: 700, margin: 0 }}>{plan.priceLabel}</p>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               {plan.features.map((f, i) => (
                 <tr key={i} style={{ borderBottom: "1px solid rgba(212,160,23,0.1)" }}>
-                  <td style={{ padding: "8px 0", color: "#D4A017", width: 24, fontSize: 13 }}>✓</td>
-                  <td style={{ padding: "8px 0", color: "#C8CDD8", fontSize: 13 }}>{f}</td>
+                  <td style={{ padding: "7px 0", color: "#D4A017", width: 20, fontSize: 12 }}>✓</td>
+                  <td style={{ padding: "7px 0", color: "#C8CDD8", fontSize: 12 }}>{f}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Fase 1: WhatsApp */}
+        {/* ── Fase: WhatsApp ── */}
         {phase === "phone" && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: "50%", background: "#25D366",
-                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                boxShadow: "0 0 16px rgba(37,211,102,0.4)",
-              }}>
-                <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-              </div>
-              <p style={{ color: "#C8CDD8", fontSize: 14, margin: 0 }}>Seu WhatsApp para acessar o Kadosh</p>
-            </div>
-
-            <input
-              type="tel"
-              placeholder="55 11 99999-9999"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handlePhone()}
-              style={{
-                width: "100%", padding: "13px 16px", borderRadius: 50,
-                border: "1px solid rgba(212,160,23,0.35)",
-                background: "rgba(255,255,255,0.05)", color: "#FFE082",
-                fontSize: 16, outline: "none", boxSizing: "border-box",
-                textAlign: "center", marginBottom: 12,
-              }}
-            />
-
+            <p style={{ color: "#C8CDD8", fontSize: 14, marginBottom: 12, textAlign: "center" }}>Seu WhatsApp para acessar o Kadosh</p>
+            <input type="tel" placeholder="55 11 99999-9999" value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === "Enter" && handlePhone()} style={input} />
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center", marginBottom: 10 }}>{error}</p>}
-
-            <button
-              onClick={handlePhone}
-              disabled={loading}
-              style={{
-                width: "100%", padding: "14px 0", borderRadius: 50,
-                background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
-                color: "#0A0808", fontWeight: 700, fontSize: 15,
-                cursor: loading ? "default" : "pointer", border: "none",
-                opacity: loading ? 0.7 : 1, boxShadow: "0 0 24px rgba(218,165,32,0.4)",
-              }}
-            >
+            <button onClick={handlePhone} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Aguarde..." : "Ir para pagamento"}
             </button>
           </div>
         )}
 
-        {/* Fase 2: MP Payment Brick */}
-        {phase === "payment" && (
+        {/* ── Fase: Escolha PIX ou Cartão ── */}
+        {phase === "select" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ color: "#C8CDD8", fontSize: 14, textAlign: "center", marginBottom: 4 }}>Como deseja pagar?</p>
+            <button onClick={() => setPhase("pix-email")} style={{ ...btn, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>⚡</span> Pagar com PIX
+            </button>
+            <button onClick={() => setPhase("card")} style={{ ...btn, background: "rgba(212,160,23,0.15)", border: "1px solid rgba(212,160,23,0.4)", color: "#FFE082", boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>💳</span> Pagar com Cartão
+            </button>
+          </div>
+        )}
+
+        {/* ── Fase: E-mail para PIX ── */}
+        {phase === "pix-email" && (
           <div>
-            <p style={{ color: "#C8CDD8", fontSize: 13, textAlign: "center", marginBottom: 16 }}>
-              Pague com PIX ou cartão — 100% seguro
-            </p>
-            <div id="mp-payment-brick" />
+            <p style={{ color: "#C8CDD8", fontSize: 14, marginBottom: 12, textAlign: "center" }}>Seu e-mail para gerar o PIX</p>
+            <input type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && handlePix()} style={input} />
+            {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center", marginBottom: 10 }}>{error}</p>}
+            <button onClick={handlePix} disabled={loading} style={{ ...btn, opacity: loading ? 0.7 : 1 }}>
+              {loading ? "Gerando PIX..." : "Gerar QR Code PIX"}
+            </button>
+            <button onClick={() => setPhase("select")} style={{ background: "none", border: "none", color: "#7A6010", fontSize: 13, cursor: "pointer", width: "100%", marginTop: 10, textAlign: "center" }}>
+              ← Voltar
+            </button>
+          </div>
+        )}
+
+        {/* ── Fase: QR Code PIX ── */}
+        {phase === "pix-qr" && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ color: "#25D366", fontWeight: 700, fontSize: 15, marginBottom: 16 }}>⚡ PIX gerado! Escaneie para pagar</p>
+            {pixQr && <img src={pixQr} alt="QR Code PIX" style={{ width: 200, height: 200, margin: "0 auto 16px", display: "block", borderRadius: 12, background: "white", padding: 8 }} />}
+            {pixCode && (
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ color: "#C8CDD8", fontSize: 12, marginBottom: 8 }}>Ou copie o código abaixo:</p>
+                <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(212,160,23,0.2)", borderRadius: 12, padding: "10px 14px", fontSize: 11, color: "#D4A017", wordBreak: "break-all", marginBottom: 8 }}>
+                  {pixCode.slice(0, 60)}...
+                </div>
+                <button onClick={copyPix} style={{ ...btn, padding: "10px 0", fontSize: 13 }}>
+                  {copied ? "✓ Código copiado!" : "Copiar código PIX"}
+                </button>
+              </div>
+            )}
+            <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.2)", borderRadius: 12, padding: "12px 16px" }}>
+              <p style={{ color: "#25D366", fontSize: 13, margin: 0 }}>
+                Após o pagamento, você receberá seu acesso via WhatsApp em até 1 minuto.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Fase: Cartão (MP Brick) ── */}
+        {phase === "card" && (
+          <div>
+            <div id="mp-card-brick" />
+            <button onClick={() => { setPhase("select"); brickMounted.current = false; }} style={{ background: "none", border: "none", color: "#7A6010", fontSize: 13, cursor: "pointer", width: "100%", marginTop: 10, textAlign: "center" }}>
+              ← Voltar
+            </button>
           </div>
         )}
 
@@ -241,4 +261,8 @@ export default function AssinarPage() {
       </div>
     </main>
   );
+}
+
+export default function AssinarPage() {
+  return <Suspense><AssinarForm /></Suspense>;
 }

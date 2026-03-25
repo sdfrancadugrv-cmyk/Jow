@@ -263,7 +263,7 @@ export default function LandingPage() {
 
       if (action && action.startsWith("goto_assinar_")) {
         const slug = action.replace("goto_assinar_", "");
-        router.push(`/assinar/${slug}`);
+        router.push(`/assinar/${slug}${!textModeRef.current ? "?voice=1" : ""}`);
         return;
       }
       if (action === "goto_register")   { router.push("/register"); return; }
@@ -336,7 +336,7 @@ export default function LandingPage() {
       if (abortRef.current) return;
       if (action && action.startsWith("goto_assinar_")) {
         const slug = action.replace("goto_assinar_", "");
-        router.push(`/assinar/${slug}`);
+        router.push(`/assinar/${slug}${!textModeRef.current ? "?voice=1" : ""}`);
         return;
       }
       if (action === "goto_register") { router.push("/register"); return; }
