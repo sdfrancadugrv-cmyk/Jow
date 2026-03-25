@@ -11,15 +11,23 @@ const MUTED = "#7A6018";
 
 export default function ProviderSubscribePage() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
   const handleSubscribe = async () => {
     setLoading(true);
+    setError("");
     try {
       const res = await fetch("/api/provider/checkout", { method: "POST" });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Erro ao iniciar pagamento. Tente novamente.");
+        setLoading(false);
+      }
     } catch {
+      setError("Erro de conexão. Tente novamente.");
       setLoading(false);
     }
   };
@@ -52,6 +60,8 @@ export default function ProviderSubscribePage() {
               </div>
             ))}
           </div>
+
+          {error && <p style={{ color: "#F97316", fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
           <button
             onClick={handleSubscribe}
