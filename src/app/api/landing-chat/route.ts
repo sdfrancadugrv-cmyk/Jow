@@ -152,7 +152,8 @@ AÇÕES (nunca diga em voz alta):
 professor-start, professor-pro, professor-scale, vendedor-starter, vendedor-pro, vendedor-scale, secretaria-pro, secretaria-scale, expert
 Exemplo: usuário diz "quero o pro" após ver os planos de professor → emita [ASSINAR:professor-pro]
 🚫 NUNCA emita [ASSINAR:{slug}] sem o usuário ter escolhido o plano explicitamente.
-[BUSCAR_SERVICO] — quando quiser usar a central de serviços locais como cliente (contratar alguém) ou como prestador (oferecer serviço)
+[BUSCAR_SERVICO] — APENAS quando o usuário quiser CONTRATAR um serviço (faxineira, eletricista, pedreiro, advogado, médico, etc.)
+[CADASTRAR_PRESTADOR] — quando o usuário quiser OFERECER serviço, anunciar seu trabalho, se cadastrar como prestador
 [LOGIN] — quando já tem conta
 [FECHAR] — quando quiser encerrar`;
 
