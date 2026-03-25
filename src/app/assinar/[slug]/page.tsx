@@ -13,7 +13,6 @@ export default function AssinarPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState<"phone" | "payment">("phone");
-  const [preferenceId, setPreferenceId] = useState("");
   const [clientId, setClientId] = useState("");
   const brickMounted = useRef(false);
 
@@ -29,7 +28,6 @@ export default function AssinarPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao processar"); setLoading(false); return; }
-      setPreferenceId(data.preferenceId);
       setClientId(data.clientId);
       setPhase("payment");
     } catch {
@@ -37,44 +35,45 @@ export default function AssinarPage() {
     }
   };
 
-  // Inicializa o MP Payment Brick quando entrar na fase de pagamento
   useEffect(() => {
-    if (phase !== "payment" || !preferenceId || brickMounted.current) return;
+    if (phase !== "payment" || !clientId || brickMounted.current) return;
     brickMounted.current = true;
 
     const publicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY!;
+    const amount = plan.priceAmount / 100;
+    const capturedSlug = slug;
+    const capturedClientId = clientId;
 
     const initBrick = async (MercadoPago: any) => {
       const mp = new MercadoPago(publicKey, { locale: "pt-BR" });
       const bricks = mp.bricks();
       await bricks.create("payment", "mp-payment-brick", {
-        initialization: {
-          amount: plan.priceAmount / 100,
-          preferenceId,
-        },
+        initialization: { amount },
         customization: {
           paymentMethods: {
-            bankTransfer: "all",
+            bankTransfer: "all",  // PIX
             creditCard: "all",
             debitCard: "all",
             maxInstallments: 1,
           },
           visual: {
             hideFormTitle: true,
-            style: {
-              theme: "dark",
-            },
+            style: { theme: "dark" },
           },
         },
         callbacks: {
           onReady: () => {},
-          onError: (err: unknown) => console.error("[MP Brick]", err),
+          onError: (err: unknown) => console.error("[MP Brick error]", err),
           onSubmit: ({ formData }: { formData: Record<string, unknown> }) => {
             return new Promise<void>((resolve, reject) => {
               fetch("/api/assinar/payment", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ formData, clientId, slug }),
+                body: JSON.stringify({
+                  formData,
+                  clientId: capturedClientId,
+                  slug: capturedSlug,
+                }),
               })
                 .then((r) => r.json())
                 .then((data) => {
@@ -88,7 +87,6 @@ export default function AssinarPage() {
       });
     };
 
-    // Carrega o SDK do MP dinamicamente
     if ((window as any).MercadoPago) {
       initBrick((window as any).MercadoPago);
     } else {
@@ -97,7 +95,7 @@ export default function AssinarPage() {
       script.onload = () => initBrick((window as any).MercadoPago);
       document.head.appendChild(script);
     }
-  }, [phase, preferenceId, clientId, slug, plan]);
+  }, [phase, clientId, slug, plan]);
 
   if (!plan) {
     return (
@@ -129,7 +127,6 @@ export default function AssinarPage() {
 
       <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 480 }}>
 
-        {/* Header */}
         <h1 style={{
           fontFamily: "Georgia, 'Times New Roman', serif",
           fontSize: "clamp(2rem, 8vw, 3.5rem)",
@@ -199,17 +196,11 @@ export default function AssinarPage() {
               onChange={e => setPhone(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handlePhone()}
               style={{
-                width: "100%",
-                padding: "13px 16px",
-                borderRadius: 50,
+                width: "100%", padding: "13px 16px", borderRadius: 50,
                 border: "1px solid rgba(212,160,23,0.35)",
-                background: "rgba(255,255,255,0.05)",
-                color: "#FFE082",
-                fontSize: 16,
-                outline: "none",
-                boxSizing: "border-box",
-                textAlign: "center",
-                marginBottom: 12,
+                background: "rgba(255,255,255,0.05)", color: "#FFE082",
+                fontSize: 16, outline: "none", boxSizing: "border-box",
+                textAlign: "center", marginBottom: 12,
               }}
             />
 
@@ -219,17 +210,11 @@ export default function AssinarPage() {
               onClick={handlePhone}
               disabled={loading}
               style={{
-                width: "100%",
-                padding: "14px 0",
-                borderRadius: 50,
+                width: "100%", padding: "14px 0", borderRadius: 50,
                 background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
-                color: "#0A0808",
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: loading ? "default" : "pointer",
-                border: "none",
-                opacity: loading ? 0.7 : 1,
-                boxShadow: "0 0 24px rgba(218,165,32,0.4)",
+                color: "#0A0808", fontWeight: 700, fontSize: 15,
+                cursor: loading ? "default" : "pointer", border: "none",
+                opacity: loading ? 0.7 : 1, boxShadow: "0 0 24px rgba(218,165,32,0.4)",
               }}
             >
               {loading ? "Aguarde..." : "Ir para pagamento"}
