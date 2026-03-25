@@ -67,7 +67,7 @@ function PixForm({ clientSecret }: { clientSecret: string }) {
       payment_method: {},
     });
     if (err) { setError(err.message || "Erro ao gerar PIX"); setLoading(false); return; }
-    const pix = paymentIntent?.next_action?.pix_display_qr_code as any;
+    const pix = (paymentIntent?.next_action as any)?.pix_display_qr_code;
     if (pix) setPixData({ qrCode: pix.data || "", qrCodeUrl: pix.image_url_png || pix.image_url_svg || "" });
     setLoading(false);
   }, [stripe, clientSecret]);
