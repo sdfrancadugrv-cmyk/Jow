@@ -156,80 +156,32 @@ Exemplo: usuário diz "quero o pro" após ver os planos de professor → emita [
 [LOGIN] — quando já tem conta
 [FECHAR] — quando quiser encerrar`;
 
-async function classifyIntent(message: string): Promise<"teaching" | "selling" | "building" | "reception" | "services" | "login" | "other"> {
-  const result = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      {
-        role: "system",
-        content: `Classifique a mensagem do usuário em uma dessas categorias e responda APENAS com a palavra da categoria, sem mais nada:
-
-login — quer fazer login, conectar, acessar a conta, já tem conta, "conectar kadosh", "entrar", "já sou assinante", "minha conta"
-teaching — pede para aprender, estudar, receber aula, explicação ou informação sobre qualquer tema
-selling — quer ajuda para vender produto, criar funil ou estratégia de vendas
-building — quer criar sistema, app, agente, automatizar processo ou desenvolver algo
-reception — quer agendar, organizar agenda, atender clientes ou pacientes
-services — quer contratar qualquer serviço local: saúde (psicólogo, psiquiatra, traumatologista, cardiologista, dentista, fisioterapeuta, nutricionista, etc.), jurídico (advogado trabalhista, criminal, civil, família, etc.), casa e manutenção (faxineira, pedreiro, eletricista, encanador, pintor, etc.), transporte (frete, mudança, motorista, motoboy), beleza (cabeleireiro, personal trainer, etc.) — ou quer se cadastrar como prestador de qualquer desses serviços
-other — dúvida sobre o produto/serviço, saudação, navegação ou qualquer outra coisa`,
-      },
-      { role: "user", content: message },
-    ],
-    max_tokens: 5,
-    temperature: 0,
-  });
-
-  const category = result.choices[0].message.content?.trim().toLowerCase();
-  if (category === "login") return "login";
-  if (category === "teaching") return "teaching";
-  if (category === "selling") return "selling";
-  if (category === "building") return "building";
-  if (category === "reception") return "reception";
-  if (category === "services") return "services";
-  return "other";
+function isLoginIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  return /conectar\s+kadosh|entrar|fazer\s+login|minha\s+conta|j[aá]\s+(sou|tenho)\s+(assinante|conta)|acessar\s+(minha\s+)?conta/.test(lower);
 }
 
 export async function POST(req: NextRequest) {
   try {
     const { message, history = [] } = await req.json();
 
-    // Classifica a intenção antes de chamar o modelo principal
-    const intent = await classifyIntent(message);
-
-    // Login — redireciona imediatamente sem chamar o modelo
-    if (intent === "login") {
+    // Login — atalho instantâneo sem chamar o modelo
+    if (isLoginIntent(message)) {
       return NextResponse.json({ text: "Vou te levar para a tela de acesso agora.", action: "goto_login" });
-    }
-
-    // Se é uma requisição de execução de tarefa, injeta instrução explícita no histórico
-    let systemOverride = "";
-    if (intent === "teaching") {
-      systemOverride = `O usuário está pedindo para aprender/estudar algo. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH PROFESSOR VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
-    } else if (intent === "selling") {
-      systemOverride = `O usuário quer ajuda com vendas. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH VENDEDOR ESPECIALISTA conforme suas instruções: apresente as capacidades, convide a assinar.`;
-    } else if (intent === "building") {
-      systemOverride = `O usuário quer criar/desenvolver algo. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH SOLUCIONADOR/DESENVOLVEDOR conforme suas instruções: apresente as capacidades, convide a assinar.`;
-    } else if (intent === "reception") {
-      systemOverride = `O usuário quer agendar ou organizar atendimento. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH SECRETÁRIA ELETRÔNICA VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
-    } else if (intent === "services") {
-      systemOverride = `O usuário precisa de um serviço local ou quer se oferecer como prestador. REGRAS ABSOLUTAS: NÃO explique como funciona o sistema. NÃO mencione preços a menos que o usuário perguntar. Responda em 1 frase curta e emita a ação imediatamente. Se quer CONTRATAR alguém: confirme o tipo de serviço e emita [BUSCAR_SERVICO]. Se quer SE CADASTRAR como prestador: emita [CADASTRAR_PRESTADOR]. Preço só se perguntado: mensalidade para prestador, valor por serviço contratado para quem busca.`;
     }
 
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
       { role: "system", content: SYSTEM_PROMPT },
-      ...history.slice(-8),
+      ...history.slice(-6),
     ];
-
-    if (systemOverride) {
-      messages.push({ role: "system", content: systemOverride });
-    }
 
     messages.push({ role: "user", content: message });
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
-      max_tokens: 250,
-      temperature: 0.4,
+      max_tokens: 150,
+      temperature: 0.3,
     });
 
     const raw = completion.choices[0].message.content || "";
