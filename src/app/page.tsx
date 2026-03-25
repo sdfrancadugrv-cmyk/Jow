@@ -68,7 +68,6 @@ export default function LandingPage() {
   const cancelListenRef   = useRef(false);
   const router = useRouter();
 
-  // Desbloqueia autoplay no gesto do usuário (deve ser síncrono)
   const ensureAudioUnlocked = useCallback(() => {
     if (audioUnlockedRef.current) return;
     audioUnlockedRef.current = true;
@@ -82,6 +81,8 @@ export default function LandingPage() {
   // ── TTS via OpenAI — retorna texto interrompido ou "" ────────────
   const speak = useCallback(async (text: string): Promise<string> => {
     if (abortRef.current) return "";
+    // Em modo texto, não usa TTS
+    if (textModeRef.current) return "";
     try {
       const res = await fetch("/api/landing-speak", {
         method: "POST",
@@ -133,7 +134,6 @@ export default function LandingPage() {
         resolve(text);
       };
 
-      // Verifica 4s de silêncio a cada 300ms
       const silenceTimer = setInterval(() => {
         if (abortRef.current || cancelListenRef.current) { cancelListenRef.current = false; finish(""); return; }
         if (Date.now() - lastActivity >= 4000) finish(bestTranscript);
@@ -186,11 +186,9 @@ export default function LandingPage() {
     textModeRef.current = next;
     setTextMode(next);
     if (next && voiceState === "listening") {
-      // aborta microfone atual para entrar no waitForText
       cancelListenRef.current = true;
     }
     if (!next && textResolveRef.current) {
-      // volta pra voz: cancela espera de texto pendente
       textResolveRef.current("");
       textResolveRef.current = null;
     }
@@ -213,11 +211,10 @@ export default function LandingPage() {
   const processMessage = useCallback(async (userText: string) => {
     if (abortRef.current) return;
 
-    // Silêncio: continua ouvindo
     if (!userText.trim()) {
       if (!abortRef.current && activeRef.current) {
         setVoiceState("listening");
-        setStatusText("ouvindo...");
+        setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
         const next = await getInput();
         await processMessage(next);
       } else {
@@ -251,9 +248,16 @@ export default function LandingPage() {
 
       if (abortRef.current) return;
       setBubble(text);
-      setVoiceState("speaking");
-      setStatusText("respondendo...");
-      const interrupted = await speak(text);
+
+      let interrupted = "";
+      if (!textModeRef.current) {
+        setVoiceState("speaking");
+        setStatusText("respondendo...");
+        interrupted = await speak(text);
+      } else {
+        setVoiceState("listening");
+        setStatusText("aguardando mensagem...");
+      }
 
       if (abortRef.current) return;
 
@@ -270,7 +274,6 @@ export default function LandingPage() {
         return;
       }
 
-      // Se usuário interrompeu: processa o que ele disse imediatamente
       if (interrupted) {
         setBubble("");
         setVoiceState("thinking");
@@ -278,10 +281,9 @@ export default function LandingPage() {
         return;
       }
 
-      // Continua ouvindo no loop
       if (!abortRef.current) {
         setVoiceState("listening");
-        setStatusText("ouvindo...");
+        setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
         const next = await getInput();
         await processMessage(next);
       }
@@ -295,24 +297,73 @@ export default function LandingPage() {
     }
   }, [speak, getInput, router]);
 
-  // ── Iniciar conversa ─────────────────────────────────────────────
-  const startConversation = useCallback(async () => {
+  // ── Saudação automática + entra no loop ─────────────────────────
+  const greetAndListen = useCallback(async () => {
     if (activeRef.current) return;
     abortRef.current  = false;
     activeRef.current = true;
     setConversationActive(true);
-    setVoiceState("listening");
-    setStatusText("ouvindo...");
+    setVoiceState("thinking");
+    setStatusText("iniciando...");
     setBubble("");
-    const text = await getInput();
-    await processMessage(text);
-  }, [getInput, processMessage]);
 
-  // ── Saudação ao ativar ───────────────────────────────────────────
-  useEffect(() => {
-    if (activated) greetAndListen();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activated]);
+    try {
+      const res = await fetch("/api/landing-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "SYSTEM_START", history: [] }),
+      });
+      const { text, action } = await res.json();
+      if (abortRef.current) return;
+      setBubble(text);
+      historyRef.current = [{ role: "assistant", content: text }];
+
+      let interrupted = "";
+      if (!textModeRef.current) {
+        setVoiceState("speaking");
+        setStatusText("respondendo...");
+        interrupted = await speak(text);
+      } else {
+        setVoiceState("listening");
+        setStatusText("aguardando mensagem...");
+      }
+
+      if (abortRef.current) return;
+      if (action === "goto_register") { router.push("/register"); return; }
+      if (action === "goto_login")    { router.push("/login"); return; }
+      if (interrupted) {
+        setBubble("");
+        setVoiceState("thinking");
+        await processMessage(interrupted);
+        return;
+      }
+      setVoiceState("listening");
+      setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
+      const next = await getInput();
+      await processMessage(next);
+    } catch {
+      activeRef.current = false;
+      setConversationActive(false);
+      setVoiceState("idle");
+      setStatusText('diga "oi Kadosh" ou clique no microfone');
+    }
+  }, [speak, getInput, processMessage, router]);
+
+  // ── Iniciar conversa por texto ───────────────────────────────────
+  const startTextConversation = useCallback(async () => {
+    textModeRef.current = true;
+    setTextMode(true);
+    ensureAudioUnlocked();
+    await greetAndListen();
+  }, [greetAndListen, ensureAudioUnlocked]);
+
+  // ── Iniciar conversa por voz ─────────────────────────────────────
+  const startVoiceConversation = useCallback(async () => {
+    textModeRef.current = false;
+    setTextMode(false);
+    ensureAudioUnlocked();
+    await greetAndListen();
+  }, [greetAndListen, ensureAudioUnlocked]);
 
   // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
@@ -337,7 +388,7 @@ export default function LandingPage() {
           for (let j = 0; j < e.results[i].length; j++) {
             if (matchWake(e.results[i][j].transcript)) {
               rec.stop();
-              if (!activeRef.current) startConversation();
+              if (!activeRef.current) greetAndListen();
               return;
             }
           }
@@ -350,53 +401,9 @@ export default function LandingPage() {
 
     startWake();
     return () => { stopped = true; try { rec?.stop(); } catch {} };
-  }, [activated, startConversation]);
+  }, [activated, greetAndListen]);
 
-  // ── Saudação automática ao ativar ────────────────────────────────
-  const greetAndListen = useCallback(async () => {
-    if (activeRef.current) return;
-    abortRef.current  = false;
-    activeRef.current = true;
-    setConversationActive(true);
-    setVoiceState("thinking");
-    setStatusText("iniciando...");
-    setBubble("");
-
-    try {
-      const res = await fetch("/api/landing-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "SYSTEM_START", history: [] }),
-      });
-      const { text, action } = await res.json();
-      if (abortRef.current) return;
-      setBubble(text);
-      setVoiceState("speaking");
-      setStatusText("respondendo...");
-      historyRef.current = [{ role: "assistant", content: text }];
-      const interrupted = await speak(text);
-      if (abortRef.current) return;
-      if (action === "goto_register") { router.push("/register"); return; }
-      if (action === "goto_login")    { router.push("/login"); return; }
-      if (interrupted) {
-        setBubble("");
-        setVoiceState("thinking");
-        await processMessage(interrupted);
-        return;
-      }
-      setVoiceState("listening");
-      setStatusText("ouvindo...");
-      const next = await getInput();
-      await processMessage(next);
-    } catch {
-      activeRef.current = false;
-      setConversationActive(false);
-      setVoiceState("idle");
-      setStatusText('diga "oi Kadosh" ou clique no microfone');
-    }
-  }, [speak, getInput, processMessage, router]);
-
-  // ── Ativar com um clique ─────────────────────────────────────────
+  // ── Ativar com um clique (tela inicial) ─────────────────────────
   const handleActivate = useCallback(() => {
     ensureAudioUnlocked();
     setActivated(true);
@@ -404,6 +411,7 @@ export default function LandingPage() {
 
   const ringDur = getRingDur(voiceState);
 
+  // ── Tela inicial (antes de ativar) ───────────────────────────────
   if (!activated) {
     return (
       <main
@@ -462,6 +470,7 @@ export default function LandingPage() {
     );
   }
 
+  // ── Tela ativa ───────────────────────────────────────────────────
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
@@ -489,13 +498,6 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Login discreto */}
-      <a href="/login"
-        className="absolute top-5 right-6 z-20 text-[11px] tracking-widest uppercase transition-opacity hover:opacity-80"
-        style={{ color: "#C8A850", letterSpacing: "0.2em", fontWeight: 600 }}>
-        Já tenho acesso
-      </a>
-
       {/* Conteúdo central */}
       <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
 
@@ -517,7 +519,7 @@ export default function LandingPage() {
 
         {/* Microfone com anéis */}
         <button
-          onClick={conversationActive ? stopConversation : startConversation}
+          onClick={conversationActive ? stopConversation : startVoiceConversation}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
           aria-label={conversationActive ? "Encerrar conversa" : "Falar com Kadosh"}
@@ -560,7 +562,9 @@ export default function LandingPage() {
           </div>
         ) : (
           <p className="mb-6 text-base max-w-sm leading-relaxed" style={{ color: "#C8CDD8" }}>
-            Ordene seus 300 agentes de IA e conquiste sua missão.
+            {conversationActive
+              ? "Ordene seus 300 agentes de IA e conquiste sua missão."
+              : 'Diga "oi Kadosh" para conversar'}
           </p>
         )}
 
@@ -570,71 +574,93 @@ export default function LandingPage() {
           {srReady ? statusText : "clique no microfone para falar"}
         </p>
 
-        {/* Toggle voz / texto */}
-        <button
-          onClick={toggleTextMode}
-          title={textMode ? "Voltar para conversa por voz" : "Conversar por texto"}
-          className="mb-4 px-3 py-1 rounded-full text-[9px] tracking-widest uppercase transition-all duration-300 hover:opacity-80 focus:outline-none"
-          style={{
-            border: "1px solid rgba(212,160,23,0.3)",
-            color: textMode ? "#D4A017" : "#3A2C06",
-            background: textMode ? "rgba(212,160,23,0.08)" : "transparent",
-          }}
+        {/* Campo de texto — sempre visível quando ativado */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleTextSubmit(); }}
+          className="flex gap-2 w-full max-w-xs mb-4"
         >
-          {textMode ? "usar voz" : "usar texto"}
-        </button>
-
-        {/* Campo de texto (visível só em modo texto com conversa ativa) */}
-        {textMode && conversationActive && (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleTextSubmit(); }}
-            className="flex gap-2 w-full max-w-xs mb-4"
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => {
+              setTextInput(e.target.value);
+              // Auto-switch para modo texto se começar a digitar durante voz
+              if (!textModeRef.current && conversationActive && e.target.value.length > 0) {
+                textModeRef.current = true;
+                setTextMode(true);
+                cancelListenRef.current = true;
+              }
+            }}
+            placeholder={conversationActive ? "escreva aqui..." : "ou escreva para iniciar..."}
+            onKeyDown={(e) => {
+              // Se não há conversa ativa e pressiona Enter com texto, inicia por texto
+              if (e.key === "Enter" && !conversationActive && textInput.trim()) {
+                e.preventDefault();
+                startTextConversation();
+              }
+            }}
+            className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-kadosh"
+            style={{
+              border: `1px solid rgba(212,160,23,${textMode ? 0.6 : 0.25})`,
+              color: "#FFE082",
+              transition: "border-color 0.3s",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!textInput.trim()}
+            onClick={!conversationActive && textInput.trim() ? () => startTextConversation() : undefined}
+            className="px-4 py-2 rounded-full text-[10px] tracking-widest uppercase font-bold transition-all hover:opacity-80 disabled:opacity-30 focus:outline-none"
+            style={{
+              border: "1px solid rgba(212,160,23,0.35)",
+              color: "#D4A017",
+              background: "rgba(212,160,23,0.08)",
+            }}
           >
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder="escreva aqui..."
-              autoFocus
-              className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-kadosh"
-              style={{
-                border: "1px solid rgba(212,160,23,0.35)",
-                color: "#FFE082",
-              }}
-            />
+            enviar
+          </button>
+        </form>
+
+        {/* Botões de ação */}
+        {conversationActive ? (
+          <button
+            onClick={stopConversation}
+            className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
+              color: "#fff",
+              boxShadow: "0 0 30px rgba(249,115,22,0.7), 0 4px 20px rgba(0,0,0,0.4)",
+            }}
+          >
+            aperte para encerrar o diálogo
+          </button>
+        ) : (
+          <div className="flex flex-col items-center gap-3">
             <button
-              type="submit"
-              disabled={!textInput.trim()}
-              className="px-4 py-2 rounded-full text-[10px] tracking-widest uppercase font-bold transition-all hover:opacity-80 disabled:opacity-30 focus:outline-none"
+              onClick={startTextConversation}
+              className="px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
               style={{
-                border: "1px solid rgba(212,160,23,0.35)",
-                color: "#D4A017",
-                background: "rgba(212,160,23,0.08)",
+                background: "transparent",
+                color: "#7A6010",
+                border: "1px solid rgba(212,160,23,0.2)",
               }}
             >
-              enviar
+              ou aperte aqui para conversar por texto
             </button>
-          </form>
+            <a
+              href="/login"
+              className="px-8 py-3 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95 text-center"
+              style={{
+                background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
+                color: "#0A0808",
+                boxShadow: "0 0 20px rgba(218,165,32,0.4), 0 4px 16px rgba(0,0,0,0.4)",
+                textDecoration: "none",
+              }}
+            >
+              conectar Kadosh
+            </a>
+          </div>
         )}
-
-        {/* Botão CTA — alterna entre dourado e laranja */}
-        <button
-          onClick={conversationActive ? stopConversation : startConversation}
-          className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
-          style={conversationActive ? {
-            background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
-            color: "#fff",
-            boxShadow: "0 0 30px rgba(249,115,22,0.7), 0 4px 20px rgba(0,0,0,0.4)",
-          } : {
-            background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
-            color: "#0A0808",
-            boxShadow: "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
-          }}
-        >
-          {conversationActive
-            ? "aperte para encerrar o diálogo"
-            : 'diga "oi Kadosh" ou aperte aqui e faça uma pergunta'}
-        </button>
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
           R$97/mês · cancele quando quiser
