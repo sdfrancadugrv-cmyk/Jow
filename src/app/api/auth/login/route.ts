@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
     }
 
+    if (!client.password) {
+      return NextResponse.json({ error: "Use o WhatsApp para fazer login." }, { status: 400 });
+    }
     const valid = await bcrypt.compare(password, client.password);
     if (!valid) {
       return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
