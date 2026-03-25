@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/process-buffer",
-      "schedule": "* * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/provider-renewal",
