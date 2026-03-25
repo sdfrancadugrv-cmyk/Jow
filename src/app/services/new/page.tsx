@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const GOLD = "#D4A017";
 const GOLD_LIGHT = "#FFE082";
@@ -24,6 +24,7 @@ type Provider = {
 
 function ServiceSearch() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams.get("s") || "";
 
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -109,7 +110,7 @@ function ServiceSearch() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {providers.map(p => (
-              <div key={p.id} style={{ borderRadius: 16, border: "1px solid rgba(212,160,23,0.25)", background: "rgba(212,160,23,0.05)", padding: "16px 18px" }}>
+              <div key={p.id} onClick={() => router.push(`/services/hire/${p.id}`)} style={{ borderRadius: 16, border: "1px solid rgba(212,160,23,0.25)", background: "rgba(212,160,23,0.05)", padding: "16px 18px", cursor: "pointer", transition: "border-color 0.15s" }} onMouseEnter={e => (e.currentTarget.style.borderColor = GOLD)} onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(212,160,23,0.25)")}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                   <p style={{ color: GOLD_LIGHT, fontSize: 15, fontWeight: 700, margin: 0 }}>{p.name}</p>
                   {p.distance !== null && (

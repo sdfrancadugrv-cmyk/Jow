@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Payment } from "mercadopago";
 import { mp } from "@/lib/mercadopago";
 import prisma from "@/lib/prisma";
+import { sendWhatsApp } from "@/lib/whatsapp-send";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,6 +33,32 @@ export async function POST(req: NextRequest) {
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Contratação de profissional: "hire|providerId|clientPhone|clientName"
+    if (parts[0] === "hire") {
+      const providerId = parts[1];
+      const clientPhone = parts[2];
+      const clientName = decodeURIComponent(parts[3] || "Cliente");
+
+      const provider = await prisma.serviceProvider.findUnique({
+        where: { id: providerId },
+        select: { phone: true, name: true },
+      });
+
+      if (provider?.phone) {
+        // Avisa o prestador
+        await sendWhatsApp(
+          provider.phone,
+          `🔔 *KADOSH* — Novo cliente!\n\n*${clientName}* quer contratar seus serviços.\n📱 WhatsApp do cliente: *${clientPhone}*\n\nEntre em contato para combinar os detalhes.`
+        );
+        // Avisa o cliente
+        await sendWhatsApp(
+          clientPhone,
+          `✅ *KADOSH* — Pagamento confirmado!\n\nO WhatsApp do profissional *${provider.name}* é:\n📱 *${provider.phone}*\n\nEntre em contato para combinar os detalhes.`
+        );
+      }
+      return NextResponse.json({ ok: true });
+    }
 
     // Assinatura de prestador: "provider|providerId"
     if (parts[0] === "provider") {
