@@ -15,7 +15,10 @@ function extractYouTubeId(url: string): string | null {
 
 function driveImageUrl(link: string): string {
   const match = link.match(/\/d\/([\w-]+)/);
-  return match ? `https://drive.google.com/uc?export=view&id=${match[1]}` : link;
+  if (!match) return link;
+  const id = match[1];
+  // lh3.googleusercontent.com é mais confiável para imagens em <img> tags
+  return `https://lh3.googleusercontent.com/d/${id}`;
 }
 
 interface Estrutura {
