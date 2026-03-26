@@ -9,24 +9,23 @@ const BG         = "#070B18";
 const LABEL      = "#A08030";
 const MUTED      = "#7A6018";
 
-// Planos que pertencem a cada modo
-const PLANOS_PROFESSOR = ["professor-start", "professor-pro", "professor-scale"];
-const PLANOS_VENDEDOR  = ["vendedor-starter", "vendedor-pro", "vendedor-scale"];
+// Quais planos desbloqueiam cada item (vazio = todos desbloqueiam)
+const PLANOS_PROFESSOR_START  = ["professor-start"];
+const PLANOS_PROFESSOR_PRO    = ["professor-pro"];
+const PLANOS_PROFESSOR_SCALE  = ["professor-scale"];
+const PLANOS_VENDEDOR         = ["vendedor-starter", "vendedor-pro", "vendedor-scale"];
 
 interface ModuloItem {
   nome: string;
   rota: string;
   icone: string;
   desc: string;
-  /** Planos que têm acesso. Vazio = todos. */
-  planos?: string[];
+  planos: string[]; // vazio = livre para todos
 }
 
 interface Modulo {
   categoria: string;
   cor: string;
-  /** Planos que têm acesso à categoria. Vazio = todos. */
-  planos?: string[];
   itens: ModuloItem[];
 }
 
@@ -34,41 +33,33 @@ const MODULOS: Modulo[] = [
   {
     categoria: "Kadosh Professor",
     cor: "#D4A017",
-    planos: PLANOS_PROFESSOR,
     itens: [
-      { nome: "Professor Start",  rota: "/aluno/professor-start",  icone: "🎓", desc: "1 língua + 1 concurso",       planos: ["professor-start"] },
-      { nome: "Professor Pro",    rota: "/aluno/professor-pro",    icone: "🎓", desc: "2 línguas + 2 concursos",    planos: ["professor-pro"] },
-      { nome: "Professor Scale",  rota: "/aluno/professor-scale",  icone: "🎓", desc: "Ilimitado",                  planos: ["professor-scale"] },
+      { nome: "Professor Start",  rota: "/aluno/professor-start",  icone: "🎓", desc: "1 língua + 1 concurso",    planos: PLANOS_PROFESSOR_START },
+      { nome: "Professor Pro",    rota: "/aluno/professor-pro",    icone: "🎓", desc: "2 línguas + 2 concursos",  planos: PLANOS_PROFESSOR_PRO },
+      { nome: "Professor Scale",  rota: "/aluno/professor-scale",  icone: "🎓", desc: "Ilimitado",                planos: PLANOS_PROFESSOR_SCALE },
     ],
   },
   {
     categoria: "Kadosh Vendedor",
     cor: "#25D366",
-    planos: PLANOS_VENDEDOR,
     itens: [
-      { nome: "Criar Produto",           rota: "/vendedor/criar",          icone: "🛍️", desc: "Cadastrar novo produto para vender",   planos: PLANOS_VENDEDOR },
-      { nome: "Editar Páginas de Vendas", rota: "/vendedor/minhas-paginas", icone: "📋", desc: "Ver e editar suas páginas de vendas",  planos: PLANOS_VENDEDOR },
+      { nome: "Criar Produto",            rota: "/vendedor/criar",          icone: "🛍️", desc: "Cadastrar novo produto para vender",  planos: PLANOS_VENDEDOR },
+      { nome: "Editar Páginas de Vendas", rota: "/vendedor/minhas-paginas", icone: "📋", desc: "Ver e editar suas páginas de vendas", planos: PLANOS_VENDEDOR },
     ],
   },
   {
     categoria: "Kadosh App",
     cor: "#4A90D9",
     itens: [
-      { nome: "App Principal", rota: "/app",          icone: "🤖", desc: "AI Orchestrator com voz" },
-      { nome: "WhatsApp",      rota: "/app/whatsapp", icone: "💬", desc: "Gestão de leads" },
+      { nome: "App Principal", rota: "/app",          icone: "🤖", desc: "AI Orchestrator com voz", planos: [] },
+      { nome: "WhatsApp",      rota: "/app/whatsapp", icone: "💬", desc: "Gestão de leads",         planos: [] },
     ],
   },
 ];
 
-function podeVerCategoria(cat: Modulo, plano: string, isAdmin: boolean): boolean {
+function temAcesso(item: ModuloItem, plano: string, isAdmin: boolean): boolean {
   if (isAdmin) return true;
-  if (!cat.planos || cat.planos.length === 0) return true;
-  return cat.planos.includes(plano);
-}
-
-function podeVerItem(item: ModuloItem, plano: string, isAdmin: boolean): boolean {
-  if (isAdmin) return true;
-  if (!item.planos || item.planos.length === 0) return true;
+  if (item.planos.length === 0) return true;
   return item.planos.includes(plano);
 }
 
@@ -77,23 +68,19 @@ export default function AdminPage() {
   const [nome, setNome] = useState("...");
   const [plano, setPlano] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [carregando, setCarregando] = useState(true);
-  const [semSessao, setSemSessao] = useState(false);
+  const [pronto, setPronto] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.json())
       .then(d => {
-        if (!d?.id) { setSemSessao(true); setCarregando(false); return; }
+        if (!d?.id) { router.push("/login"); return; }
         setNome(d.name?.split(" ")[0] || "Usuário");
         setPlano(d.plan || "");
         setIsAdmin(!!d.isAdmin);
-        setCarregando(false);
+        setPronto(true);
       })
-      .catch(() => {
-        setSemSessao(true);
-        setCarregando(false);
-      });
+      .catch(() => router.push("/login"));
   }, [router]);
 
   async function sair() {
@@ -101,37 +88,13 @@ export default function AdminPage() {
     router.push("/login");
   }
 
-  if (carregando) {
+  if (!pronto) {
     return (
       <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: MUTED, letterSpacing: "0.15em", fontSize: 13 }}>carregando...</p>
       </main>
     );
   }
-
-  if (semSessao) {
-    return (
-      <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <p style={{ color: MUTED, fontSize: 13, marginBottom: 16 }}>Sessão expirada.</p>
-          <button
-            onClick={() => router.push("/login")}
-            style={{ color: GOLD, background: "none", border: `1px solid ${GOLD}44`, borderRadius: 10, padding: "10px 24px", cursor: "pointer", fontSize: 13 }}
-          >
-            Fazer login
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  const modulosVisiveis = MODULOS
-    .filter(cat => podeVerCategoria(cat, plano, isAdmin))
-    .map(cat => ({
-      ...cat,
-      itens: cat.itens.filter(item => podeVerItem(item, plano, isAdmin)),
-    }))
-    .filter(cat => cat.itens.length > 0);
 
   return (
     <main style={{ minHeight: "100vh", background: BG, padding: "24px 16px" }}>
@@ -145,12 +108,10 @@ export default function AdminPage() {
               background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`,
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
             }}>
-              KADOSH
+              KADOSH ADMIN
             </h1>
             <p style={{ color: MUTED, fontSize: 11, marginTop: 3, letterSpacing: "0.1em" }}>
-              {isAdmin
-                ? `Olá, ${nome} — acesso total liberado`
-                : `Olá, ${nome} — plano ${plano || "ativo"}`}
+              {isAdmin ? `Olá, ${nome} — acesso total liberado` : `Olá, ${nome}`}
             </p>
           </div>
           <button onClick={sair} style={{ fontSize: 11, color: LABEL, letterSpacing: "0.1em", background: "none", border: "none", cursor: "pointer" }}>
@@ -158,8 +119,8 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Módulos filtrados por plano */}
-        {modulosVisiveis.map((cat) => (
+        {/* Módulos */}
+        {MODULOS.map((cat) => (
           <div key={cat.categoria} style={{ marginBottom: 28 }}>
             <p style={{
               fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase",
@@ -168,29 +129,50 @@ export default function AdminPage() {
               {cat.categoria}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {cat.itens.map((item) => (
-                <button
-                  key={item.rota}
-                  onClick={() => router.push(item.rota)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 14,
-                    padding: "14px 18px", borderRadius: 14, border: `1px solid rgba(255,255,255,0.06)`,
-                    background: "rgba(255,255,255,0.02)", cursor: "pointer",
-                    textAlign: "left", transition: "border-color 0.15s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = `${cat.cor}55`)}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)")}
-                >
-                  <span style={{ fontSize: 22 }}>{item.icone}</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ color: GOLD_LIGHT, fontSize: 14, fontFamily: "Georgia, serif", marginBottom: 2 }}>
-                      {item.nome}
-                    </p>
-                    <p style={{ color: MUTED, fontSize: 12 }}>{item.desc}</p>
-                  </div>
-                  <span style={{ color: MUTED, fontSize: 16 }}>›</span>
-                </button>
-              ))}
+              {cat.itens.map((item) => {
+                const liberado = temAcesso(item, plano, isAdmin);
+                return (
+                  <button
+                    key={item.rota}
+                    onClick={() => liberado && router.push(item.rota)}
+                    disabled={!liberado}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "14px 18px", borderRadius: 14,
+                      border: liberado
+                        ? `1px solid rgba(255,255,255,0.06)`
+                        : `1px solid rgba(255,255,255,0.03)`,
+                      background: liberado
+                        ? "rgba(255,255,255,0.02)"
+                        : "rgba(255,255,255,0.01)",
+                      cursor: liberado ? "pointer" : "not-allowed",
+                      textAlign: "left",
+                      transition: "border-color 0.15s",
+                      opacity: liberado ? 1 : 0.45,
+                    }}
+                    onMouseEnter={e => { if (liberado) e.currentTarget.style.borderColor = `${cat.cor}55`; }}
+                    onMouseLeave={e => { if (liberado) e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}
+                  >
+                    <span style={{ fontSize: 22, filter: liberado ? "none" : "grayscale(1)" }}>
+                      {item.icone}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{
+                        color: liberado ? GOLD_LIGHT : "#555",
+                        fontSize: 14, fontFamily: "Georgia, serif", marginBottom: 2,
+                      }}>
+                        {item.nome}
+                      </p>
+                      <p style={{ color: liberado ? MUTED : "#333", fontSize: 12 }}>
+                        {liberado ? item.desc : "Plano não inclui este módulo"}
+                      </p>
+                    </div>
+                    <span style={{ color: liberado ? MUTED : "#333", fontSize: 16 }}>
+                      {liberado ? "›" : "🔒"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
