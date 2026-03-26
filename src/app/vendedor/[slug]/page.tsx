@@ -65,8 +65,8 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const { speak, transcribe } = useJow();
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ativado, setAtivado]   = useState(false);
-  const [chatAberto, setChatAberto] = useState(false);
+  const [ativado, setAtivado]   = useState(true);
+  const [chatAberto, setChatAberto] = useState(true);
   const [imgAtiva, setImgAtiva] = useState(0);
   const [videoAssistido, setVideoAssistido] = useState(false);
   const [videoTocando,  setVideoTocando]  = useState(false);
@@ -140,27 +140,34 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // Auto-scroll chat
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens, pensando]);
 
-  // Auto-ativar Kadosh após 3 segundos
+  // Carrega abertura em texto imediatamente e fala no primeiro toque
   useEffect(() => {
-    if (!produto || ativado) return;
-    const t = setTimeout(() => ativar(), 3000);
-    return () => clearTimeout(t);
+    if (!produto) return;
+    const abertura = produto.estrutura?.abertura
+      || `Você chegou aqui por alguma razão. Me conta — o que você tá buscando?`;
+    setMensagens([{ role: "assistant", content: abertura }]);
+
+    // Tenta falar imediatamente (pode ser bloqueado pelo browser)
+    unlockJowAudio();
+    speak(abertura).catch(() => {
+      // Browser bloqueou — fala no primeiro gesto do usuário
+      const falarNoPrimeiroGesto = () => {
+        unlockJowAudio();
+        speak(abertura);
+        document.removeEventListener("click",      falarNoPrimeiroGesto);
+        document.removeEventListener("touchstart", falarNoPrimeiroGesto);
+        document.removeEventListener("keydown",    falarNoPrimeiroGesto);
+      };
+      document.addEventListener("click",      falarNoPrimeiroGesto, { once: true });
+      document.addEventListener("touchstart", falarNoPrimeiroGesto, { once: true });
+      document.addEventListener("keydown",    falarNoPrimeiroGesto, { once: true });
+    });
   }, [produto]); // eslint-disable-line
 
   const speakSafe = useCallback(async (text: string) => {
     if (silenciadoRef.current) return;
     await speak(text);
   }, [speak]);
-
-  async function ativar() {
-    unlockJowAudio();
-    setAtivado(true);
-    setChatAberto(true);
-    const abertura = produto?.estrutura?.abertura
-      || `Você chegou aqui por alguma razão. Me conta — o que você tá buscando?`;
-    setMensagens([{ role: "assistant", content: abertura }]);
-    await speakSafe(abertura);
-  }
 
   async function enviarMensagem(texto: string) {
     if (!texto.trim() || pensando) return;
@@ -476,8 +483,8 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
 
       {/* ── KADOSH CHAT FLUTUANTE ── */}
       <>
-        {/* Bolha de fala quando chat fechado + Kadosh falou */}
-        {ativado && !chatAberto && ultimaMsgKadosh && (
+        {/* Bolha de prévia quando chat fechado */}
+        {!chatAberto && ultimaMsgKadosh && (
           <div
             style={{
               position: "fixed", bottom: 108, right: 20,
@@ -582,9 +589,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
 
         {/* Orb flutuante */}
         <button
-          onClick={() => {
-            if (!ativado) { ativar(); } else { setChatAberto(v => !v); }
-          }}
+          onClick={() => setChatAberto(v => !v)}
           className="orb-anim"
           style={{
             position: "fixed", bottom: 24, right: 20,
