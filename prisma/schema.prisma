@@ -176,9 +176,12 @@ model ProdutoVendedor {
   clientId    String
   slug        String   @unique
   nome        String
-  descricao   String
+  destaques   String   // o que o cliente quer destacar — vira o prompt base
+  imageLinks  String[] // até 3 links do Google Drive
   videoUrl    String?  // YouTube URL opcional
-  estrutura   Json     // { publico, dores, beneficios, objecoes, preco, cta }
+  salesLink   String   // link de compra do produto
+  preco       String   // ex: "R$ 97,00"
+  estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
