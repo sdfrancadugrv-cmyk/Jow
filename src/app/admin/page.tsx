@@ -20,6 +20,13 @@ const MODULOS = [
     ],
   },
   {
+    categoria: "Kadosh Vendedor",
+    cor: "#25D366",
+    itens: [
+      { nome: "Criar Produto",  rota: "/vendedor/criar", icone: "🛍️", desc: "Cadastrar novo produto para vender" },
+    ],
+  },
+  {
     categoria: "Kadosh App (Orchestrator)",
     cor: "#4A90D9",
     itens: [

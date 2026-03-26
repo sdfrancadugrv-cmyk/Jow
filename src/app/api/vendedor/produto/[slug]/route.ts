@@ -1,0 +1,19 @@
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function GET(_req: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    const produto = await prisma.produtoVendedor.findUnique({
+      where: { slug: params.slug },
+      select: { nome: true, descricao: true, videoUrl: true, estrutura: true, ativo: true },
+    });
+
+    if (!produto || !produto.ativo) {
+      return NextResponse.json({ erro: "produto não encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json(produto);
+  } catch (e: any) {
+    return NextResponse.json({ erro: e.message }, { status: 500 });
+  }
+}

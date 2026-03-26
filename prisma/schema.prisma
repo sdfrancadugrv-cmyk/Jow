@@ -169,6 +169,23 @@ model Bid {
   @@unique([requestId, providerId])
 }
 
+// ─── KADOSH VENDEDOR ──────────────────────────────────────────────────────────
+
+model ProdutoVendedor {
+  id          String   @id @default(cuid())
+  clientId    String
+  slug        String   @unique
+  nome        String
+  descricao   String
+  videoUrl    String?  // YouTube URL opcional
+  estrutura   Json     // { publico, dores, beneficios, objecoes, preco, cta }
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+}
+
 // ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────
 
 model ConfigProfessor {
