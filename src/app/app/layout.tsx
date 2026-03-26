@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     select: { status: true },
   });
 
-  if (!client || client.status !== "active") {
+  if (!payload.isAdmin && (!client || client.status !== "active")) {
     redirect("/login?expired=true");
   }
 
