@@ -8,9 +8,12 @@ declare global {
   interface Window { YT: any; onYouTubeIframeAPIReady: () => void; }
 }
 
-function extractYouTubeId(url: string): string | null {
-  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
-  return m ? m[1] : null;
+function extractYouTubeId(url: string): { id: string; shorts: boolean } | null {
+  const shorts = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shorts) return { id: shorts[1], shorts: true };
+  const normal = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  if (normal) return { id: normal[1], shorts: false };
+  return null;
 }
 
 function driveImageUrl(link: string): string {
@@ -115,8 +118,9 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // YouTube player
   useEffect(() => {
     if (!produto?.videoUrl) return;
-    const videoId = extractYouTubeId(produto.videoUrl);
-    if (!videoId) return;
+    const parsed = extractYouTubeId(produto.videoUrl);
+    if (!parsed) return;
+    const { id: videoId } = parsed;
     const createPlayer = (id: string) => {
       if (!ytContainerRef.current) return;
       ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
@@ -328,7 +332,9 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const e  = produto.estrutura;
   const th = buildTheme(e);
   const imagens = produto.imageLinks.filter(Boolean);
-  const videoId = produto.videoUrl ? extractYouTubeId(produto.videoUrl) : null;
+  const videoParsed = produto.videoUrl ? extractYouTubeId(produto.videoUrl) : null;
+  const videoId     = videoParsed?.id ?? null;
+  const isShorts    = videoParsed?.shorts ?? false;
   const ultimaMsgKadosh = [...mensagens].reverse().find(m => m.role === "assistant")?.content || "";
 
   return (
@@ -434,6 +440,23 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       </section>
 
+      {/* ── VIDEO — acima das fotos ── */}
+      {videoId && (
+        <section style={{ maxWidth: isShorts ? 380 : 740, margin: "0 auto 52px", padding: "0 20px" }}>
+          <p style={{ color: th.muted, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", textAlign: "center", marginBottom: 16 }}>
+            Assista antes de decidir
+          </p>
+          <div style={{
+            borderRadius: 18, overflow: "hidden", border: `1px solid ${th.border}`,
+            position: "relative",
+            paddingBottom: isShorts ? "177.78%" : "56.25%", // 9:16 shorts, 16:9 normal
+            height: 0,
+          }}>
+            <div ref={ytContainerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+          </div>
+        </section>
+      )}
+
       {/* ── IMAGES ── */}
       {imagens.length > 0 && (
         <section style={{ maxWidth: 740, margin: "0 auto 52px", padding: "0 20px" }}>
@@ -457,18 +480,6 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
                 ))}
               </div>
             )}
-          </div>
-        </section>
-      )}
-
-      {/* ── VIDEO ── */}
-      {videoId && (
-        <section style={{ maxWidth: 740, margin: "0 auto 52px", padding: "0 20px" }}>
-          <p style={{ color: th.muted, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", textAlign: "center", marginBottom: 16 }}>
-            Assista antes de decidir
-          </p>
-          <div style={{ borderRadius: 18, overflow: "hidden", border: `1px solid ${th.border}`, position: "relative", paddingBottom: "56.25%", height: 0 }}>
-            <div ref={ytContainerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
           </div>
         </section>
       )}
