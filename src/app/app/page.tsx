@@ -100,19 +100,22 @@ export default function AppPage() {
         Sair
       </button>
 
-      <a
-        href="/app/whatsapp"
-        className="absolute top-4 left-5 z-20 text-xs font-bold tracking-wider"
-        style={{
-          background: "#128C7E",
-          color: "#fff",
-          padding: "5px 14px",
-          borderRadius: 20,
-          textDecoration: "none",
-        }}
-      >
-        💬 Leads
-      </a>
+      <div className="absolute top-4 left-5 z-20 flex gap-2">
+        <a
+          href="/app/whatsapp"
+          className="text-xs font-bold tracking-wider"
+          style={{ background: "#128C7E", color: "#fff", padding: "5px 14px", borderRadius: 20, textDecoration: "none" }}
+        >
+          💬 Leads
+        </a>
+        <a
+          href="/app/vendedor"
+          className="text-xs font-bold tracking-wider"
+          style={{ background: "rgba(212,160,23,0.15)", color: "#D4A017", padding: "5px 14px", borderRadius: 20, textDecoration: "none", border: "1px solid rgba(212,160,23,0.3)" }}
+        >
+          🎯 Vendedor
+        </a>
+      </div>
 
       {/* Botão histórico */}
       <button
