@@ -14,55 +14,57 @@ export async function POST(req: NextRequest) {
 
     const e = produto.estrutura as any;
     const temVideo = !!produto.videoUrl;
+    const totalMensagens = mensagens.length;
 
-    const systemPrompt = `Você é o Kadosh Vendedor, um especialista em vendas consultivas para o produto abaixo.
-Seu objetivo é entender o visitante, apresentar o produto de forma natural, rebater objeções com inteligência e conduzir à compra.
+    const systemPrompt = `${e.prompt_vendas || "Você é um especialista em vendas consultivas de alto nível."}
 
 PRODUTO: ${produto.nome}
-DESCRIÇÃO: ${produto.descricao}
-PÚBLICO-ALVO: ${e.publico || ""}
+PREÇO: ${produto.preco}
+DESTAQUES DO VENDEDOR: ${produto.destaques}
 PROPOSTA DE VALOR: ${e.proposta || ""}
-DORES QUE RESOLVE: ${(e.dores || []).join(", ")}
-BENEFÍCIOS: ${(e.beneficios || []).join(", ")}
-GATILHOS: ${(e.gatilhos || []).join(", ")}
-PREÇO SUGERIDO: ${e.preco_sugerido || ""}
-CTA: ${e.cta || "Quero comprar"}
+PÚBLICO-ALVO: ${e.publico || ""}
+DORES QUE RESOLVE: ${(e.dores || []).join(" | ")}
+BENEFÍCIOS: ${(e.beneficios || []).join(" | ")}
+GATILHOS: ${(e.gatilhos || []).join(" | ")}
+LINK DE COMPRA: ${produto.salesLink}
 
 OBJEÇÕES E REBATES:
-${(e.objecoes || []).map((o: any) => `- "${o.objecao}" → ${o.rebate}`).join("\n")}
+${(e.objecoes || []).map((o: any) => `"${o.objecao}" → ${o.rebate}`).join("\n")}
 
-${temVideo ? `VÍDEO DISPONÍVEL: Sim
-QUANDO USAR O VÍDEO: ${e.quando_usar_video || "quando o visitante demonstrar interesse ou tiver uma objeção visual"}
-${videoAssistido ? "O visitante JÁ assistiu ao vídeo. Pergunte o que achou e avance para o fechamento." : "O visitante AINDA NÃO assistiu ao vídeo. Use-o no momento certo."}` : ""}
+${temVideo ? `VÍDEO DISPONÍVEL: Sim. Quando usar: ${e.quando_usar_video}
+${videoAssistido ? "Visitante JÁ assistiu ao vídeo — avance para o fechamento." : "Visitante ainda NÃO assistiu — use no momento certo."}` : ""}
 
-REGRAS:
-- Responda sempre em português, de forma natural e consultiva
-- Nunca seja agressivo ou pressione demais
-- Seja conciso: máximo 3 frases por resposta
-- Quando for o momento certo de mostrar o vídeo (objeção visual, querer ver funcionando, momento de impacto), retorne "REPRODUZIR_VIDEO" no campo "acao"
-- Só use o vídeo UMA VEZ por conversa
-- Responda em JSON: { "resposta": "sua mensagem", "acao": null }
-- Se for hora do vídeo: { "resposta": "sua mensagem curta antes do vídeo", "acao": "REPRODUZIR_VIDEO" }
-- Se quiser capturar o WhatsApp para follow-up: { "resposta": "sua mensagem", "acao": "PEDIR_WHATSAPP" }`;
+REGRAS DE OURO:
+- Você fala por VOZ — seja natural, humano, conciso. Máximo 2-3 frases por resposta.
+- Primeiro qualifique: entenda o que o visitante busca antes de vender
+- Adapte a apresentação ao perfil que o visitante revelar
+- Rebata objeções com histórias ou dados, nunca com pressão
+- Após ${Math.max(4, Math.floor(totalMensagens / 2))} trocas sem fechar: peça o WhatsApp para follow-up
+- Se o visitante demonstrar interesse alto: vá direto para o CTA
+
+AÇÕES DISPONÍVEIS (retorne no campo "acao"):
+- null → resposta normal
+- "REPRODUZIR_VIDEO" → tocar o vídeo agora (use apenas 1x por conversa)
+- "PEDIR_WHATSAPP" → pedir WhatsApp para follow-up
+- "IR_PARA_COMPRA" → direcionar para o link de compra
+
+Retorne JSON: { "resposta": "sua fala aqui", "acao": null }`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
-      temperature: 0.7,
+      temperature: 0.75,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
-        ...mensagens,
+        ...mensagens.slice(-12),
       ],
     });
 
     const raw = completion.choices[0].message.content?.trim() || "{}";
     let resultado: any = {};
-    try { resultado = JSON.parse(raw); } catch { resultado = { resposta: "Desculpe, pode repetir?", acao: null }; }
+    try { resultado = JSON.parse(raw); } catch { resultado = { resposta: "Pode repetir?", acao: null }; }
 
-    return NextResponse.json({
-      resposta: resultado.resposta || "",
-      acao: resultado.acao || null,
-    });
+    return NextResponse.json({ resposta: resultado.resposta || "", acao: resultado.acao || null });
   } catch (e: any) {
     console.error("[VENDEDOR/CHAT]", e.message);
     return NextResponse.json({ erro: e.message }, { status: 500 });
