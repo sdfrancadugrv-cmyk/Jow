@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Texto não fornecido" }, { status: 400 });
     }
 
-    const voice = (process.env.TTS_VOICE as "onyx" | "alloy" | "echo" | "fable" | "nova" | "shimmer") ?? "onyx";
+    const voice = (process.env.TTS_VOICE as "onyx" | "alloy" | "echo" | "fable" | "nova" | "shimmer") ?? "nova";
 
     const audio = await openai.audio.speech.create({
       model: "tts-1",
