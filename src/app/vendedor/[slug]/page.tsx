@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useJow, unlockJowAudio } from "@/hooks/useJow";
+import { useJowStore } from "@/stores/jowStore";
 
 declare global {
   interface Window { YT: any; onYouTubeIframeAPIReady: () => void; }
@@ -63,9 +64,9 @@ function buildTheme(e: Estrutura) {
 
 export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const { speak, transcribe } = useJow();
+  const jowState = useJowStore(s => s.state);
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ativado, setAtivado]   = useState(true);
   const [chatAberto, setChatAberto] = useState(true);
   const [imgAtiva, setImgAtiva] = useState(0);
   const [videoAssistido, setVideoAssistido] = useState(false);
@@ -78,11 +79,15 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const [showSticky, setShowSticky] = useState(false);
   const ytPlayerRef    = useRef<any>(null);
   const ytContainerRef = useRef<HTMLDivElement>(null);
-  const mediaRef   = useRef<MediaRecorder | null>(null);
-  const chunksRef  = useRef<Blob[]>([]);
-  const silenciadoRef = useRef(false);
+  const mediaRef       = useRef<MediaRecorder | null>(null);
+  const chunksRef      = useRef<Blob[]>([]);
+  const silenciadoRef  = useRef(false);
+  const audioCtxRef    = useRef<AudioContext | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const heroRef    = useRef<HTMLDivElement>(null);
+  const pensandoRef = useRef(false);
+  const gravandoRef = useRef(false);
 
   // Load product
   useEffect(() => {
@@ -140,28 +145,29 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // Auto-scroll chat
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens, pensando]);
 
-  // Carrega abertura em texto imediatamente e fala no primeiro toque
+  // Abertura: texto imediato + fala + auto-ouvir após falar
   useEffect(() => {
     if (!produto) return;
     const abertura = produto.estrutura?.abertura
       || `Você chegou aqui por alguma razão. Me conta — o que você tá buscando?`;
     setMensagens([{ role: "assistant", content: abertura }]);
 
-    // Tenta falar imediatamente (pode ser bloqueado pelo browser)
-    unlockJowAudio();
-    speak(abertura).catch(() => {
-      // Browser bloqueou — fala no primeiro gesto do usuário
-      const falarNoPrimeiroGesto = () => {
-        unlockJowAudio();
-        speak(abertura);
-        document.removeEventListener("click",      falarNoPrimeiroGesto);
-        document.removeEventListener("touchstart", falarNoPrimeiroGesto);
-        document.removeEventListener("keydown",    falarNoPrimeiroGesto);
-      };
-      document.addEventListener("click",      falarNoPrimeiroGesto, { once: true });
-      document.addEventListener("touchstart", falarNoPrimeiroGesto, { once: true });
-      document.addEventListener("keydown",    falarNoPrimeiroGesto, { once: true });
-    });
+    const falarEOuvir = async () => {
+      unlockJowAudio();
+      if (!silenciadoRef.current) {
+        await speak(abertura).catch(() => {});
+      }
+      setTimeout(() => iniciarOuvindoAuto(), 700);
+    };
+
+    // Tenta imediatamente; se bloqueado pelo browser, faz no primeiro gesto
+    speak(abertura)
+      .then(() => setTimeout(() => iniciarOuvindoAuto(), 700))
+      .catch(() => {
+        const gesto = () => { falarEOuvir(); };
+        document.addEventListener("click",      gesto, { once: true });
+        document.addEventListener("touchstart", gesto, { once: true });
+      });
   }, [produto]); // eslint-disable-line
 
   const speakSafe = useCallback(async (text: string) => {
@@ -169,10 +175,88 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     await speak(text);
   }, [speak]);
 
+  // Ouvir automaticamente com detecção de silêncio e echo cancellation
+  async function iniciarOuvindoAuto() {
+    if (gravandoRef.current || pensandoRef.current || silenciadoRef.current) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const source   = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+
+      const rec = new MediaRecorder(stream);
+      chunksRef.current = [];
+      let hasVoice = false;
+      const startTime = Date.now();
+
+      gravandoRef.current = true;
+      setGravando(true);
+
+      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        try { audioCtx.close(); } catch {}
+        gravandoRef.current = false;
+        setGravando(false);
+        if (!hasVoice || chunksRef.current.length === 0) return; // silêncio total — não envia
+        const blob  = new Blob(chunksRef.current, { type: "audio/webm" });
+        const texto = await transcribe(blob);
+        if (texto.trim()) {
+          await enviarMensagem(texto);
+        }
+        // Se não detectou nada útil, volta a ouvir
+        else { setTimeout(() => iniciarOuvindoAuto(), 400); }
+      };
+      rec.start(100);
+      mediaRef.current = rec;
+
+      // Detecção de silêncio
+      const THRESHOLD   = 10;   // nível mínimo de áudio pra considerar voz
+      const MIN_VOZ_MS  = 600;  // mínimo de 0.6s de fala antes de parar
+      const SILENCIO_MS = 1600; // 1.6s de silêncio para encerrar
+
+      const tick = () => {
+        if (!mediaRef.current || mediaRef.current.state !== "recording") return;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        const elapsed = Date.now() - startTime;
+
+        if (avg > THRESHOLD) {
+          hasVoice = true;
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        } else if (hasVoice && elapsed > MIN_VOZ_MS && !silenceTimerRef.current) {
+          silenceTimerRef.current = setTimeout(() => {
+            silenceTimerRef.current = null;
+            mediaRef.current?.stop();
+          }, SILENCIO_MS);
+        } else if (!hasVoice && elapsed > 12000) {
+          // 12s sem voz alguma → desiste
+          mediaRef.current?.stop();
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+    } catch (err) {
+      console.warn("[VENDEDOR] microfone:", err);
+      gravandoRef.current = false;
+      setGravando(false);
+    }
+  }
+
   async function enviarMensagem(texto: string) {
-    if (!texto.trim() || pensando) return;
+    if (!texto.trim() || pensandoRef.current) return;
     const novas = [...mensagens, { role: "user", content: texto }];
     setMensagens(novas);
+    pensandoRef.current = true;
     setPensando(true);
     try {
       const res  = await fetch("/api/vendedor/chat", {
@@ -184,39 +268,23 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       const resposta = data.resposta || "Pode repetir?";
       const acao    = data.acao;
       setMensagens(prev => [...prev, { role: "assistant", content: resposta }]);
-      await speakSafe(resposta);
+      if (!silenciadoRef.current) await speak(resposta).catch(() => {});
       if (acao === "REPRODUZIR_VIDEO" && ytPlayerRef.current) {
         ytPlayerRef.current.unMute?.();
         ytPlayerRef.current.playVideo?.();
       }
       if (acao === "PEDIR_WHATSAPP")  setTimeout(() => setWhatsappModal(true), 1200);
       if (acao === "IR_PARA_COMPRA" && produto?.salesLink) setTimeout(() => window.open(produto.salesLink, "_blank"), 900);
+      // Após falar, ouve novamente
+      setTimeout(() => iniciarOuvindoAuto(), 700);
     } catch {
       setMensagens(prev => [...prev, { role: "assistant", content: "Desculpa, tive um problema aqui. Pode repetir?" }]);
+      setTimeout(() => iniciarOuvindoAuto(), 700);
     } finally {
+      pensandoRef.current = false;
       setPensando(false);
     }
   }
-
-  async function iniciarGravacao() {
-    if (gravando || pensando) return;
-    setGravando(true);
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const rec = new MediaRecorder(stream);
-    chunksRef.current = [];
-    rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-    rec.onstop = async () => {
-      stream.getTracks().forEach(t => t.stop());
-      const blob  = new Blob(chunksRef.current, { type: "audio/webm" });
-      const texto = await transcribe(blob);
-      setGravando(false);
-      if (texto.trim()) await enviarMensagem(texto);
-    };
-    rec.start();
-    mediaRef.current = rec;
-  }
-
-  function pararGravacao() { mediaRef.current?.stop(); }
 
   async function salvarWhatsapp() {
     if (!whatsappNum.trim()) return;
@@ -561,28 +629,33 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input voz */}
+            {/* Status de voz */}
             <div style={{ padding: "10px 14px 14px", borderTop: `1px solid ${th.border}` }}>
-              <button
-                onMouseDown={iniciarGravacao}
-                onMouseUp={pararGravacao}
-                onTouchStart={iniciarGravacao}
-                onTouchEnd={pararGravacao}
-                disabled={pensando}
-                style={{
-                  width: "100%", padding: "13px", borderRadius: 14,
-                  border: `1px solid ${gravando ? "#e74c3c" : th.cor1 + "55"}`,
-                  background: gravando ? "rgba(231,76,60,0.15)" : th.surface,
-                  color: gravando ? "#e74c3c" : th.cor1,
-                  cursor: pensando ? "default" : "pointer",
-                  fontSize: 13, fontWeight: 700, letterSpacing: "0.05em",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  transition: "border-color 0.2s",
-                }}
-              >
-                <span style={{ fontSize: 16 }}>{gravando ? "🔴" : "🎤"}</span>
-                {gravando ? "Ouvindo… solte para enviar" : "Segurar e falar"}
-              </button>
+              {pensando ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", color: th.muted, fontSize: 12 }}>
+                  <span>⏳</span> Kadosh está pensando…
+                </div>
+              ) : jowState === "speaking" ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", color: th.cor1, fontSize: 12 }}>
+                  <span style={{ animation: "blink 0.8s infinite" }}>🔊</span> Kadosh falando…
+                </div>
+              ) : gravando ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "13px", color: "#4CAF50", fontSize: 12, fontWeight: 700 }}>
+                  <span style={{ animation: "blink 1s infinite" }}>🎤</span> Ouvindo você…
+                </div>
+              ) : (
+                <button
+                  onClick={iniciarOuvindoAuto}
+                  style={{
+                    width: "100%", padding: "13px", borderRadius: 14,
+                    border: `1px solid ${th.cor1}44`, background: th.surface,
+                    color: th.muted, cursor: "pointer", fontSize: 12,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}
+                >
+                  <span>🎤</span> Toque para falar
+                </button>
+              )}
             </div>
           </div>
         )}
