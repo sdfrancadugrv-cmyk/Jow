@@ -23,8 +23,8 @@ export default function CriarProdutoPage() {
   const [ativado, setAtivado] = useState(false);
   const [nome, setNome] = useState("");
   const [destaques, setDestaques] = useState("");
-  const [imageLinks, setImageLinks] = useState(["", "", ""]);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [imageLinks, setImageLinks] = useState([""]);
+  const [videoLinks, setVideoLinks] = useState([""]);
   const [salesLink, setSalesLink] = useState("");
   const [preco, setPreco] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,6 +67,14 @@ export default function CriarProdutoPage() {
   function setImageLink(i: number, v: string) {
     setImageLinks(prev => { const n = [...prev]; n[i] = v; return n; });
   }
+  function addImageLink() { setImageLinks(prev => [...prev, ""]); }
+  function removeImageLink(i: number) { setImageLinks(prev => prev.filter((_, idx) => idx !== i)); }
+
+  function setVideoLink(i: number, v: string) {
+    setVideoLinks(prev => { const n = [...prev]; n[i] = v; return n; });
+  }
+  function addVideoLink() { setVideoLinks(prev => [...prev, ""]); }
+  function removeVideoLink(i: number) { setVideoLinks(prev => prev.filter((_, idx) => idx !== i)); }
 
   async function criar() {
     if (!nome.trim()) { setErro("Digite o nome do produto"); return; }
@@ -85,7 +93,7 @@ export default function CriarProdutoPage() {
           nome,
           destaques,
           imageLinks: imageLinks.filter(l => l.trim()),
-          videoUrl: videoUrl || null,
+          videoLinks: videoLinks.filter(l => l.trim()),
           salesLink,
           preco,
         }),
@@ -161,7 +169,7 @@ export default function CriarProdutoPage() {
 
         {/* Imagens */}
         <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
-          Fotos do produto <span style={{ color: MUTED, textTransform: "none", letterSpacing: 0 }}>(links do Google Drive)</span>
+          Fotos do produto <span style={{ color: MUTED, textTransform: "none", letterSpacing: 0 }}>(Google Drive)</span>
         </label>
         <p style={{ color: MUTED, fontSize: 12, marginBottom: 10 }}>
           Cole o link de compartilhamento do Google Drive. O arquivo deve estar público.
@@ -172,18 +180,33 @@ export default function CriarProdutoPage() {
             {link.trim() && (
               <img src={driveImageUrl(link)} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
             )}
+            {imageLinks.length > 1 && (
+              <button onClick={() => removeImageLink(i)} style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+            )}
           </div>
         ))}
-        <p style={{ color: MUTED, fontSize: 11, marginBottom: 24 }}>Até 3 fotos do produto</p>
+        <button onClick={addImageLink} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px dashed ${BORDER}`, borderRadius: 8, padding: "8px 14px", color: GOLD, fontSize: 13, cursor: "pointer", marginBottom: 24, width: "100%" }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Adicionar mais uma foto
+        </button>
 
-        {/* Vídeo */}
+        {/* Vídeos */}
         <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
-          Vídeo do YouTube <span style={{ color: MUTED, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
+          Vídeos do YouTube <span style={{ color: MUTED, textTransform: "none", letterSpacing: 0 }}>(opcional)</span>
         </label>
-        <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." style={{ ...inp, marginBottom: 8 }} />
-        <p style={{ color: MUTED, fontSize: 11, marginBottom: 24 }}>
-          O vídeo fica em mudo automático. O Kadosh o exibe no momento certo da conversa.
+        <p style={{ color: MUTED, fontSize: 12, marginBottom: 10 }}>
+          Funciona com vídeos normais e YouTube Shorts.
         </p>
+        {videoLinks.map((link, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
+            <input value={link} onChange={e => setVideoLink(i, e.target.value)} placeholder={`Vídeo ${i + 1} — https://youtube.com/...`} style={{ ...inp, flex: 1 }} />
+            {videoLinks.length > 1 && (
+              <button onClick={() => removeVideoLink(i)} style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+            )}
+          </div>
+        ))}
+        <button onClick={addVideoLink} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: `1px dashed ${BORDER}`, borderRadius: 8, padding: "8px 14px", color: GOLD, fontSize: 13, cursor: "pointer", marginBottom: 24, width: "100%" }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> Adicionar mais um vídeo
+        </button>
 
         {/* Link de compra */}
         <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Link de compra *</label>

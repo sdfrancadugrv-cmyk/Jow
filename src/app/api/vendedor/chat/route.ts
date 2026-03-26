@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     if (!produto) return NextResponse.json({ erro: "produto não encontrado" }, { status: 404 });
 
     const e = produto.estrutura as any;
-    const temVideo = !!produto.videoUrl;
+    const temVideo = produto.videoLinks && produto.videoLinks.length > 0;
     const totalMensagens = mensagens.length;
 
     const systemPrompt = `IDENTIDADE — KADOSH VENDEDOR:

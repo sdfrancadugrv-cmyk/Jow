@@ -177,8 +177,8 @@ model ProdutoVendedor {
   slug        String   @unique
   nome        String
   destaques   String   // o que o cliente quer destacar — vira o prompt base
-  imageLinks  String[] // até 3 links do Google Drive
-  videoUrl    String?  // YouTube URL opcional
+  imageLinks  String[] // links do Google Drive
+  videoLinks  String[] // YouTube URLs (múltiplos)
   salesLink   String   // link de compra do produto
   preco       String   // ex: "R$ 97,00"
   estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }

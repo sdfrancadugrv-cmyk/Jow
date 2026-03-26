@@ -4,9 +4,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useJow, unlockJowAudio } from "@/hooks/useJow";
 import { useJowStore } from "@/stores/jowStore";
 
-declare global {
-  interface Window { YT: any; onYouTubeIframeAPIReady: () => void; }
-}
 
 function extractYouTubeId(url: string): { id: string; shorts: boolean } | null {
   const shorts = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
@@ -47,7 +44,7 @@ interface Produto {
   nome: string;
   preco: string;
   imageLinks: string[];
-  videoUrl: string | null;
+  videoLinks: string[];
   salesLink: string;
   estrutura: Estrutura;
 }
@@ -77,18 +74,14 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const [audioAtivado, setAudioAtivado] = useState(false);
   const [imgAtiva, setImgAtiva] = useState(0);
   const [videoAssistido, setVideoAssistido] = useState(false);
-  const [videoTocando,  setVideoTocando]  = useState(false);
   const [mensagens, setMensagens] = useState<Array<{ role: string; content: string }>>([]);
   const [gravando,  setGravando]  = useState(false);
   const [pensando,  setPensando]  = useState(false);
   const [whatsappModal, setWhatsappModal] = useState(false);
   const [whatsappNum,   setWhatsappNum]   = useState("");
   const [showSticky, setShowSticky] = useState(false);
-  const ytPlayerRef    = useRef<any>(null);
-  const ytContainerRef = useRef<HTMLDivElement>(null);
   const mediaRef       = useRef<MediaRecorder | null>(null);
   const chunksRef      = useRef<Blob[]>([]);
-  const silenciadoRef  = useRef(false);
   const audioCtxRef    = useRef<AudioContext | null>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -117,42 +110,6 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // YouTube player
-  useEffect(() => {
-    if (!produto?.videoUrl) return;
-    const parsed = extractYouTubeId(produto.videoUrl);
-    if (!parsed) return;
-    const { id: videoId } = parsed;
-    const createPlayer = (id: string) => {
-      if (!ytContainerRef.current) return;
-      ytPlayerRef.current = new window.YT.Player(ytContainerRef.current, {
-        videoId: id,
-        playerVars: { autoplay: 0, mute: 1, loop: 1, playlist: id, controls: 1, rel: 0, modestbranding: 1 },
-        events: {
-          onStateChange: (ev: any) => {
-            if (ev.data === 1) { setVideoTocando(true); silenciadoRef.current = !ytPlayerRef.current?.isMuted?.(); }
-            if (ev.data === 2 || ev.data === 0) { setVideoTocando(false); silenciadoRef.current = false; if (ev.data === 0) setVideoAssistido(true); }
-          },
-        },
-      });
-    };
-    if (window.YT?.Player) { createPlayer(videoId); }
-    else {
-      window.onYouTubeIframeAPIReady = () => createPlayer(videoId);
-      if (!document.getElementById("yt-api")) {
-        const s = document.createElement("script");
-        s.id = "yt-api"; s.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(s);
-      }
-    }
-  }, [produto?.videoUrl]);
-
-  useEffect(() => {
-    if (!videoTocando) return;
-    const iv = setInterval(() => { silenciadoRef.current = !ytPlayerRef.current?.isMuted?.(); }, 500);
-    return () => clearInterval(iv);
-  }, [videoTocando]);
-
   // Auto-scroll chat
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens, pensando]);
 
@@ -177,7 +134,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   }, [produto]); // eslint-disable-line
 
   const speakSafe = useCallback(async (text: string) => {
-    if (silenciadoRef.current) return;
+    if (false) return;
     await speak(text);
   }, [speak]);
 
@@ -187,7 +144,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     setAudioAtivado(true);
     unlockJowAudio();
     const texto = aberturaRef.current;
-    if (texto && !silenciadoRef.current) {
+    if (texto && !false) {
       ouvirAposVoz.current = true;
       speak(texto).catch(() => { ouvirAposVoz.current = false; });
     }
@@ -195,7 +152,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
 
   // Ouvir automaticamente com detecção de silêncio e echo cancellation
   async function iniciarOuvindoAuto() {
-    if (gravandoRef.current || pensandoRef.current || silenciadoRef.current || jowState === "speaking") return;
+    if (gravandoRef.current || pensandoRef.current || false || jowState === "speaking") return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -291,13 +248,13 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       const resposta = data.resposta || "Pode repetir?";
       const acao    = data.acao;
       setMensagens(prev => [...prev, { role: "assistant", content: resposta }]);
-      if (!silenciadoRef.current) {
+      if (!false) {
         ouvirAposVoz.current = true;
         await speak(resposta).catch(() => { ouvirAposVoz.current = false; });
       }
-      if (acao === "REPRODUZIR_VIDEO" && ytPlayerRef.current) {
-        ytPlayerRef.current.unMute?.();
-        ytPlayerRef.current.playVideo?.();
+      if (acao === "REPRODUZIR_VIDEO") {
+        // scroll até os vídeos para que o usuário os veja
+        document.querySelector("iframe")?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       if (acao === "PEDIR_WHATSAPP")  setTimeout(() => setWhatsappModal(true), 1200);
       if (acao === "IR_PARA_COMPRA" && produto?.salesLink) setTimeout(() => window.open(produto.salesLink, "_blank"), 900);
@@ -332,9 +289,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const e  = produto.estrutura;
   const th = buildTheme(e);
   const imagens = produto.imageLinks.filter(Boolean);
-  const videoParsed = produto.videoUrl ? extractYouTubeId(produto.videoUrl) : null;
-  const videoId     = videoParsed?.id ?? null;
-  const isShorts    = videoParsed?.shorts ?? false;
+  const videos  = (produto.videoLinks || []).map(url => extractYouTubeId(url)).filter(Boolean) as { id: string; shorts: boolean }[];
 
   return (
     <main style={{ minHeight: "100vh", background: th.bg, fontFamily: "'Inter', system-ui, sans-serif", color: th.text }}>
@@ -439,19 +394,31 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       </section>
 
-      {/* ── VIDEO — acima das fotos ── */}
-      {videoId && (
-        <section style={{ maxWidth: isShorts ? 380 : 740, margin: "0 auto 52px", padding: "0 20px" }}>
-          <p style={{ color: th.muted, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", textAlign: "center", marginBottom: 16 }}>
+      {/* ── VÍDEOS — acima das fotos ── */}
+      {videos.length > 0 && (
+        <section style={{ maxWidth: 740, margin: "0 auto 52px", padding: "0 20px" }}>
+          <p style={{ color: th.muted, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", textAlign: "center", marginBottom: 20 }}>
             Assista antes de decidir
           </p>
-          <div style={{
-            borderRadius: 18, overflow: "hidden", border: `1px solid ${th.border}`,
-            position: "relative",
-            paddingBottom: isShorts ? "177.78%" : "56.25%", // 9:16 shorts, 16:9 normal
-            height: 0,
-          }}>
-            <div ref={ytContainerRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {videos.map((v, i) => (
+              <div key={i} style={{
+                borderRadius: 18, overflow: "hidden", border: `1px solid ${th.border}`,
+                position: "relative",
+                maxWidth: v.shorts ? 380 : "100%",
+                margin: v.shorts ? "0 auto" : undefined,
+                paddingBottom: v.shorts ? "177.78%" : "56.25%",
+                height: 0,
+              }}>
+                <iframe
+                  src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
+                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  onLoad={() => { if (i === 0) setVideoAssistido(true); }}
+                />
+              </div>
+            ))}
           </div>
         </section>
       )}

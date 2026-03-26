@@ -21,11 +21,12 @@ export async function POST(req: NextRequest) {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
-    const { nome, destaques, imageLinks, videoUrl, salesLink, preco } = await req.json();
+    const { nome, destaques, imageLinks, videoLinks, salesLink, preco } = await req.json();
 
     if (!nome || !destaques || !salesLink || !preco) {
       return NextResponse.json({ erro: "nome, destaques, link de vendas e preço são obrigatórios" }, { status: 400 });
     }
+    const vLinks: string[] = Array.isArray(videoLinks) ? videoLinks.filter((v: string) => v?.trim()) : [];
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
           content: `Produto: ${nome}
 Preço: ${preco}
 Destaques que o vendedor quer enfatizar: ${destaques}
-${videoUrl ? "Tem vídeo demonstrativo: Sim" : "Tem vídeo: Não"}
+${vLinks.length > 0 ? `Tem ${vLinks.length} vídeo(s) demonstrativo(s): Sim` : "Tem vídeo: Não"}
 
 Crie uma estrutura de vendas completa com este JSON exato:
 {
@@ -109,7 +110,7 @@ Crie uma estrutura de vendas completa com este JSON exato:
         nome,
         destaques,
         imageLinks: imageLinks || [],
-        videoUrl: videoUrl || null,
+        videoLinks: vLinks,
         salesLink,
         preco,
         estrutura,
