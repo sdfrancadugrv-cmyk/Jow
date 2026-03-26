@@ -26,9 +26,9 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Se já está logado e tenta acessar /login ou /register → redireciona para /admin
+  // Se já está logado e tenta acessar /login ou /register → redireciona conforme perfil
   if ((pathname === "/login" || pathname === "/register") && tokenValido) {
-    return NextResponse.redirect(new URL("/admin", req.url));
+    return NextResponse.redirect(new URL(isAdmin ? "/admin" : "/app", req.url));
   }
 
   return NextResponse.next();
