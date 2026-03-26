@@ -218,9 +218,9 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       mediaRef.current = rec;
 
       // Detecção de silêncio
-      const THRESHOLD   = 10;   // nível mínimo de áudio pra considerar voz
-      const MIN_VOZ_MS  = 600;  // mínimo de 0.6s de fala antes de parar
-      const SILENCIO_MS = 1600; // 1.6s de silêncio para encerrar
+      const THRESHOLD   = 28;   // nível mínimo de áudio pra considerar voz (acima do ruído de fundo)
+      const MIN_VOZ_MS  = 800;  // mínimo de 0.8s de fala antes de considerar parar
+      const SILENCIO_MS = 1800; // 1.8s de silêncio após fala para encerrar
 
       const tick = () => {
         if (!mediaRef.current || mediaRef.current.state !== "recording") return;
