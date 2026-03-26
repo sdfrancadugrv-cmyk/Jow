@@ -65,7 +65,7 @@ Crie uma estrutura de vendas completa com este JSON exato:
     { "objecao": "objeção 3", "rebate": "rebate 3" }
   ],
   "cta": "chamada para ação direta, urgente e específica — máx 5 palavras",
-  "abertura": "primeira fala do Kadosh ao visitante — energia alta, provoca curiosidade, cria conexão imediata, máx 2 frases",
+  "abertura": "primeira fala do Kadosh ao visitante — OBRIGATÓRIO: (1) se apresentar como Kadosh, (2) explicar que está aqui pra conversar, tirar dúvidas e ajudar a pessoa a entender se esse produto resolve o problema dela, (3) mencionar de forma natural o problema/situação que o produto resolve, (4) convidar a falar. Tom: caloroso, humano, direto. Máx 3 frases. NÃO começar com 'Olá' genérico.",
   "gatilhos": ["gatilho de escassez/urgência específico", "gatilho de prova social com dado", "gatilho de autoridade ou garantia"],
   "quando_usar_video": "momento exato da conversa onde o vídeo gera o maior impacto emocional",
   "prompt_vendas": "instruções detalhadas de como o Kadosh deve vender ESTE produto: tom exato, abordagem, histórias que pode contar, o que enfatizar, o que nunca dizer, técnicas específicas para esse nicho"

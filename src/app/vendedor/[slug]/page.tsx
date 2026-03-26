@@ -161,7 +161,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   useEffect(() => {
     if (!produto) return;
     const abertura = produto.estrutura?.abertura
-      || `Você chegou aqui por alguma razão. Me conta — o que você tá buscando?`;
+      || `Oi, eu sou o Kadosh — estou aqui pra conversar com você sobre ${produto.nome}, tirar todas as suas dúvidas e te ajudar a entender se isso resolve o que você está buscando. Pode falar comigo como se fosse uma pessoa real. O que você quer saber?`;
     setMensagens([{ role: "assistant", content: abertura }]);
 
     const falarEOuvir = async () => {
