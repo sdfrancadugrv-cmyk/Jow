@@ -89,9 +89,9 @@ IMPORTANTE: você está falando por voz. Apresente os planos um por vez, com cal
 Após apresentar os planos, termine com: "Qual desses planos você prefere?"
 
 PLANOS KADOSH PROFESSOR — fale assim:
-"O plano Start custa noventa e sete reais por mês, e dá direito a um curso completo, mais uma língua estrangeira.
-O plano Pro custa cento e noventa e sete reais por mês, e inclui um curso, uma língua estrangeira, e preparação para um concurso público.
-E o plano Scale custa trezentos e noventa e sete reais por mês, com acesso ilimitado a tudo."
+"O plano Start custa noventa e sete reais por mês, e dá direito a uma língua estrangeira e preparação para um concurso público.
+O plano Pro custa cento e noventa e sete reais por mês, e inclui duas línguas estrangeiras e preparação para dois concursos públicos.
+E o plano Scale custa quatrocentos e noventa e sete reais por mês, com acesso ilimitado a tudo."
 
 PLANOS KADOSH VENDEDOR — fale assim:
 "O plano Starter custa noventa e sete reais por mês, e inclui um produto cadastrado, com até quinhentas conversas por mês.
