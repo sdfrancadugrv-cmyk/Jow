@@ -86,8 +86,10 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const heroRef    = useRef<HTMLDivElement>(null);
-  const pensandoRef = useRef(false);
-  const gravandoRef = useRef(false);
+  const pensandoRef    = useRef(false);
+  const gravandoRef    = useRef(false);
+  const prevJowState   = useRef("idle");
+  const ouvirAposVoz   = useRef(false);
 
   // Load product
   useEffect(() => {
@@ -145,6 +147,16 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // Auto-scroll chat
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens, pensando]);
 
+  // Só ouve quando Kadosh realmente parou de falar (speaking → idle)
+  useEffect(() => {
+    if (prevJowState.current === "speaking" && jowState === "idle" && ouvirAposVoz.current) {
+      ouvirAposVoz.current = false;
+      const t = setTimeout(() => iniciarOuvindoAuto(), 1200); // 1.2s para eco dissipar
+      return () => clearTimeout(t);
+    }
+    prevJowState.current = jowState;
+  }, [jowState]); // eslint-disable-line
+
   // Abertura: texto imediato + fala + auto-ouvir após falar
   useEffect(() => {
     if (!produto) return;
@@ -154,20 +166,18 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
 
     const falarEOuvir = async () => {
       unlockJowAudio();
-      if (!silenciadoRef.current) {
-        await speak(abertura).catch(() => {});
-      }
-      setTimeout(() => iniciarOuvindoAuto(), 700);
+      ouvirAposVoz.current = true;
+      if (!silenciadoRef.current) speak(abertura).catch(() => {});
     };
 
     // Tenta imediatamente; se bloqueado pelo browser, faz no primeiro gesto
-    speak(abertura)
-      .then(() => setTimeout(() => iniciarOuvindoAuto(), 700))
-      .catch(() => {
-        const gesto = () => { falarEOuvir(); };
-        document.addEventListener("click",      gesto, { once: true });
-        document.addEventListener("touchstart", gesto, { once: true });
-      });
+    ouvirAposVoz.current = true;
+    speak(abertura).catch(() => {
+      ouvirAposVoz.current = false;
+      const gesto = () => { falarEOuvir(); };
+      document.addEventListener("click",      gesto, { once: true });
+      document.addEventListener("touchstart", gesto, { once: true });
+    });
   }, [produto]); // eslint-disable-line
 
   const speakSafe = useCallback(async (text: string) => {
@@ -177,7 +187,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
 
   // Ouvir automaticamente com detecção de silêncio e echo cancellation
   async function iniciarOuvindoAuto() {
-    if (gravandoRef.current || pensandoRef.current || silenciadoRef.current) return;
+    if (gravandoRef.current || pensandoRef.current || silenciadoRef.current || jowState === "speaking") return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -218,9 +228,10 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       mediaRef.current = rec;
 
       // Detecção de silêncio
-      const THRESHOLD   = 28;   // nível mínimo de áudio pra considerar voz (acima do ruído de fundo)
-      const MIN_VOZ_MS  = 800;  // mínimo de 0.8s de fala antes de considerar parar
-      const SILENCIO_MS = 1800; // 1.8s de silêncio após fala para encerrar
+      const WARMUP_MS   = 1500; // ignora tudo nos primeiros 1.5s (eco residual + adaptação)
+      const THRESHOLD   = 42;   // threshold alto para ignorar ruído de fundo
+      const MIN_VOZ_MS  = 900;  // mínimo de 0.9s de fala
+      const SILENCIO_MS = 2000; // 2s de silêncio para encerrar
 
       const tick = () => {
         if (!mediaRef.current || mediaRef.current.state !== "recording") return;
@@ -228,6 +239,9 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
         const elapsed = Date.now() - startTime;
+
+        // Período de warmup: ignora qualquer áudio (eco residual)
+        if (elapsed < WARMUP_MS) { requestAnimationFrame(tick); return; }
 
         if (avg > THRESHOLD) {
           hasVoice = true;
@@ -269,18 +283,19 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       const resposta = data.resposta || "Pode repetir?";
       const acao    = data.acao;
       setMensagens(prev => [...prev, { role: "assistant", content: resposta }]);
-      if (!silenciadoRef.current) await speak(resposta).catch(() => {});
+      if (!silenciadoRef.current) {
+        ouvirAposVoz.current = true;
+        await speak(resposta).catch(() => { ouvirAposVoz.current = false; });
+      }
       if (acao === "REPRODUZIR_VIDEO" && ytPlayerRef.current) {
         ytPlayerRef.current.unMute?.();
         ytPlayerRef.current.playVideo?.();
       }
       if (acao === "PEDIR_WHATSAPP")  setTimeout(() => setWhatsappModal(true), 1200);
       if (acao === "IR_PARA_COMPRA" && produto?.salesLink) setTimeout(() => window.open(produto.salesLink, "_blank"), 900);
-      // Após falar, ouve novamente
-      setTimeout(() => iniciarOuvindoAuto(), 700);
     } catch {
       setMensagens(prev => [...prev, { role: "assistant", content: "Desculpa, tive um problema aqui. Pode repetir?" }]);
-      setTimeout(() => iniciarOuvindoAuto(), 700);
+      setTimeout(() => iniciarOuvindoAuto(), 1500);
     } finally {
       pensandoRef.current = false;
       setPensando(false);
