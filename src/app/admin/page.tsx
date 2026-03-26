@@ -14,29 +14,17 @@ const MODULOS = [
     categoria: "Kadosh Professor",
     cor: "#D4A017",
     itens: [
-      { nome: "Professor Start",  rota: "/aluno/professor-start",       icone: "🎓", desc: "1 língua + 1 concurso" },
-      { nome: "Professor Pro",    rota: "/aluno/professor-pro",          icone: "🎓", desc: "2 línguas + 2 concursos" },
-      { nome: "Professor Scale",  rota: "/aluno/professor-scale",        icone: "🎓", desc: "Ilimitado" },
-      { nome: "Configurar Start", rota: "/aluno/professor-start/configurar", icone: "⚙️", desc: "Configurar língua/concurso" },
-      { nome: "Chat Professor",   rota: "/aluno/professor-start/chat",   icone: "💬", desc: "Falar com professor" },
-      { nome: "Testar",           rota: "/aluno/professor-start/testar", icone: "🎯", desc: "Testar conhecimento" },
+      { nome: "Professor Start",  rota: "/aluno/professor-start",  icone: "🎓", desc: "1 língua + 1 concurso" },
+      { nome: "Professor Pro",    rota: "/aluno/professor-pro",    icone: "🎓", desc: "2 línguas + 2 concursos" },
+      { nome: "Professor Scale",  rota: "/aluno/professor-scale",  icone: "🎓", desc: "Ilimitado" },
     ],
   },
   {
     categoria: "Kadosh App (Orchestrator)",
     cor: "#4A90D9",
     itens: [
-      { nome: "App Principal", rota: "/app",           icone: "🤖", desc: "AI Orchestrator com voz" },
-      { nome: "WhatsApp",      rota: "/app/whatsapp",  icone: "💬", desc: "Gestão de leads" },
-    ],
-  },
-  {
-    categoria: "Administração",
-    cor: "#E74C3C",
-    itens: [
-      { nome: "Painel Aluno",  rota: "/aluno",                icone: "👤", desc: "Painel do aluno" },
-      { nome: "Assinar",       rota: "/assinar/professor-start", icone: "💳", desc: "Fluxo de assinatura" },
-      { nome: "Login",         rota: "/login",                icone: "🔐", desc: "Tela de login" },
+      { nome: "App Principal", rota: "/app",          icone: "🤖", desc: "AI Orchestrator com voz" },
+      { nome: "WhatsApp",      rota: "/app/whatsapp", icone: "💬", desc: "Gestão de leads" },
     ],
   },
 ];
