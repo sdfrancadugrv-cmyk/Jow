@@ -18,10 +18,9 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Importação dinâmica para evitar erro no Edge runtime
-    const pdfParseModule = await import("pdf-parse");
-    const pdfParse = pdfParseModule.default ?? pdfParseModule;
-    const data = await (pdfParse as any)(buffer);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pdfParse = (await import("pdf-parse" as any)) as any;
+    const data = await (pdfParse.default ?? pdfParse)(buffer);
 
     return NextResponse.json({
       texto: data.text.substring(0, 15000),
