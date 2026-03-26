@@ -5,12 +5,25 @@ import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 import { useJowStore } from "@/stores/jowStore";
 
 
-function extractYouTubeId(url: string): { id: string; shorts: boolean } | null {
+type VideoInfo = { type: "youtube" | "drive"; id: string; shorts: boolean };
+
+function extractVideoInfo(url: string): VideoInfo | null {
+  if (!url?.trim()) return null;
+  // YouTube Shorts
   const shorts = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
-  if (shorts) return { id: shorts[1], shorts: true };
-  const normal = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
-  if (normal) return { id: normal[1], shorts: false };
+  if (shorts) return { type: "youtube", id: shorts[1], shorts: true };
+  // YouTube normal
+  const yt = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  if (yt) return { type: "youtube", id: yt[1], shorts: false };
+  // Google Drive
+  const drive = url.match(/\/d\/([\w-]+)/);
+  if (drive) return { type: "drive", id: drive[1], shorts: false };
   return null;
+}
+
+function videoEmbedUrl(v: VideoInfo): string {
+  if (v.type === "youtube") return `https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`;
+  return `https://drive.google.com/file/d/${v.id}/preview`;
 }
 
 function driveImageUrl(link: string): string {
@@ -302,7 +315,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const e  = produto.estrutura;
   const th = buildTheme(e);
   const imagens = produto.imageLinks.filter(Boolean);
-  const videos  = (produto.videoLinks || []).map(url => extractYouTubeId(url)).filter(Boolean) as { id: string; shorts: boolean }[];
+  const videos  = (produto.videoLinks || []).map(url => extractVideoInfo(url)).filter(Boolean) as VideoInfo[];
 
   return (
     <main style={{ minHeight: "100vh", background: th.bg, fontFamily: "'Inter', system-ui, sans-serif", color: th.text }}>
@@ -424,7 +437,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
                 height: 0,
               }}>
                 <iframe
-                  src={`https://www.youtube.com/embed/${v.id}?rel=0&modestbranding=1`}
+                  src={videoEmbedUrl(v)}
                   style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
