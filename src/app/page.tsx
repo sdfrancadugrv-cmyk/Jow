@@ -677,7 +677,7 @@ export default function LandingPage() {
         )}
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
-          R$97/mês · cancele quando quiser
+          a partir de R$97/mês · cancele quando quiser
         </p>
       </div>
 
