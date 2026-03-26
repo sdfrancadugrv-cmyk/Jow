@@ -78,18 +78,22 @@ export default function AdminPage() {
   const [plano, setPlano] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [semSessao, setSemSessao] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.json())
       .then(d => {
-        if (!d.id) { router.push("/login"); return; }
+        if (!d?.id) { setSemSessao(true); setCarregando(false); return; }
         setNome(d.name?.split(" ")[0] || "Usuário");
         setPlano(d.plan || "");
         setIsAdmin(!!d.isAdmin);
         setCarregando(false);
       })
-      .catch(() => router.push("/login"));
+      .catch(() => {
+        setSemSessao(true);
+        setCarregando(false);
+      });
   }, [router]);
 
   async function sair() {
@@ -101,6 +105,22 @@ export default function AdminPage() {
     return (
       <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ color: MUTED, letterSpacing: "0.15em", fontSize: 13 }}>carregando...</p>
+      </main>
+    );
+  }
+
+  if (semSessao) {
+    return (
+      <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ color: MUTED, fontSize: 13, marginBottom: 16 }}>Sessão expirada.</p>
+          <button
+            onClick={() => router.push("/login")}
+            style={{ color: GOLD, background: "none", border: `1px solid ${GOLD}44`, borderRadius: 10, padding: "10px 24px", cursor: "pointer", fontSize: 13 }}
+          >
+            Fazer login
+          </button>
+        </div>
       </main>
     );
   }
