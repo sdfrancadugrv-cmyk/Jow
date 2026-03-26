@@ -160,8 +160,9 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // Abertura: texto imediato + fala + auto-ouvir após falar
   useEffect(() => {
     if (!produto) return;
+    const nomeP = produto.nome;
     const abertura = produto.estrutura?.abertura
-      || `Oi, eu sou o Kadosh — estou aqui pra conversar com você sobre ${produto.nome}, tirar todas as suas dúvidas e te ajudar a entender se isso resolve o que você está buscando. Pode falar comigo como se fosse uma pessoa real. O que você quer saber?`;
+      || `Oi, eu sou o Kadosh — estou aqui pra te apresentar o ${nomeP} e conversar com você sobre ele. Pode me fazer qualquer pergunta sobre o produto, tirar dúvidas, e se quiser, a gente pode conversar sobre como adquirir também. É só falar comigo normalmente, como se eu fosse uma pessoa real. Pode começar!`;
     setMensagens([{ role: "assistant", content: abertura }]);
 
     const falarEOuvir = async () => {
