@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useJow, unlockJowAudio } from "@/hooks/useJow";
+import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 import { useJowStore } from "@/stores/jowStore";
 
 
@@ -144,10 +144,23 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     setAudioAtivado(true);
     unlockJowAudio();
     const texto = aberturaRef.current;
-    if (texto && !false) {
+    if (texto) {
       ouvirAposVoz.current = true;
       speak(texto).catch(() => { ouvirAposVoz.current = false; });
     }
+  }
+
+  // Para tudo e volta para o estado inicial
+  function encerrarConversa() {
+    mediaRef.current?.stop();
+    gravandoRef.current = false;
+    pensandoRef.current = false;
+    ouvirAposVoz.current = false;
+    setGravando(false);
+    setPensando(false);
+    setChatAberto(false);
+    stopJowAudio();
+    setAudioAtivado(false);
   }
 
   // Ouvir automaticamente com detecção de silêncio e echo cancellation
@@ -546,128 +559,173 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       </section>
 
-      {/* ── KADOSH BOTTOM BAR ── */}
-      <>
-        {/* Painel de chat expandido — slide up acima da barra */}
-        {chatAberto && audioAtivado && (
+      {/* ── OVERLAY DE INÍCIO ── */}
+      {!audioAtivado && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: `linear-gradient(160deg, ${th.bg}EE 0%, rgba(0,0,0,0.97) 100%)`,
+          backdropFilter: "blur(6px)",
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          gap: 20, padding: 32, textAlign: "center",
+        }}>
           <div style={{
-            position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 99,
-            maxHeight: "45vh", display: "flex", flexDirection: "column",
-            background: "rgba(8,12,24,0.98)", backdropFilter: "blur(24px)",
-            borderTop: `1px solid ${th.cor1}40`,
-            boxShadow: `0 -12px 48px rgba(0,0,0,0.7)`,
-            animation: "slidein 0.3s ease",
+            width: 80, height: 80, borderRadius: "50%",
+            background: `radial-gradient(circle at 35% 35%, ${th.cor2}, ${th.cor1} 60%, #1a0e00)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 36,
+            boxShadow: `0 0 40px ${th.cor1}88`,
+            animation: "pulse 2.5s ease-in-out infinite, glow 2.5s ease-in-out infinite",
           }}>
-            {/* Mensagens */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
-              {mensagens.map((m, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", animation: "fadeUp 0.3s ease" }}>
-                  <div style={{
-                    maxWidth: "85%", padding: "10px 14px",
-                    borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    background: m.role === "user" ? `${th.cor1}22` : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${m.role === "user" ? th.cor1 + "44" : th.border}`,
-                    color: m.role === "user" ? "#fff" : th.text,
-                    fontSize: 14, lineHeight: 1.55,
-                  }}>
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {pensando && (
-                <div style={{ display: "flex", gap: 5, paddingLeft: 4 }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} className="dot-blink" style={{ width: 7, height: 7, borderRadius: "50%", background: th.cor1, opacity: 0.7, animationDelay: `${i * 0.22}s` }} />
-                  ))}
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
+            🔮
           </div>
-        )}
 
-        {/* Barra fixa no rodapé */}
-        <div
-          onClick={!audioAtivado ? ativarKadosh : undefined}
-          style={{
-            position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
-            height: 64,
-            background: audioAtivado
-              ? "rgba(8,12,24,0.97)"
-              : `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`,
-            backdropFilter: "blur(20px)",
-            borderTop: `1px solid ${audioAtivado ? th.cor1 + "44" : "transparent"}`,
-            display: "flex", alignItems: "center",
-            padding: "0 16px",
-            cursor: !audioAtivado ? "pointer" : "default",
-            gap: 12,
-          }}
-        >
-          {!audioAtivado ? (
-            /* Estado de ativação */
-            <>
-              <span style={{ fontSize: 24 }}>🔮</span>
-              <div style={{ flex: 1 }}>
-                <p style={{ color: "#060606", fontSize: 14, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
-                  Toque para falar com o Kadosh
-                </p>
-                <p style={{ color: "rgba(0,0,0,0.55)", fontSize: 11, margin: 0 }}>
-                  Converse em tempo real sobre o produto
-                </p>
-              </div>
-              <span style={{ color: "#060606", fontSize: 18, opacity: 0.7 }}>▶</span>
-            </>
-          ) : (
-            /* Estado ativo */
-            <>
-              <div style={{
-                width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
-                background: `radial-gradient(circle at 35% 35%, ${th.cor2}, ${th.cor1} 60%, #2a1800)`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18,
-                boxShadow: jowState === "speaking" ? `0 0 18px ${th.cor1}99` : "none",
-              }}>
-                🔮
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: th.cor2, fontSize: 13, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>Kadosh</p>
-                <p style={{
-                  margin: 0, fontSize: 11,
-                  color: pensando ? th.muted : jowState === "speaking" ? th.cor1 : gravando ? "#4CAF50" : th.muted,
-                }}>
-                  {pensando ? "pensando…" : jowState === "speaking" ? "🔊 falando…" : gravando ? "🎤 ouvindo…" : "pronto"}
-                </p>
-              </div>
-              {/* Botão falar */}
-              {!gravando && !pensando && jowState !== "speaking" && (
-                <button
-                  onClick={e => { e.stopPropagation(); iniciarOuvindoAuto(); }}
-                  style={{
-                    flexShrink: 0, padding: "8px 14px", borderRadius: 20,
-                    border: `1px solid ${th.cor1}66`, background: th.surface,
-                    color: th.cor1, fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >
-                  🎤 falar
-                </button>
-              )}
-              {/* Botão ver/fechar chat */}
-              <button
-                onClick={e => { e.stopPropagation(); setChatAberto(v => !v); }}
-                style={{
-                  flexShrink: 0, padding: "8px 14px", borderRadius: 20,
-                  border: `1px solid ${chatAberto ? th.cor1 + "88" : th.border}`,
-                  background: chatAberto ? th.cor1 + "22" : th.surface,
-                  color: chatAberto ? th.cor1 : th.muted,
-                  fontSize: 11, fontWeight: 700, cursor: "pointer",
-                }}
-              >
-                {chatAberto ? "fechar ↓" : "chat ↑"}
-              </button>
-            </>
-          )}
+          <div>
+            <h2 style={{
+              fontFamily: "Georgia, serif", fontSize: "1.5rem", fontWeight: 900,
+              background: `linear-gradient(135deg, #fff, ${th.cor2})`,
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
+              margin: "0 0 8px",
+            }}>
+              Kadosh está aqui
+            </h2>
+            <p style={{ color: th.muted, fontSize: 14, margin: 0, lineHeight: 1.6, maxWidth: 300 }}>
+              Toque para iniciar a conversa. Ele se apresenta e você pode perguntar qualquer coisa sobre o produto.
+            </p>
+          </div>
+
+          <button
+            onClick={ativarKadosh}
+            style={{
+              padding: "18px 48px", borderRadius: 50,
+              background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
+              color: "#060606", fontWeight: 900, fontSize: "1.05rem",
+              border: "none", cursor: "pointer", letterSpacing: "0.08em",
+              boxShadow: `0 0 40px ${th.cor1}80, 0 8px 32px rgba(0,0,0,0.5)`,
+              fontFamily: "inherit",
+            }}
+          >
+            🎙️ Iniciar conversa
+          </button>
+
+          <p style={{ color: th.muted, fontSize: 11, opacity: 0.6 }}>
+            Conversa por voz · em tempo real
+          </p>
         </div>
-      </>
+      )}
+
+      {/* ── CHAT EXPANDIDO ── */}
+      {chatAberto && audioAtivado && (
+        <div style={{
+          position: "fixed", bottom: 64, left: 0, right: 0, zIndex: 99,
+          maxHeight: "45vh", display: "flex", flexDirection: "column",
+          background: "rgba(8,12,24,0.98)", backdropFilter: "blur(24px)",
+          borderTop: `1px solid ${th.cor1}40`,
+          boxShadow: `0 -12px 48px rgba(0,0,0,0.7)`,
+          animation: "slidein 0.3s ease",
+        }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px 10px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {mensagens.map((m, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                <div style={{
+                  maxWidth: "85%", padding: "10px 14px",
+                  borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                  background: m.role === "user" ? `${th.cor1}22` : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${m.role === "user" ? th.cor1 + "44" : th.border}`,
+                  color: m.role === "user" ? "#fff" : th.text,
+                  fontSize: 14, lineHeight: 1.55,
+                }}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {pensando && (
+              <div style={{ display: "flex", gap: 5, paddingLeft: 4 }}>
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="dot-blink" style={{ width: 7, height: 7, borderRadius: "50%", background: th.cor1, opacity: 0.7, animationDelay: `${i * 0.22}s` }} />
+                ))}
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+        </div>
+      )}
+
+      {/* ── BARRA DE STATUS (quando ativo) ── */}
+      {audioAtivado && (
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
+          height: 64,
+          background: "rgba(8,12,24,0.97)",
+          backdropFilter: "blur(20px)",
+          borderTop: `1px solid ${th.cor1}44`,
+          display: "flex", alignItems: "center",
+          padding: "0 16px", gap: 12,
+        }}>
+          {/* Orb pequeno com status */}
+          <div style={{
+            width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+            background: `radial-gradient(circle at 35% 35%, ${th.cor2}, ${th.cor1} 60%, #2a1800)`,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+            boxShadow: jowState === "speaking" ? `0 0 20px ${th.cor1}BB` : "none",
+            transition: "box-shadow 0.3s",
+          }}>
+            🔮
+          </div>
+
+          {/* Status texto */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: th.cor2, fontSize: 13, fontWeight: 700, margin: 0, lineHeight: 1.2 }}>Kadosh</p>
+            <p style={{
+              margin: 0, fontSize: 11,
+              color: pensando ? th.muted : jowState === "speaking" ? th.cor1 : gravando ? "#4CAF50" : th.muted,
+            }}>
+              {pensando ? "pensando…" : jowState === "speaking" ? "🔊 falando…" : gravando ? "🎤 te ouvindo…" : "aguardando…"}
+            </p>
+          </div>
+
+          {/* Botão falar manual (só aparece quando idle) */}
+          {!gravando && !pensando && jowState !== "speaking" && (
+            <button
+              onClick={() => iniciarOuvindoAuto()}
+              style={{
+                flexShrink: 0, padding: "8px 14px", borderRadius: 20,
+                border: `1px solid ${th.cor1}66`, background: th.surface,
+                color: th.cor1, fontSize: 11, fontWeight: 700, cursor: "pointer",
+              }}
+            >
+              🎤 falar
+            </button>
+          )}
+
+          {/* Botão chat */}
+          <button
+            onClick={() => setChatAberto(v => !v)}
+            style={{
+              flexShrink: 0, padding: "8px 14px", borderRadius: 20,
+              border: `1px solid ${chatAberto ? th.cor1 + "88" : th.border}`,
+              background: chatAberto ? th.cor1 + "22" : th.surface,
+              color: chatAberto ? th.cor1 : th.muted,
+              fontSize: 11, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            {chatAberto ? "fechar ↓" : "chat ↑"}
+          </button>
+
+          {/* Botão encerrar */}
+          <button
+            onClick={encerrarConversa}
+            style={{
+              flexShrink: 0, padding: "8px 14px", borderRadius: 20,
+              border: "1px solid rgba(255,80,60,0.35)",
+              background: "rgba(255,60,40,0.08)",
+              color: "#FF6050", fontSize: 11, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            encerrar
+          </button>
+        </div>
+      )}
 
       {/* ── MODAL WHATSAPP ── */}
       {whatsappModal && (
