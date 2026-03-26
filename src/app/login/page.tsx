@@ -34,7 +34,7 @@ function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Erro ao fazer login"); setLoading(false); return; }
-      router.push("/app");
+      router.push(data.isAdmin ? "/admin" : "/app");
     } catch {
       setError("Erro de conexão"); setLoading(false);
     }

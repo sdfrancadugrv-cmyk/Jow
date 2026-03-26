@@ -221,7 +221,7 @@ export default function AlunoPlanoPage() {
           {estrutura.modulos.map((mod) => (
             <div
               key={mod.nome}
-              onClick={() => mod.disponivel && setModuloAtivo(mod.nome)}
+              onClick={() => mod.disponivel && router.push(`/aluno/${plano}/chat`)}
               style={{
                 padding: "16px 18px",
                 borderRadius: 14,

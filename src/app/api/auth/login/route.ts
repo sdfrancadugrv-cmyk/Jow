@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       isAdmin: client.isAdmin ?? false,
     });
 
-    const res = NextResponse.json({ ok: true, name: client.name });
+    const res = NextResponse.json({ ok: true, name: client.name, isAdmin: client.isAdmin ?? false });
 
     // Cookie JWT (7 dias)
     res.cookies.set("jow_token", token, {
