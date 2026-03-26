@@ -426,21 +426,28 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {videos.map((v, i) => (
+              /* Wrapper externo controla a largura máxima (para Shorts) */
               <div key={i} style={{
-                borderRadius: 18, overflow: "hidden", border: `1px solid ${th.border}`,
-                position: "relative",
                 maxWidth: v.shorts ? 380 : "100%",
                 margin: v.shorts ? "0 auto" : undefined,
-                paddingBottom: v.shorts ? "177.78%" : "56.25%",
-                height: 0,
+                width: "100%",
               }}>
-                <iframe
-                  src={videoEmbedUrl(v)}
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  onLoad={() => { if (i === 0) setVideoAssistido(true); }}
-                />
+                {/* Inner div controla a proporção — paddingBottom é % da largura DESTE div */}
+                <div style={{
+                  position: "relative",
+                  paddingBottom: v.shorts ? "177.78%" : "56.25%",
+                  height: 0,
+                  borderRadius: 18, overflow: "hidden",
+                  border: `1px solid ${th.border}`,
+                }}>
+                  <iframe
+                    src={videoEmbedUrl(v)}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    onLoad={() => { if (i === 0) setVideoAssistido(true); }}
+                  />
+                </div>
               </div>
             ))}
           </div>
