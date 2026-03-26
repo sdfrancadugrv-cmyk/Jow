@@ -10,10 +10,10 @@ const LIMITES: Record<string, { linguas: number; concursos: number }> = {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
+    const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
-    const config = await prisma.configProfessor.findUnique({ where: { clientId: user.id } });
+    const config = await prisma.configProfessor.findUnique({ where: { clientId: user.sub } });
     return NextResponse.json({ config, limites: LIMITES[config?.plano || "professor-start"] });
   } catch (e: any) {
     return NextResponse.json({ erro: e.message }, { status: 500 });
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
+    const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
     const { plano, linguas, concursos } = await req.json();
@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: `Seu plano permite até ${limites.concursos} concurso(s)` }, { status: 400 });
 
     const config = await prisma.configProfessor.upsert({
-      where:  { clientId: user.id },
+      where:  { clientId: user.sub },
       update: { plano, linguas, concursos },
-      create: { clientId: user.id, plano, linguas, concursos },
+      create: { clientId: user.sub, plano, linguas, concursos },
     });
 
     return NextResponse.json({ ok: true, config });

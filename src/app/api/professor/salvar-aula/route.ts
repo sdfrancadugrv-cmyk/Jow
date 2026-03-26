@@ -7,7 +7,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
+    const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
     const { mensagens, resumo, plano } = await req.json();
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const aula = await prisma.aulaProfessor.create({
       data: {
-        clientId: user.id,
+        clientId: user.sub,
         materia,
         resumo: resumo || null,
         mensagens: mensagens as any,

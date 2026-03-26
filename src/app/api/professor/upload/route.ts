@@ -3,7 +3,7 @@ import { getAuthUser } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
     }

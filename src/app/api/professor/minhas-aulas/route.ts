@@ -4,11 +4,11 @@ import { getAuthUser } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthUser(req);
+    const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
     const aulas = await prisma.aulaProfessor.findMany({
-      where: { clientId: user.id },
+      where: { clientId: user.sub },
       orderBy: { createdAt: "desc" },
       select: { id: true, materia: true, resumo: true, plano: true, createdAt: true },
     });
