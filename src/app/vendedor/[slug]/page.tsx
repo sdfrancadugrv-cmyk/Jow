@@ -163,7 +163,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     }
   }
 
-  // Para tudo e volta para o estado inicial
+  // Para microfone e voz, mas mantém a conversa visível
   function encerrarConversa() {
     mediaRef.current?.stop();
     gravandoRef.current = false;
@@ -171,9 +171,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     ouvirAposVoz.current = false;
     setGravando(false);
     setPensando(false);
-    setChatAberto(false);
     stopJowAudio();
-    setAudioAtivado(false);
   }
 
   // Ouvir automaticamente com detecção de silêncio e echo cancellation
