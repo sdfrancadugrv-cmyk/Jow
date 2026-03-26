@@ -9,14 +9,17 @@ type VideoInfo = { type: "youtube" | "drive"; id: string; shorts: boolean };
 
 function extractVideoInfo(url: string): VideoInfo | null {
   if (!url?.trim()) return null;
-  // YouTube Shorts
-  const shorts = url.match(/shorts\/([a-zA-Z0-9_-]{11})/);
+  // Marca manual de vertical: qualquer URL com #shorts ou #vertical
+  const isVertical = /#shorts|#vertical/i.test(url);
+  const cleanUrl = url.replace(/#.*/g, "");
+  // YouTube Shorts (URL nativa)
+  const shorts = cleanUrl.match(/shorts\/([a-zA-Z0-9_-]{11})/);
   if (shorts) return { type: "youtube", id: shorts[1], shorts: true };
   // YouTube normal
-  const yt = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
-  if (yt) return { type: "youtube", id: yt[1], shorts: false };
+  const yt = cleanUrl.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  if (yt) return { type: "youtube", id: yt[1], shorts: isVertical };
   // Google Drive
-  const drive = url.match(/\/d\/([\w-]+)/);
+  const drive = cleanUrl.match(/\/d\/([\w-]+)/);
   if (drive) return { type: "drive", id: drive[1], shorts: false };
   return null;
 }
@@ -426,19 +429,18 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             {videos.map((v, i) => (
-              /* Wrapper externo controla a largura máxima (para Shorts) */
               <div key={i} style={{
-                maxWidth: v.shorts ? 380 : "100%",
+                maxWidth: v.shorts ? 315 : "100%",
                 margin: v.shorts ? "0 auto" : undefined,
                 width: "100%",
               }}>
-                {/* Inner div controla a proporção — paddingBottom é % da largura DESTE div */}
                 <div style={{
                   position: "relative",
                   paddingBottom: v.shorts ? "177.78%" : "56.25%",
                   height: 0,
                   borderRadius: 18, overflow: "hidden",
                   border: `1px solid ${th.border}`,
+                  background: "#000",
                 }}>
                   <iframe
                     src={videoEmbedUrl(v)}
