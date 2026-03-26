@@ -34,6 +34,22 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
   }
 }
 
+export async function DELETE(_req: NextRequest, { params }: { params: { slug: string } }) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
+
+    const existente = await prisma.produtoVendedor.findUnique({ where: { slug: params.slug } });
+    if (!existente) return NextResponse.json({ erro: "produto não encontrado" }, { status: 404 });
+    if (existente.clientId !== user.sub) return NextResponse.json({ erro: "não autorizado" }, { status: 403 });
+
+    await prisma.produtoVendedor.delete({ where: { slug: params.slug } });
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ erro: e.message }, { status: 500 });
+  }
+}
+
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const user = await getAuthUser();

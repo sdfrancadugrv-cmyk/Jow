@@ -30,6 +30,7 @@ export default function MinhasPaginasPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [excluindo, setExcluindo] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/vendedor/listar")
@@ -47,6 +48,22 @@ export default function MinhasPaginasPage() {
   }, [router]);
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://kadosh-ai.vercel.app";
+
+  async function excluir(slug: string) {
+    if (!window.confirm("Tem certeza que quer excluir esta página? Essa ação não pode ser desfeita.")) return;
+    setExcluindo(slug);
+    try {
+      const res = await fetch(`/api/vendedor/editar/${slug}`, { method: "DELETE" });
+      if (res.ok) {
+        setProdutos(prev => prev.filter(p => p.slug !== slug));
+      } else {
+        alert("Erro ao excluir. Tente novamente.");
+      }
+    } catch {
+      alert("Erro de conexão.");
+    }
+    setExcluindo(null);
+  }
 
   return (
     <main style={{ minHeight: "100vh", background: BG, padding: "24px 16px" }}>
@@ -168,7 +185,7 @@ export default function MinhasPaginasPage() {
                     </div>
 
                     {/* Ações */}
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         onClick={() => router.push(`/vendedor/${p.slug}`)}
                         style={{
@@ -177,7 +194,7 @@ export default function MinhasPaginasPage() {
                           borderRadius: 9, padding: "8px 0", cursor: "pointer", letterSpacing: "0.08em",
                         }}
                       >
-                        Ver página
+                        Ver
                       </button>
                       <button
                         onClick={() => navigator.clipboard.writeText(url)}
@@ -187,7 +204,29 @@ export default function MinhasPaginasPage() {
                           borderRadius: 9, padding: "8px 0", cursor: "pointer", letterSpacing: "0.08em",
                         }}
                       >
-                        Copiar link
+                        Copiar
+                      </button>
+                      <button
+                        onClick={() => router.push(`/vendedor/editar/${p.slug}`)}
+                        style={{
+                          flex: 1, fontSize: 12, color: GREEN,
+                          background: "rgba(37,211,102,0.08)", border: `1px solid rgba(37,211,102,0.2)`,
+                          borderRadius: 9, padding: "8px 0", cursor: "pointer", letterSpacing: "0.08em",
+                        }}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => excluir(p.slug)}
+                        disabled={excluindo === p.slug}
+                        style={{
+                          flex: 1, fontSize: 12, color: "#e55",
+                          background: "rgba(238,85,85,0.08)", border: `1px solid rgba(238,85,85,0.2)`,
+                          borderRadius: 9, padding: "8px 0", cursor: excluindo === p.slug ? "default" : "pointer",
+                          letterSpacing: "0.08em", opacity: excluindo === p.slug ? 0.5 : 1,
+                        }}
+                      >
+                        {excluindo === p.slug ? "..." : "Excluir"}
                       </button>
                     </div>
                   </div>
