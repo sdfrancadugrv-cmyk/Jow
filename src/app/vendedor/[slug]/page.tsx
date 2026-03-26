@@ -182,6 +182,8 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
+      // getUserMedia = interação do usuário — desbloqueia áudio agora
+      unlockJowAudio();
 
       const audioCtx = new AudioContext();
       audioCtxRef.current = audioCtx;
@@ -204,14 +206,13 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         try { audioCtx.close(); } catch {}
         gravandoRef.current = false;
         setGravando(false);
-        if (!hasVoice || chunksRef.current.length === 0) return; // silêncio total — não envia
+        if (!hasVoice || chunksRef.current.length === 0) return;
         const blob  = new Blob(chunksRef.current, { type: "audio/webm" });
         const texto = await transcribe(blob);
         if (texto.trim()) {
+          unlockJowAudio(); // garante áudio desbloqueado antes de falar
           await enviarMensagem(texto);
-        }
-        // Se não detectou nada útil, volta a ouvir
-        else { setTimeout(() => iniciarOuvindoAuto(), 400); }
+        } else { setTimeout(() => iniciarOuvindoAuto(), 400); }
       };
       rec.start(100);
       mediaRef.current = rec;
