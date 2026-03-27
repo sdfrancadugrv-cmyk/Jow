@@ -7,7 +7,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function ttsElevenLabs(text: string): Promise<Buffer> {
-  const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM";
+  const voiceId = "21m00Tcm4TlvDq8ikWAM"; // Rachel — voz grátis ElevenLabs
   const apiKey  = process.env.ELEVENLABS_API_KEY!;
 
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
