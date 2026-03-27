@@ -25,6 +25,7 @@ const MODULOS = [
     itens: [
       { nome: "Criar Produto",            rota: "/vendedor/criar",          icone: "🛍️", desc: "Cadastrar novo produto para vender" },
       { nome: "Editar Páginas de Vendas", rota: "/vendedor/minhas-paginas", icone: "📋", desc: "Ver e editar suas páginas de vendas" },
+      { nome: "Pedidos de Instalação",    rota: "/admin/pedidos",           icone: "📦", desc: "Ver e gerenciar pedidos recebidos" },
     ],
   },
   {

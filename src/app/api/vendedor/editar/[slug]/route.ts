@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
-    const { nome, preco, destaques, salesLink, imageLinks, videoLinks, permitirAfiliados } = await req.json();
+    const { nome, preco, destaques, salesLink, imageLinks, videoLinks, permitirAfiliados, modalidadeVenda, whatsappContato, pixKey } = await req.json();
 
     // Confirma que o produto pertence ao usuário
     const existente = await prisma.produtoVendedor.findUnique({ where: { slug: params.slug } });
@@ -26,6 +26,9 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
         ...(imageLinks !== undefined && { imageLinks: (imageLinks as string[]).filter((l: string) => l.trim()) }),
         ...(videoLinks !== undefined && { videoLinks: (videoLinks as string[]).filter((l: string) => l.trim()) }),
         ...(permitirAfiliados !== undefined && { permitirAfiliados: Boolean(permitirAfiliados) }),
+        ...(modalidadeVenda   !== undefined && { modalidadeVenda }),
+        ...(whatsappContato   !== undefined && { whatsappContato: whatsappContato || null }),
+        ...(pixKey            !== undefined && { pixKey: pixKey || null }),
       },
     });
 
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
     const produto = await prisma.produtoVendedor.findUnique({
       where: { slug: params.slug },
-      select: { slug: true, nome: true, preco: true, destaques: true, salesLink: true, imageLinks: true, videoLinks: true, ativo: true, clientId: true, permitirAfiliados: true },
+      select: { slug: true, nome: true, preco: true, destaques: true, salesLink: true, imageLinks: true, videoLinks: true, ativo: true, clientId: true, permitirAfiliados: true, modalidadeVenda: true, whatsappContato: true, pixKey: true },
     });
 
     if (!produto) return NextResponse.json({ erro: "não encontrado" }, { status: 404 });

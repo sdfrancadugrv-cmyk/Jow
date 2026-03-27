@@ -66,6 +66,9 @@ interface Produto {
   estrutura: Estrutura;
   template?: string;
   permitirAfiliados?: boolean;
+  modalidadeVenda?: string;
+  whatsappContato?: string;
+  pixKey?: string;
 }
 
 // Paletas por estilo — fallback se a IA não gerar cores válidas
@@ -112,6 +115,16 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const [revendaWpp,   setRevendaWpp]     = useState("");
   const [revendando,   setRevendando]     = useState(false);
   const [revendaLink,  setRevendaLink]    = useState("");
+
+  // Modal de pedido de instalação
+  const [pedidoModal,  setPedidoModal]    = useState(false);
+  const [pedidoStep,   setPedidoStep]     = useState<"form"|"pix"|"ok">("form");
+  const [pedidoNome,   setPedidoNome]     = useState("");
+  const [pedidoTel,    setPedidoTel]      = useState("");
+  const [pedidoEnd,    setPedidoEnd]      = useState("");
+  const [pedidoEnviando, setPedidoEnviando] = useState(false);
+  const [pedidoPix,    setPedidoPix]      = useState<{ pixKey: string; valor: string } | null>(null);
+  const [pixCopiado,   setPixCopiado]     = useState(false);
   const mediaRef       = useRef<MediaRecorder | null>(null);
   const chunksRef      = useRef<Blob[]>([]);
   const audioCtxRef    = useRef<AudioContext | null>(null);
@@ -140,6 +153,36 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       .then(d => { if (d.afiliado?.whatsapp) setAfiliadoWpp(d.afiliado.whatsapp); })
       .catch(() => {});
   }, [refCode]);
+
+  async function enviarPedido() {
+    if (!pedidoNome.trim() || !pedidoTel.trim() || !pedidoEnd.trim()) return;
+    setPedidoEnviando(true);
+    try {
+      const afiliadoId = refCode
+        ? await fetch(`/api/afiliado/${refCode}/dashboard`).then(r => r.json()).then(d => d.afiliado?.id).catch(() => null)
+        : null;
+      const res = await fetch("/api/pedido/criar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: params.slug, nome: pedidoNome, telefone: pedidoTel, endereco: pedidoEnd, afiliadoId }),
+      });
+      const d = await res.json();
+      if (!res.ok) { alert(d.error || "Erro ao enviar pedido"); return; }
+      setPedidoPix({ pixKey: d.pixKey || "", valor: d.valor });
+      setPedidoStep("pix");
+    } catch {
+      alert("Erro ao enviar pedido. Tente novamente.");
+    } finally {
+      setPedidoEnviando(false);
+    }
+  }
+
+  function fecharPedidoModal() {
+    setPedidoModal(false);
+    setPedidoStep("form");
+    setPedidoNome(""); setPedidoTel(""); setPedidoEnd("");
+    setPedidoPix(null); setPixCopiado(false);
+  }
 
   async function cadastrarAfiliado() {
     if (!revendaNome.trim() || !revendaWpp.trim()) return;
@@ -594,20 +637,41 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           <div style={{ fontSize: "clamp(2rem, 5vw, 2.8rem)", fontWeight: 800, color: "#fff", fontFamily: "Georgia, serif" }}>
             {produto.preco}
           </div>
-          <a
-            href={produto.salesLink} target="_blank" rel="noopener noreferrer"
-            style={{
-              padding: "18px 56px", borderRadius: 50,
-              background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
-              color: "#060606", fontWeight: 900, fontSize: "1.05rem",
-              textDecoration: "none", letterSpacing: "0.1em", textTransform: "uppercase",
-              boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`,
-              display: "block", transition: "transform 0.15s",
-            }}
-          >
-            {e.cta || "QUERO AGORA"}
-          </a>
-          <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>✓ Acesso imediato &nbsp;·&nbsp; ✓ Pagamento seguro</p>
+          {produto.modalidadeVenda === "pedido" ? (
+            <button
+              onClick={() => setPedidoModal(true)}
+              style={{
+                padding: "18px 56px", borderRadius: 50,
+                background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
+                color: "#060606", fontWeight: 900, fontSize: "1.05rem",
+                letterSpacing: "0.1em", textTransform: "uppercase",
+                boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`,
+                border: "none", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {e.cta || "SOLICITAR INSTALAÇÃO"}
+            </button>
+          ) : (
+            <a
+              href={produto.salesLink} target="_blank" rel="noopener noreferrer"
+              style={{
+                padding: "18px 56px", borderRadius: 50,
+                background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
+                color: "#060606", fontWeight: 900, fontSize: "1.05rem",
+                textDecoration: "none", letterSpacing: "0.1em", textTransform: "uppercase",
+                boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`,
+                display: "block",
+              }}
+            >
+              {e.cta || "QUERO AGORA"}
+            </a>
+          )}
+          {produto.modalidadeVenda === "pedido" && (
+            <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>✓ Instalação em até 3 dias &nbsp;·&nbsp; ✓ Pagamento via PIX</p>
+          )}
+          {produto.modalidadeVenda !== "pedido" && (
+            <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>✓ Acesso imediato &nbsp;·&nbsp; ✓ Pagamento seguro</p>
+          )}
         </div>
       </section>
 
@@ -753,19 +817,58 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           <div style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 900, color: "#fff", fontFamily: "Georgia, serif", marginBottom: 8 }}>
             {produto.preco}
           </div>
-          <p style={{ color: th.muted, fontSize: 12, marginBottom: 28 }}>Pagamento único · Acesso imediato</p>
-          <a
-            href={produto.salesLink} target="_blank" rel="noopener noreferrer"
-            style={{
-              display: "inline-block", padding: "20px 60px", borderRadius: 50,
-              background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
-              color: "#060606", fontWeight: 900, fontSize: "1.05rem",
-              textDecoration: "none", letterSpacing: "0.12em", textTransform: "uppercase",
-              boxShadow: `0 0 50px ${th.cor1}80, 0 8px 32px rgba(0,0,0,0.5)`,
-            }}
-          >
-            {e.cta || "GARANTIR MINHA VAGA"}
-          </a>
+          <p style={{ color: th.muted, fontSize: 12, marginBottom: 28 }}>
+            {produto.modalidadeVenda === "pedido" ? "Instalação em até 3 dias · Pagamento via PIX" : "Pagamento único · Acesso imediato"}
+          </p>
+          {produto.modalidadeVenda === "pedido" ? (
+            <>
+              <button
+                onClick={() => setPedidoModal(true)}
+                style={{
+                  display: "inline-block", padding: "20px 60px", borderRadius: 50,
+                  background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
+                  color: "#060606", fontWeight: 900, fontSize: "1.05rem",
+                  letterSpacing: "0.12em", textTransform: "uppercase",
+                  boxShadow: `0 0 50px ${th.cor1}80, 0 8px 32px rgba(0,0,0,0.5)`,
+                  border: "none", cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                {e.cta || "SOLICITAR INSTALAÇÃO"}
+              </button>
+              {(produto.whatsappContato || afiliadoWpp) && (
+                <div style={{ marginTop: 20 }}>
+                  <a
+                    href={`https://wa.me/${afiliadoWpp || produto.whatsappContato}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 8,
+                      padding: "14px 32px", borderRadius: 50,
+                      border: "1px solid rgba(37,211,102,0.4)",
+                      background: "rgba(37,211,102,0.08)",
+                      color: "#25D366", fontWeight: 700, fontSize: "0.9rem",
+                      textDecoration: "none", letterSpacing: "0.06em",
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Falar com {afiliadoWpp ? "o Revendedor" : "a Empresa"}
+                  </a>
+                </div>
+              )}
+            </>
+          ) : (
+            <a
+              href={produto.salesLink} target="_blank" rel="noopener noreferrer"
+              style={{
+                display: "inline-block", padding: "20px 60px", borderRadius: 50,
+                background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
+                color: "#060606", fontWeight: 900, fontSize: "1.05rem",
+                textDecoration: "none", letterSpacing: "0.12em", textTransform: "uppercase",
+                boxShadow: `0 0 50px ${th.cor1}80, 0 8px 32px rgba(0,0,0,0.5)`,
+              }}
+            >
+              {e.cta || "GARANTIR MINHA VAGA"}
+            </a>
+          )}
         </div>
       </section>
         </>
@@ -1019,6 +1122,90 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           </div>
         </div>
       )}
+      {/* ── MODAL PEDIDO DE INSTALAÇÃO ── */}
+      {pedidoModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 20 }}>
+          <div style={{ background: "#0C1020", border: `1px solid ${th.cor1}40`, borderRadius: 22, padding: 32, maxWidth: 420, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+
+            {/* Step 1 — Formulário */}
+            {pedidoStep === "form" && (
+              <>
+                <div style={{ textAlign: "center", marginBottom: 24 }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>📋</div>
+                  <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.2rem", margin: "0 0 8px" }}>Solicitar Instalação</h3>
+                  <p style={{ color: th.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Preencha seus dados para agendar a instalação em até <strong style={{ color: th.cor2 }}>3 dias úteis</strong>.</p>
+                </div>
+                {[
+                  { label: "Nome completo *", value: pedidoNome, set: setPedidoNome, placeholder: "Seu nome" },
+                  { label: "Telefone para contato *", value: pedidoTel, set: setPedidoTel, placeholder: "(00) 90000-0000" },
+                  { label: "Endereço completo *", value: pedidoEnd, set: setPedidoEnd, placeholder: "Rua, número, bairro, cidade" },
+                ].map(f => (
+                  <div key={f.label} style={{ marginBottom: 14 }}>
+                    <p style={{ color: th.muted, fontSize: 11, marginBottom: 6, margin: "0 0 6px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{f.label}</p>
+                    <input value={f.value} onChange={ev => f.set(ev.target.value)} placeholder={f.placeholder} style={{ width: "100%", padding: "13px 16px", borderRadius: 12, border: `1px solid ${th.border}`, background: "rgba(255,255,255,0.04)", color: "#fff", fontSize: 15, outline: "none", fontFamily: "inherit" }} />
+                  </div>
+                ))}
+                <div style={{ background: `${th.cor1}12`, border: `1px solid ${th.cor1}44`, borderRadius: 12, padding: "12px 16px", marginBottom: 20, marginTop: 8 }}>
+                  <p style={{ color: th.cor2, fontSize: 12, margin: 0, lineHeight: 1.6 }}>🚚 Prazo de instalação: <strong>até 3 dias úteis</strong> após confirmação do pagamento.</p>
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={fecharPedidoModal} style={{ flex: 1, padding: "13px", borderRadius: 12, border: `1px solid ${th.border}`, background: "none", color: th.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>Cancelar</button>
+                  <button onClick={enviarPedido} disabled={pedidoEnviando || !pedidoNome.trim() || !pedidoTel.trim() || !pedidoEnd.trim()} style={{ flex: 2, padding: "13px", borderRadius: 12, border: "none", background: pedidoEnviando ? th.muted : `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 800, cursor: pedidoEnviando ? "not-allowed" : "pointer", fontSize: 13, fontFamily: "inherit" }}>
+                    {pedidoEnviando ? "Enviando…" : "Continuar →"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Step 2 — PIX */}
+            {pedidoStep === "pix" && pedidoPix && (
+              <>
+                <div style={{ textAlign: "center", marginBottom: 20 }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>💳</div>
+                  <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.2rem", margin: "0 0 8px" }}>Realize o pagamento</h3>
+                  <p style={{ color: th.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Copie a chave PIX abaixo e faça o pagamento no seu banco.</p>
+                </div>
+                <div style={{ background: `${th.cor1}10`, border: `1px solid ${th.cor1}44`, borderRadius: 14, padding: "20px", marginBottom: 16, textAlign: "center" }}>
+                  <p style={{ color: th.muted, fontSize: 11, margin: "0 0 6px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Valor a pagar</p>
+                  <p style={{ color: "#fff", fontSize: "1.6rem", fontWeight: 900, fontFamily: "Georgia, serif", margin: "0 0 16px" }}>{pedidoPix.valor}</p>
+                  {pedidoPix.pixKey ? (
+                    <>
+                      <p style={{ color: th.muted, fontSize: 11, margin: "0 0 6px", letterSpacing: "0.1em", textTransform: "uppercase" }}>Chave PIX</p>
+                      <p style={{ color: th.cor2, fontSize: 15, fontWeight: 700, wordBreak: "break-all", margin: "0 0 12px" }}>{pedidoPix.pixKey}</p>
+                      <button onClick={() => { navigator.clipboard.writeText(pedidoPix.pixKey); setPixCopiado(true); setTimeout(() => setPixCopiado(false), 2500); }} style={{ width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${th.border}`, background: pixCopiado ? `${th.cor1}22` : "none", color: pixCopiado ? th.cor1 : th.muted, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+                        {pixCopiado ? "✓ Chave copiada!" : "Copiar chave PIX"}
+                      </button>
+                    </>
+                  ) : (
+                    <p style={{ color: th.muted, fontSize: 13, margin: 0 }}>Entre em contato via WhatsApp para receber a chave PIX.</p>
+                  )}
+                </div>
+                <div style={{ background: "rgba(37,211,102,0.08)", border: "1px solid rgba(37,211,102,0.25)", borderRadius: 12, padding: "12px 16px", marginBottom: 20 }}>
+                  <p style={{ color: "#90EAB0", fontSize: 12, margin: 0, lineHeight: 1.6 }}>✅ Após o pagamento, sua instalação será agendada em até <strong>3 dias úteis</strong>. Você será avisado pelo WhatsApp.</p>
+                </div>
+                <button onClick={() => setPedidoStep("ok")} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 800, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
+                  ✓ Já fiz o pagamento
+                </button>
+              </>
+            )}
+
+            {/* Step 3 — Confirmação */}
+            {pedidoStep === "ok" && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
+                <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.2rem", margin: "0 0 12px" }}>Pedido registrado!</h3>
+                <p style={{ color: th.muted, fontSize: 13, lineHeight: 1.7, margin: "0 0 24px" }}>
+                  Assim que confirmarmos seu pagamento, entraremos em contato para agendar a instalação em até <strong style={{ color: th.cor2 }}>3 dias úteis</strong>.
+                </p>
+                <button onClick={fecharPedidoModal} style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 800, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
+                  Fechar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── MODAL REVENDA ── */}
       {revendaModal && (
         <div style={{

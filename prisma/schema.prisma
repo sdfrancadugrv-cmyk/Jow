@@ -182,9 +182,12 @@ model ProdutoVendedor {
   salesLink   String   // link de compra do produto
   preco       String   // ex: "R$ 97,00"
   estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
-  template         String   @default("produto") // "produto" | "profissional"
-  permitirAfiliados Boolean @default(false)
-  ativo            Boolean  @default(true)
+  template          String   @default("produto") // "produto" | "profissional"
+  modalidadeVenda   String   @default("link")    // "link" | "pedido"
+  whatsappContato   String?  // WhatsApp do dono exibido no botão de contato
+  pixKey            String?  // Chave PIX para receber pagamentos manuais
+  permitirAfiliados Boolean  @default(false)
+  ativo             Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -232,6 +235,25 @@ model SaqueAfiliado {
   afiliado   Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
 
   @@index([afiliadoId])
+}
+
+// ─── KADOSH PEDIDOS DE INSTALAÇÃO ─────────────────────────────────────────────
+
+model PedidoInstalacao {
+  id          String   @id @default(cuid())
+  produtoSlug String
+  nome        String
+  telefone    String
+  endereco    String
+  valor       String   // ex: "R$ 97,00"
+  status      String   @default("aguardando") // aguardando | pago | agendado | instalado | cancelado
+  afiliadoId  String?
+  obs         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([produtoSlug])
+  @@index([status])
 }
 
 // ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────

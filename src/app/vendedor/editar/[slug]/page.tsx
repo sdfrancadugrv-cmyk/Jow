@@ -31,6 +31,9 @@ export default function EditarProdutoPage() {
   const [imageLinks, setImageLinks] = useState([""]);
   const [videoLinks, setVideoLinks] = useState([""]);
   const [permitirAfiliados, setPermitirAfiliados] = useState(false);
+  const [modalidadeVenda,   setModalidadeVenda]   = useState("link");
+  const [whatsappContato,   setWhatsappContato]   = useState("");
+  const [pixKey,            setPixKey]            = useState("");
 
   useEffect(() => {
     fetch(`/api/vendedor/editar/${slug}`)
@@ -44,6 +47,9 @@ export default function EditarProdutoPage() {
         setImageLinks(d.imageLinks?.length ? d.imageLinks : [""]);
         setVideoLinks(d.videoLinks?.length ? d.videoLinks : [""]);
         setPermitirAfiliados(d.permitirAfiliados ?? false);
+        setModalidadeVenda(d.modalidadeVenda || "link");
+        setWhatsappContato(d.whatsappContato || "");
+        setPixKey(d.pixKey || "");
         setCarregando(false);
       })
       .catch(() => { setErro("Erro ao carregar produto."); setCarregando(false); });
@@ -67,7 +73,7 @@ export default function EditarProdutoPage() {
           nome, preco, destaques, salesLink,
           imageLinks: imageLinks.filter(l => l.trim()),
           videoLinks: videoLinks.filter(l => l.trim()),
-          permitirAfiliados,
+          permitirAfiliados, modalidadeVenda, whatsappContato, pixKey,
         }),
       });
       const data = await res.json();
@@ -169,6 +175,28 @@ export default function EditarProdutoPage() {
             <div style={{ position: "absolute", top: 2, left: permitirAfiliados ? 22 : 2, width: 18, height: 18, borderRadius: "50%", background: permitirAfiliados ? "#060606" : MUTED, transition: "left 0.2s" }} />
           </div>
         </div>
+
+        {/* Modalidade de venda */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 10 }}>Modalidade de venda</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[{ v: "link", label: "🔗 Link externo" }, { v: "pedido", label: "📦 Pedido com instalação" }].map(op => (
+              <button key={op.v} onClick={() => setModalidadeVenda(op.v)} style={{ flex: 1, padding: "11px 14px", borderRadius: 10, border: `1px solid ${modalidadeVenda === op.v ? GOLD + "88" : "rgba(212,160,23,0.2)"}`, background: modalidadeVenda === op.v ? "rgba(212,160,23,0.12)" : "rgba(255,255,255,0.02)", color: modalidadeVenda === op.v ? GOLD : LABEL, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {op.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Campos extras para modalidade pedido */}
+        {modalidadeVenda === "pedido" && (
+          <>
+            <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Chave PIX (para o cliente pagar)</label>
+            <input value={pixKey} onChange={e => setPixKey(e.target.value)} placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" style={{ ...inp, marginBottom: 20 }} />
+            <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>WhatsApp da empresa (botão de contato)</label>
+            <input value={whatsappContato} onChange={e => setWhatsappContato(e.target.value)} placeholder="DDD + número, ex: 97999999999" style={{ ...inp, marginBottom: 20 }} />
+          </>
+        )}
 
         {erro    && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 16 }}>{erro}</p>}
         {sucesso && <p style={{ color: "#25D366", fontSize: 13, marginBottom: 16 }}>Salvo! Redirecionando...</p>}
