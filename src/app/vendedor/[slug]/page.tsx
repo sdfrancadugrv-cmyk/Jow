@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 import { useJowStore } from "@/stores/jowStore";
 
@@ -63,6 +64,7 @@ interface Produto {
   videoLinks: string[];
   salesLink: string;
   estrutura: Estrutura;
+  template?: string;
 }
 
 // Paletas por estilo — fallback se a IA não gerar cores válidas
@@ -84,6 +86,9 @@ function buildTheme(e: Estrutura) {
 export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const { speak, transcribe } = useJow();
   const jowState = useJowStore(s => s.state);
+  const searchParams = useSearchParams();
+  const refCode = searchParams.get("ref");
+
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
   const [chatAberto,   setChatAberto]   = useState(false);
@@ -96,6 +101,16 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   const [whatsappModal, setWhatsappModal] = useState(false);
   const [whatsappNum,   setWhatsappNum]   = useState("");
   const [showSticky, setShowSticky] = useState(false);
+
+  // Afiliado — dados do revendedor quando acessado via ?ref=
+  const [afiliadoWpp, setAfiliadoWpp] = useState<string | null>(null);
+
+  // Modal de cadastro de afiliado
+  const [revendaModal, setRevendaModal]   = useState(false);
+  const [revendaNome,  setRevendaNome]    = useState("");
+  const [revendaWpp,   setRevendaWpp]     = useState("");
+  const [revendando,   setRevendando]     = useState(false);
+  const [revendaLink,  setRevendaLink]    = useState("");
   const mediaRef       = useRef<MediaRecorder | null>(null);
   const chunksRef      = useRef<Blob[]>([]);
   const audioCtxRef    = useRef<AudioContext | null>(null);
@@ -115,6 +130,34 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       .then(d => { setProduto(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [params.slug]);
+
+  // Se a página foi acessada via link de afiliado, busca o WhatsApp do revendedor
+  useEffect(() => {
+    if (!refCode) return;
+    fetch(`/api/afiliado/${refCode}/dashboard`)
+      .then(r => r.json())
+      .then(d => { if (d.afiliado?.whatsapp) setAfiliadoWpp(d.afiliado.whatsapp); })
+      .catch(() => {});
+  }, [refCode]);
+
+  async function cadastrarAfiliado() {
+    if (!revendaNome.trim() || !revendaWpp.trim()) return;
+    setRevendando(true);
+    try {
+      const res = await fetch("/api/afiliado/registrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: params.slug, nome: revendaNome.trim(), whatsapp: revendaWpp }),
+      });
+      const d = await res.json();
+      if (!res.ok) { alert(d.error || "Erro ao cadastrar"); return; }
+      setRevendaLink(d.dashboardLink);
+    } catch {
+      alert("Erro ao cadastrar. Tente novamente.");
+    } finally {
+      setRevendando(false);
+    }
+  }
 
   // Sticky header on scroll
   useEffect(() => {
@@ -313,6 +356,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     </main>
   );
 
+  const isProf = produto.template === "profissional";
   const e  = produto.estrutura;
   const th = buildTheme(e);
   const imagens = produto.imageLinks.filter(Boolean);
@@ -358,6 +402,151 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       )}
 
+      {/* ══ TEMPLATE PROFISSIONAL ══ */}
+      {isProf && (
+        <>
+          <section ref={heroRef} style={{ padding: "80px 20px 60px", maxWidth: 820, margin: "0 auto" }}>
+            {e.publico && (
+              <p style={{ color: th.cor1, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 20, textAlign: "center" }}>
+                {e.publico}
+              </p>
+            )}
+            <h1 style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "clamp(2rem, 5.5vw, 3.8rem)", fontWeight: 900, lineHeight: 1.1, marginBottom: 16, textAlign: "center", color: "#fff" }}>
+              {e.headline || produto.nome}
+            </h1>
+            {e.subheadline && (
+              <p style={{ textAlign: "center", color: th.text, fontSize: "clamp(1rem, 2.5vw, 1.15rem)", maxWidth: 620, margin: "0 auto 32px", lineHeight: 1.65, opacity: 0.85 }}>
+                {e.subheadline}
+              </p>
+            )}
+            <div style={{ width: 60, height: 3, background: `linear-gradient(90deg, ${th.cor1}, ${th.cor2})`, margin: "0 auto 36px", borderRadius: 2 }} />
+            {imagens.length > 0 && (
+              <div style={{ borderRadius: 8, overflow: "hidden", marginBottom: 40, border: `1px solid ${th.cor1}44` }}>
+                <img src={driveImageUrl(imagens[0])} alt={produto.nome}
+                  style={{ width: "100%", maxHeight: 520, objectFit: "cover", display: "block" }}
+                  onError={ev => { (ev.target as HTMLImageElement).style.display = "none"; }} />
+              </div>
+            )}
+            <div style={{ textAlign: "center" }}>
+              <a href={produto.salesLink} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", padding: "18px 52px", borderRadius: 4, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 900, fontSize: "1rem", textDecoration: "none", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                {e.cta || "CONSULTAR AGORA"}
+              </a>
+            </div>
+          </section>
+
+          {e.proposta && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <div style={{ padding: "28px 32px", borderLeft: `4px solid ${th.cor1}`, background: th.surface, borderRadius: "0 8px 8px 0" }}>
+                <p style={{ color: th.cor2, fontSize: "1.1rem", fontStyle: "italic", lineHeight: 1.65, margin: 0, fontFamily: "Georgia, serif" }}>
+                  &ldquo;{e.proposta}&rdquo;
+                </p>
+              </div>
+            </section>
+          )}
+
+          {e.beneficios && e.beneficios.length > 0 && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.3rem, 3vw, 2rem)", fontWeight: 700, textAlign: "center", marginBottom: 10, color: "#fff" }}>
+                Áreas de Atuação
+              </h2>
+              <p style={{ textAlign: "center", color: th.muted, fontSize: 13, marginBottom: 36 }}>Expertise e diferenciais</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+                {e.beneficios.map((b, i) => (
+                  <div key={i} style={{ padding: "24px 20px", border: `1px solid ${th.cor1}55`, background: th.surface, borderRadius: 8 }}>
+                    <div style={{ color: th.cor1, fontSize: 24, marginBottom: 12 }}>
+                      {["⚖️", "📋", "🏛️", "🤝", "🔒", "💼", "📌", "✅"][i % 8]}
+                    </div>
+                    <p style={{ color: th.text, fontSize: 14, lineHeight: 1.6, margin: 0 }}>{b}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {videos.length > 0 && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <p style={{ color: th.muted, fontSize: 11, letterSpacing: "0.25em", textTransform: "uppercase", textAlign: "center", marginBottom: 20 }}>Conheça melhor</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {videos.map((v, i) => (
+                  <div key={i} style={{ maxWidth: v.shorts ? 315 : "100%", margin: v.shorts ? "0 auto" : undefined, width: "100%" }}>
+                    <div style={{ position: "relative", paddingBottom: v.shorts ? "177.78%" : "56.25%", height: 0, borderRadius: 8, overflow: "hidden", border: `1px solid ${th.cor1}44`, background: "#000" }}>
+                      <iframe src={videoEmbedUrl(v)} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen
+                        onLoad={() => { if (i === 0) setVideoAssistido(true); }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {e.dores && e.dores.length > 0 && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.2rem, 3vw, 1.8rem)", fontWeight: 700, textAlign: "center", marginBottom: 32, color: "#fff" }}>
+                Problemas que resolvemos
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {e.dores.map((d, i) => (
+                  <div key={i} style={{ padding: "18px 22px", border: `1px solid ${th.cor1}33`, background: th.surface, borderRadius: 8, display: "flex", gap: 16, alignItems: "flex-start" }}>
+                    <span style={{ color: th.cor1, fontSize: 18, flexShrink: 0, marginTop: 2 }}>✓</span>
+                    <p style={{ color: th.text, fontSize: 14, lineHeight: 1.6, margin: 0 }}>{d}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(e.prova_social || e.transformacao) && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <div style={{ padding: "40px 32px", textAlign: "center", border: `1px solid ${th.cor1}55`, background: `linear-gradient(160deg, ${th.cor1}0A, ${th.cor2}06)`, borderRadius: 8 }}>
+                {e.transformacao && (
+                  <p style={{ color: "#fff", fontSize: "1rem", fontStyle: "italic", fontFamily: "Georgia, serif", lineHeight: 1.7, marginBottom: e.prova_social ? 20 : 0 }}>
+                    {e.transformacao}
+                  </p>
+                )}
+                {e.prova_social && (
+                  <p style={{ color: th.cor1, fontSize: "1.1rem", fontWeight: 700, margin: 0 }}>{e.prova_social}</p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {imagens.length > 1 && (
+            <section style={{ maxWidth: 820, margin: "0 auto 52px", padding: "0 20px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+                {imagens.slice(1).map((link, i) => (
+                  <div key={i} style={{ borderRadius: 8, overflow: "hidden", border: `1px solid ${th.cor1}33` }}>
+                    <img src={driveImageUrl(link)} alt="" style={{ width: "100%", height: 200, objectFit: "cover", display: "block" }}
+                      onError={ev => { (ev.target as HTMLImageElement).style.display = "none"; }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section style={{ maxWidth: 820, margin: "0 auto 120px", padding: "0 20px", textAlign: "center" }}>
+            <div style={{ padding: "56px 32px", borderRadius: 8, border: `1px solid ${th.cor1}66`, background: `linear-gradient(160deg, ${th.bg}, ${th.cor1}10)` }}>
+              <h2 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.3rem, 3vw, 2rem)", fontWeight: 900, color: "#fff", marginBottom: 8 }}>
+                {produto.nome}
+              </h2>
+              <div style={{ width: 40, height: 2, background: th.cor1, margin: "0 auto 24px", borderRadius: 1 }} />
+              <div style={{ fontSize: "clamp(2rem, 5vw, 2.8rem)", fontWeight: 900, color: th.cor1, fontFamily: "Georgia, serif", marginBottom: 8 }}>
+                {produto.preco}
+              </div>
+              <p style={{ color: th.muted, fontSize: 12, marginBottom: 32 }}>Consulta inicial · Atendimento personalizado</p>
+              <a href={produto.salesLink} target="_blank" rel="noopener noreferrer"
+                style={{ display: "inline-block", padding: "20px 64px", borderRadius: 4, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 900, fontSize: "1.05rem", textDecoration: "none", letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                {e.cta || "AGENDAR CONSULTA"}
+              </a>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* ── TEMPLATE PADRÃO ── */}
+      {!isProf && (
+        <>
       {/* ── HERO ── */}
       <section ref={heroRef} style={{ padding: "70px 20px 56px", maxWidth: 740, margin: "0 auto", textAlign: "center" }}>
         {th.emoji && <div style={{ fontSize: 48, marginBottom: 20 }}>{th.emoji}</div>}
@@ -578,6 +767,8 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           </a>
         </div>
       </section>
+        </>
+      )}
 
       {/* ── OVERLAY DE INÍCIO ── */}
       {!audioAtivado && (
@@ -747,6 +938,50 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       )}
 
+      {/* ── BANNER REVENDEDOR (quando acessado via link de afiliado) ── */}
+      {afiliadoWpp && (
+        <div style={{
+          position: "fixed", bottom: audioAtivado ? 64 : 0, left: 0, right: 0, zIndex: 70,
+          background: "rgba(8,20,8,0.97)", backdropFilter: "blur(16px)",
+          borderTop: "1px solid rgba(76,175,80,0.35)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "10px 16px", gap: 12,
+        }}>
+          <p style={{ color: "#90EAB0", fontSize: 12, margin: 0 }}>
+            💬 Fale com seu revendedor no WhatsApp para fechar a compra
+          </p>
+          <a
+            href={`https://wa.me/${afiliadoWpp}`}
+            target="_blank" rel="noopener noreferrer"
+            style={{
+              flexShrink: 0, padding: "8px 18px", borderRadius: 20,
+              background: "linear-gradient(135deg, #25D366, #128C7E)",
+              color: "#fff", fontWeight: 800, fontSize: 12,
+              textDecoration: "none", whiteSpace: "nowrap",
+            }}
+          >
+            📱 WhatsApp
+          </a>
+        </div>
+      )}
+
+      {/* ── BOTÃO REVENDA (fixo no canto) ── */}
+      {!afiliadoWpp && (
+        <button
+          onClick={() => setRevendaModal(true)}
+          style={{
+            position: "fixed", bottom: audioAtivado ? 72 : 16, right: 16, zIndex: 70,
+            padding: "10px 18px", borderRadius: 24,
+            background: "rgba(8,12,24,0.95)", backdropFilter: "blur(12px)",
+            border: `1px solid ${th.cor1}44`,
+            color: th.muted, fontSize: 11, fontWeight: 700, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
+          }}
+        >
+          🤝 Revenda e ganhe
+        </button>
+      )}
+
       {/* ── MODAL WHATSAPP ── */}
       {whatsappModal && (
         <div style={{
@@ -780,6 +1015,91 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
                 Quero receber
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ── MODAL REVENDA ── */}
+      {revendaModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(10px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 20,
+        }}>
+          <div style={{ background: "#0C1020", border: `1px solid ${th.cor1}40`, borderRadius: 22, padding: 36, maxWidth: 400, width: "100%", textAlign: "center" }}>
+            {!revendaLink ? (
+              <>
+                <div style={{ fontSize: 44, marginBottom: 16 }}>🤝</div>
+                <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.25rem", marginBottom: 8, margin: "0 0 8px" }}>
+                  Revenda e ganhe R$ 30
+                </h3>
+                <p style={{ color: th.muted, fontSize: 13, marginBottom: 24, margin: "0 0 24px", lineHeight: 1.6 }}>
+                  Cadastre-se como revendedor de <strong style={{ color: th.cor2 }}>{produto?.nome}</strong> e ganhe <strong style={{ color: th.cor1 }}>R$ 30,00</strong> por cada venda confirmada.
+                </p>
+                <input
+                  value={revendaNome}
+                  onChange={e => setRevendaNome(e.target.value)}
+                  placeholder="Seu nome"
+                  style={{
+                    width: "100%", padding: "13px 16px", borderRadius: 12,
+                    border: `1px solid ${th.border}`, background: "rgba(255,255,255,0.04)",
+                    color: "#fff", fontSize: 15, outline: "none",
+                    marginBottom: 12, textAlign: "center", fontFamily: "inherit",
+                  }}
+                />
+                <input
+                  value={revendaWpp}
+                  onChange={e => setRevendaWpp(e.target.value)}
+                  placeholder="Seu WhatsApp (DDD + número)"
+                  style={{
+                    width: "100%", padding: "13px 16px", borderRadius: 12,
+                    border: `1px solid ${th.border}`, background: "rgba(255,255,255,0.04)",
+                    color: "#fff", fontSize: 15, outline: "none",
+                    marginBottom: 20, textAlign: "center", fontFamily: "inherit",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={() => { setRevendaModal(false); setRevendaNome(""); setRevendaWpp(""); }} style={{ flex: 1, padding: "13px", borderRadius: 12, border: `1px solid ${th.border}`, background: "none", color: th.muted, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
+                    Agora não
+                  </button>
+                  <button
+                    onClick={cadastrarAfiliado}
+                    disabled={revendando || !revendaNome.trim() || !revendaWpp.trim()}
+                    style={{
+                      flex: 2, padding: "13px", borderRadius: 12, border: "none",
+                      background: revendando ? th.muted : `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`,
+                      color: "#060606", fontWeight: 800, cursor: revendando ? "not-allowed" : "pointer",
+                      fontSize: 13, fontFamily: "inherit",
+                    }}
+                  >
+                    {revendando ? "Cadastrando…" : "Quero revender!"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 52, marginBottom: 16 }}>🎉</div>
+                <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.25rem", marginBottom: 8, margin: "0 0 8px" }}>
+                  Cadastro confirmado!
+                </h3>
+                <p style={{ color: th.muted, fontSize: 13, marginBottom: 20, margin: "0 0 20px", lineHeight: 1.6 }}>
+                  Seu dashboard de revendedor está pronto. Acesse o link abaixo para ver seus relatórios e gerar cobranças.
+                </p>
+                <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: `1px solid ${th.border}`, fontSize: 12, color: th.text, wordBreak: "break-all", marginBottom: 16 }}>
+                  {revendaLink}
+                </div>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(revendaLink); }}
+                  style={{ width: "100%", padding: "13px", borderRadius: 12, border: `1px solid ${th.border}`, background: "none", color: th.cor1, cursor: "pointer", fontSize: 13, fontWeight: 700, marginBottom: 10, fontFamily: "inherit" }}
+                >
+                  Copiar link do dashboard
+                </button>
+                <button
+                  onClick={() => { window.open(revendaLink, "_blank"); }}
+                  style={{ width: "100%", padding: "13px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 800, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}
+                >
+                  Acessar meu dashboard →
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

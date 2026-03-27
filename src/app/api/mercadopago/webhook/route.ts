@@ -34,6 +34,67 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Venda de afiliado: "venda|afiliadoId|produtoSlug|clientePhone|valorPago"
+    if (parts[0] === "venda") {
+      const afiliadoId  = parts[1];
+      const produtoSlug = parts[2];
+      const clientePhone = parts[3];
+      const valorPago   = parseFloat(parts[4] || "0");
+
+      await prisma.vendaAfiliado.create({
+        data: { afiliadoId, produtoSlug, clientePhone, valorPago, comissao: 30, paymentId: String(paymentId), status: "paga" },
+      });
+
+      await prisma.afiliado.update({
+        where: { id: afiliadoId },
+        data: { saldo: { increment: 30 } },
+      });
+
+      const afiliado = await prisma.afiliado.findUnique({ where: { id: afiliadoId }, select: { nome: true, whatsapp: true, codigo: true } });
+      const pedidoNum = String(paymentId).slice(-6).toUpperCase();
+      const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
+
+      // Comprovante para o cliente
+      await sendWhatsApp(
+        clientePhone,
+        `✅ *Pagamento confirmado!*\n\n` +
+        `Obrigado pela sua compra!\n` +
+        `🔢 Pedido: *#${pedidoNum}*\n` +
+        `💰 Valor pago: *R$ ${valorPago.toFixed(2).replace(".", ",")}*\n` +
+        `🚚 Prazo de entrega: *até 3 dias úteis*\n\n` +
+        `Qualquer dúvida, entre em contato com seu revendedor. 😊`
+      );
+
+      // Aviso para o admin
+      const ownerPhone = process.env.OWNER_PHONE;
+      if (ownerPhone) {
+        await sendWhatsApp(
+          ownerPhone,
+          `🛒 *NOVA VENDA!*\n\n` +
+          `Produto: ${produtoSlug}\n` +
+          `Cliente: ${clientePhone}\n` +
+          `Revendedor: ${afiliado?.nome ?? "?"} (${afiliado?.whatsapp ?? "?"})\n` +
+          `Valor: *R$ ${valorPago.toFixed(2).replace(".", ",")}*\n` +
+          `Comissão liberada: *R$ 30,00*\n` +
+          `Pedido: #${pedidoNum}`
+        );
+      }
+
+      // Aviso para o afiliado
+      if (afiliado?.whatsapp) {
+        await sendWhatsApp(
+          afiliado.whatsapp,
+          `🎉 *Parabéns! Nova venda confirmada!*\n\n` +
+          `Pedido #${pedidoNum}\n` +
+          `Comissão: *R$ 30,00*\n\n` +
+          `O valor já está disponível para saque no seu dashboard:\n` +
+          `${APP_URL}/afiliado/${afiliado.codigo}`
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
     // Contratação de profissional: "hire|providerId|clientPhone|clientName"
     if (parts[0] === "hire") {
       const providerId = parts[1];

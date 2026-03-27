@@ -182,11 +182,55 @@ model ProdutoVendedor {
   salesLink   String   // link de compra do produto
   preco       String   // ex: "R$ 97,00"
   estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
+  template    String   @default("produto") // "produto" | "profissional"
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([clientId])
+}
+
+// ─── KADOSH AFILIADOS ─────────────────────────────────────────────────────────
+
+model Afiliado {
+  id        String   @id @default(cuid())
+  slug      String   // slug do ProdutoVendedor
+  nome      String
+  whatsapp  String
+  codigo    String   @unique
+  saldo     Float    @default(0)
+  createdAt DateTime @default(now())
+  vendas    VendaAfiliado[]
+  saques    SaqueAfiliado[]
+
+  @@index([slug])
+}
+
+model VendaAfiliado {
+  id           String   @id @default(cuid())
+  afiliadoId   String
+  produtoSlug  String
+  clientePhone String
+  valorPago    Float
+  comissao     Float    @default(30)
+  paymentId    String?
+  status       String   @default("paga")
+  createdAt    DateTime @default(now())
+  afiliado     Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+
+  @@index([afiliadoId])
+}
+
+model SaqueAfiliado {
+  id         String   @id @default(cuid())
+  afiliadoId String
+  valor      Float
+  pixKey     String
+  status     String   @default("pendente") // pendente | pago
+  createdAt  DateTime @default(now())
+  afiliado   Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+
+  @@index([afiliadoId])
 }
 
 // ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────
