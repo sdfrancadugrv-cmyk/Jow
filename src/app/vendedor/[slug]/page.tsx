@@ -188,7 +188,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     if (!produto) return;
     const nomeP = produto.nome;
     const abertura = produto.estrutura?.abertura
-      || `Você pode conversar comigo normalmente por voz. Eu sou capaz de ouvir, compreender, responder suas dúvidas e te conduzir por todo o processo enquanto estiveres navegando por aqui.`;
+      || `Olá! Eu sou o Kadosh. Podemos conversar por voz audível. Sou capaz de compreender, raciocinar, tirar suas dúvidas e te conduzir por toda essa experiência inovadora de atendimento virtual.`;
     aberturaRef.current = abertura;
     setMensagens([{ role: "assistant", content: abertura }]);
   }, [produto]); // eslint-disable-line
