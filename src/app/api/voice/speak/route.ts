@@ -19,13 +19,14 @@ async function ttsElevenLabs(text: string): Promise<Buffer> {
     },
     body: JSON.stringify({
       text,
-      model_id: "eleven_turbo_v2_5",
+      model_id: "eleven_flash_v2_5",
       voice_settings: { stability: 0.5, similarity_boost: 0.75 },
     }),
   });
 
   if (!res.ok) {
     const err = await res.text();
+    console.error(`[ElevenLabs] status=${res.status} body=${err}`);
     throw new Error(`ElevenLabs error ${res.status}: ${err}`);
   }
 
