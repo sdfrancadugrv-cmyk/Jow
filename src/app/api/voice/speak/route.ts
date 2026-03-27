@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
 
     let buffer: Buffer;
 
-    if (process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) {
-      console.log("[TTS] Usando ElevenLabs, voice:", process.env.ELEVENLABS_VOICE_ID);
+    if (process.env.ELEVENLABS_API_KEY) {
+      console.log("[TTS] Usando ElevenLabs Rachel");
       try {
         buffer = await ttsElevenLabs(text);
         console.log("[TTS] ElevenLabs OK");
