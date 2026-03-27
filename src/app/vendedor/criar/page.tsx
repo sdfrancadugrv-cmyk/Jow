@@ -30,6 +30,8 @@ export default function CriarProdutoPage() {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [gravando, setGravando] = useState(false);
+  const [gerandoImagem, setGerandoImagem] = useState<number | null>(null);
+  const [descImagem, setDescImagem] = useState<string[]>([""]);
   const [campoVoz, setCampoVoz] = useState<"destaques" | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -67,8 +69,33 @@ export default function CriarProdutoPage() {
   function setImageLink(i: number, v: string) {
     setImageLinks(prev => { const n = [...prev]; n[i] = v; return n; });
   }
-  function addImageLink() { setImageLinks(prev => [...prev, ""]); }
-  function removeImageLink(i: number) { setImageLinks(prev => prev.filter((_, idx) => idx !== i)); }
+  function addImageLink() {
+    setImageLinks(prev => [...prev, ""]);
+    setDescImagem(prev => [...prev, ""]);
+  }
+  function removeImageLink(i: number) {
+    setImageLinks(prev => prev.filter((_, idx) => idx !== i));
+    setDescImagem(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function gerarImagem(i: number) {
+    if (!descImagem[i]?.trim()) { setErro("Descreva a imagem antes de gerar"); return; }
+    setGerandoImagem(i); setErro("");
+    try {
+      const res = await fetch("/api/vendedor/gerar-imagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descricao: descImagem[i], contexto: nome }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErro(data.erro || "Erro ao gerar imagem"); return; }
+      setImageLinks(prev => { const n = [...prev]; n[i] = data.url; return n; });
+    } catch {
+      setErro("Erro de conexão");
+    } finally {
+      setGerandoImagem(null);
+    }
+  }
 
   function setVideoLink(i: number, v: string) {
     setVideoLinks(prev => { const n = [...prev]; n[i] = v; return n; });
@@ -169,19 +196,56 @@ export default function CriarProdutoPage() {
 
         {/* Imagens */}
         <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
-          Fotos do produto <span style={{ color: MUTED, textTransform: "none", letterSpacing: 0 }}>(Google Drive)</span>
+          Fotos do produto
         </label>
-        <p style={{ color: MUTED, fontSize: 12, marginBottom: 10 }}>
-          Cole o link de compartilhamento do Google Drive. O arquivo deve estar público.
+        <p style={{ color: MUTED, fontSize: 12, marginBottom: 14 }}>
+          Cole o link do Google Drive <span style={{ color: GOLD }}>ou</span> descreva e o Kadosh cria a imagem pra você.
         </p>
         {imageLinks.map((link, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-            <input value={link} onChange={e => setImageLink(i, e.target.value)} placeholder={`Foto ${i + 1} — link do Google Drive`} style={{ ...inp, flex: 1 }} />
-            {link.trim() && (
-              <img src={driveImageUrl(link)} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
-            )}
+          <div key={i} style={{ marginBottom: 16, padding: "14px", borderRadius: 12, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.02)" }}>
+            {/* Link do Drive */}
+            <p style={{ color: MUTED, fontSize: 10, letterSpacing: "0.1em", marginBottom: 6 }}>LINK DO GOOGLE DRIVE</p>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+              <input value={link} onChange={e => setImageLink(i, e.target.value)} placeholder="https://drive.google.com/..." style={{ ...inp, flex: 1 }} />
+              {link.trim() && (
+                <img src={driveImageUrl(link)} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              )}
+            </div>
+
+            {/* Separador */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <div style={{ flex: 1, height: 1, background: BORDER }} />
+              <span style={{ color: MUTED, fontSize: 11 }}>ou deixa o Kadosh criar</span>
+              <div style={{ flex: 1, height: 1, background: BORDER }} />
+            </div>
+
+            {/* Geração por IA */}
+            <p style={{ color: MUTED, fontSize: 10, letterSpacing: "0.1em", marginBottom: 6 }}>DESCREVA A IMAGEM</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={descImagem[i] || ""}
+                onChange={e => setDescImagem(prev => { const n = [...prev]; n[i] = e.target.value; return n; })}
+                placeholder="Ex: escritório moderno, produto em fundo branco, pessoa sorrindo..."
+                style={{ ...inp, flex: 1 }}
+              />
+              <button
+                onClick={() => gerarImagem(i)}
+                disabled={gerandoImagem === i}
+                style={{
+                  flexShrink: 0, padding: "0 14px", borderRadius: 10, border: "none",
+                  background: gerandoImagem === i ? "rgba(212,160,23,0.2)" : `linear-gradient(135deg, #A07010, ${GOLD})`,
+                  color: "#0A0808", fontWeight: 700, fontSize: 12, cursor: gerandoImagem === i ? "default" : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {gerandoImagem === i ? "⏳ Criando..." : "✨ Gerar"}
+              </button>
+            </div>
+
             {imageLinks.length > 1 && (
-              <button onClick={() => removeImageLink(i)} style={{ flexShrink: 0, width: 30, height: 30, borderRadius: "50%", border: `1px solid ${BORDER}`, background: "none", color: MUTED, cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+              <button onClick={() => removeImageLink(i)} style={{ marginTop: 10, background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 12 }}>
+                × remover esta foto
+              </button>
             )}
           </div>
         ))}
