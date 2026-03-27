@@ -188,7 +188,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     if (!produto) return;
     const nomeP = produto.nome;
     const abertura = produto.estrutura?.abertura
-      || `Oi, eu sou o Kadosh — estou aqui pra te apresentar o ${nomeP} e conversar com você sobre ele. Pode me fazer qualquer pergunta sobre o produto, tirar dúvidas, e se quiser, a gente pode conversar sobre como adquirir também. É só falar comigo normalmente, como se eu fosse uma pessoa real. Pode começar!`;
+      || `Você pode conversar comigo normalmente por voz. Eu sou capaz de ouvir, compreender, responder suas dúvidas e te conduzir por todo o processo enquanto estiveres navegando por aqui.`;
     aberturaRef.current = abertura;
     setMensagens([{ role: "assistant", content: abertura }]);
   }, [produto]); // eslint-disable-line
