@@ -19,8 +19,8 @@ async function ttsElevenLabs(text: string): Promise<Buffer> {
     },
     body: JSON.stringify({
       text,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: { stability: 0.45, similarity_boost: 0.80, style: 0.35, use_speaker_boost: true },
+      model_id: "eleven_turbo_v2_5",
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
     }),
   });
 
@@ -46,13 +46,16 @@ export async function POST(req: NextRequest) {
     let buffer: Buffer;
 
     if (process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) {
+      console.log("[TTS] Usando ElevenLabs, voice:", process.env.ELEVENLABS_VOICE_ID);
       try {
         buffer = await ttsElevenLabs(text);
+        console.log("[TTS] ElevenLabs OK");
       } catch (e) {
         console.warn("[TTS] ElevenLabs falhou, usando OpenAI:", e);
         buffer = await ttsOpenAI(text);
       }
     } else {
+      console.log("[TTS] ElevenLabs não configurado, usando OpenAI");
       buffer = await ttsOpenAI(text);
     }
 
