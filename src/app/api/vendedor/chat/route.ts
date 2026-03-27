@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { slug, mensagens, videoAssistido } = await req.json();
     if (!slug || !mensagens) return NextResponse.json({ erro: "dados inválidos" }, { status: 400 });
 
-    const produto = await prisma.produtoVendedor.findUnique({ where: { slug } });
+    const produto = await prisma.produtoVendedor.findUnique({ where: { slug } }) as any;
     if (!produto) return NextResponse.json({ erro: "produto não encontrado" }, { status: 404 });
 
     const e = produto.estrutura as any;
