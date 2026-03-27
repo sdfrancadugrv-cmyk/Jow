@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       quality: "standard",
     });
 
-    const tempUrl = response.data[0]?.url;
+    const tempUrl = response.data?.[0]?.url;
     if (!tempUrl) return NextResponse.json({ erro: "Falha ao gerar imagem" }, { status: 500 });
 
     // Faz upload para o Cloudinary (URL permanente)
