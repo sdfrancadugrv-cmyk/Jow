@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
-    const { nome, preco, destaques, salesLink, imageLinks, videoLinks } = await req.json();
+    const { nome, preco, destaques, salesLink, imageLinks, videoLinks, permitirAfiliados } = await req.json();
 
     // Confirma que o produto pertence ao usuário
     const existente = await prisma.produtoVendedor.findUnique({ where: { slug: params.slug } });
@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest, { params }: { params: { slug: string
         ...(salesLink && { salesLink }),
         ...(imageLinks !== undefined && { imageLinks: (imageLinks as string[]).filter((l: string) => l.trim()) }),
         ...(videoLinks !== undefined && { videoLinks: (videoLinks as string[]).filter((l: string) => l.trim()) }),
+        ...(permitirAfiliados !== undefined && { permitirAfiliados: Boolean(permitirAfiliados) }),
       },
     });
 
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
     const produto = await prisma.produtoVendedor.findUnique({
       where: { slug: params.slug },
-      select: { slug: true, nome: true, preco: true, destaques: true, salesLink: true, imageLinks: true, videoLinks: true, ativo: true, clientId: true },
+      select: { slug: true, nome: true, preco: true, destaques: true, salesLink: true, imageLinks: true, videoLinks: true, ativo: true, clientId: true, permitirAfiliados: true },
     });
 
     if (!produto) return NextResponse.json({ erro: "não encontrado" }, { status: 404 });

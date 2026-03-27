@@ -21,6 +21,8 @@ export default function CriarProdutoPage() {
   const { speak, transcribe } = useJow();
 
   const [ativado, setAtivado] = useState(false);
+  const [etapa, setEtapa] = useState<"template" | "form">("template");
+  const [template, setTemplate] = useState("produto");
   const [nome, setNome] = useState("");
   const [destaques, setDestaques] = useState("");
   const [imageLinks, setImageLinks] = useState([""]);
@@ -123,6 +125,7 @@ export default function CriarProdutoPage() {
           videoLinks: videoLinks.filter(l => l.trim()),
           salesLink,
           preco,
+          template,
         }),
       });
       const data = await res.json();
@@ -151,6 +154,77 @@ export default function CriarProdutoPage() {
       <button onClick={ativar} style={{ padding: "16px 40px", borderRadius: 50, border: "none", background: `linear-gradient(135deg, #A07010, ${GOLD})`, color: "#0A0808", fontWeight: 700, fontSize: 15, cursor: "pointer", letterSpacing: "0.1em" }}>
         COMEÇAR
       </button>
+    </main>
+  );
+
+  if (etapa === "template") return (
+    <main style={{ minHeight: "100vh", background: BG, padding: "40px 16px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <button onClick={() => router.back()} style={{ color: MUTED, background: "none", border: "none", cursor: "pointer", fontSize: 11, letterSpacing: "0.1em", marginBottom: 32 }}>← VOLTAR</button>
+        <h2 style={{ fontFamily: "Georgia, serif", fontSize: "1.4rem", letterSpacing: "0.15em", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 8 }}>
+          Escolha o layout
+        </h2>
+        <p style={{ color: MUTED, fontSize: 13, marginBottom: 36 }}>Selecione como sua página de vendas vai aparecer para os visitantes.</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20, marginBottom: 32 }}>
+          {/* TEMPLATE PADRÃO */}
+          <div
+            onClick={() => setTemplate("produto")}
+            style={{ cursor: "pointer", borderRadius: 16, border: `2px solid ${template === "produto" ? GOLD : "rgba(212,160,23,0.2)"}`, background: template === "produto" ? "rgba(212,160,23,0.05)" : "rgba(255,255,255,0.02)", overflow: "hidden", transition: "border-color 0.2s" }}
+          >
+            {/* Miniatura do template padrão */}
+            <div style={{ background: "#070B18", padding: "16px 12px", height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, position: "relative" }}>
+              <div style={{ fontSize: 20 }}>⚡</div>
+              <div style={{ width: "80%", height: 8, borderRadius: 4, background: "linear-gradient(90deg, #fff, #E8C040, #D4A017)", opacity: 0.9 }} />
+              <div style={{ width: "60%", height: 5, borderRadius: 3, background: "rgba(212,160,23,0.4)" }} />
+              <div style={{ width: "50%", height: 5, borderRadius: 3, background: "rgba(212,160,23,0.25)" }} />
+              <div style={{ marginTop: 8, width: "55%", height: 18, borderRadius: 20, background: "linear-gradient(135deg, #D4A017, #E8C040)", opacity: 0.9 }} />
+              <div style={{ marginTop: 6, display: "flex", gap: 4, width: "80%" }}>
+                {[0,1].map(i => <div key={i} style={{ flex: 1, height: 30, borderRadius: 6, border: "1px solid rgba(212,160,23,0.3)", background: "rgba(212,160,23,0.05)" }} />)}
+              </div>
+              <div style={{ width: "65%", height: 20, borderRadius: 20, background: "linear-gradient(135deg, #D4A017, #E8C040)", marginTop: 6 }} />
+            </div>
+            <div style={{ padding: "14px 16px" }}>
+              <p style={{ color: GOLD, fontWeight: 700, fontSize: 14, margin: "0 0 4px" }}>Padrão</p>
+              <p style={{ color: MUTED, fontSize: 12, margin: 0 }}>Layout moderno com gradiente e call-to-action centralizado. Ideal para cursos, infoprodutos e serviços digitais.</p>
+            </div>
+          </div>
+
+          {/* TEMPLATE PROFISSIONAL */}
+          <div
+            onClick={() => setTemplate("profissional")}
+            style={{ cursor: "pointer", borderRadius: 16, border: `2px solid ${template === "profissional" ? GOLD : "rgba(212,160,23,0.2)"}`, background: template === "profissional" ? "rgba(212,160,23,0.05)" : "rgba(255,255,255,0.02)", overflow: "hidden", transition: "border-color 0.2s" }}
+          >
+            {/* Miniatura do template profissional */}
+            <div style={{ background: "#0D1428", padding: "16px 14px", height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5 }}>
+              <div style={{ width: "75%", height: 7, borderRadius: 3, background: "#fff", opacity: 0.85 }} />
+              <div style={{ width: "50%", height: 5, borderRadius: 3, background: "rgba(200,169,81,0.6)" }} />
+              <div style={{ width: 40, height: 2, borderRadius: 1, background: "#C8A951", margin: "2px 0" }} />
+              <div style={{ width: "78%", height: 50, borderRadius: 4, background: "rgba(200,169,81,0.1)", border: "1px solid rgba(200,169,81,0.4)", marginBottom: 4 }} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4, width: "78%" }}>
+                {[0,1,2].map(i => <div key={i} style={{ height: 28, borderRadius: 4, background: "rgba(200,169,81,0.08)", border: "1px solid rgba(200,169,81,0.3)" }} />)}
+              </div>
+              <div style={{ marginTop: 4, display: "flex", gap: 4, width: "78%" }}>
+                {[0,1,2].map(i => <div key={i} style={{ flex: 1, height: 16, borderRadius: 2, border: "1px solid rgba(200,169,81,0.25)", background: "rgba(200,169,81,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: "60%", height: 3, borderRadius: 1, background: "rgba(200,169,81,0.4)" }} />
+                </div>)}
+              </div>
+              <div style={{ marginTop: 4, width: "55%", height: 18, borderRadius: 3, background: "#C8A951", opacity: 0.85 }} />
+            </div>
+            <div style={{ padding: "14px 16px" }}>
+              <p style={{ color: GOLD, fontWeight: 700, fontSize: 14, margin: "0 0 4px" }}>Profissional</p>
+              <p style={{ color: MUTED, fontSize: 12, margin: 0 }}>Layout sóbrio com fotografia em destaque, grid de serviços e design elegante. Ideal para advogados, consultores e profissionais liberais.</p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setEtapa("form")}
+          style={{ width: "100%", padding: "18px", borderRadius: 14, border: "none", background: `linear-gradient(135deg, #A07010, ${GOLD}, #A07010)`, color: "#0A0808", fontWeight: 700, fontSize: "1rem", fontFamily: "Georgia, serif", letterSpacing: "0.15em", cursor: "pointer", boxShadow: `0 0 30px rgba(212,160,23,0.4)` }}
+        >
+          USAR ESTE LAYOUT
+        </button>
+      </div>
     </main>
   );
 

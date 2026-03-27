@@ -182,8 +182,9 @@ model ProdutoVendedor {
   salesLink   String   // link de compra do produto
   preco       String   // ex: "R$ 97,00"
   estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
-  template    String   @default("produto") // "produto" | "profissional"
-  ativo       Boolean  @default(true)
+  template         String   @default("produto") // "produto" | "profissional"
+  permitirAfiliados Boolean @default(false)
+  ativo            Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

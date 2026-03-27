@@ -65,6 +65,7 @@ interface Produto {
   salesLink: string;
   estrutura: Estrutura;
   template?: string;
+  permitirAfiliados?: boolean;
 }
 
 // Paletas por estilo — fallback se a IA não gerar cores válidas
@@ -965,8 +966,8 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
         </div>
       )}
 
-      {/* ── BOTÃO REVENDA (fixo no canto) ── */}
-      {!afiliadoWpp && (
+      {/* ── BOTÃO REVENDA (fixo no canto) — só aparece quando habilitado no produto ── */}
+      {!afiliadoWpp && produto?.permitirAfiliados && (
         <button
           onClick={() => setRevendaModal(true)}
           style={{

@@ -30,6 +30,7 @@ export default function EditarProdutoPage() {
   const [salesLink, setSalesLink]   = useState("");
   const [imageLinks, setImageLinks] = useState([""]);
   const [videoLinks, setVideoLinks] = useState([""]);
+  const [permitirAfiliados, setPermitirAfiliados] = useState(false);
 
   useEffect(() => {
     fetch(`/api/vendedor/editar/${slug}`)
@@ -42,6 +43,7 @@ export default function EditarProdutoPage() {
         setSalesLink(d.salesLink || "");
         setImageLinks(d.imageLinks?.length ? d.imageLinks : [""]);
         setVideoLinks(d.videoLinks?.length ? d.videoLinks : [""]);
+        setPermitirAfiliados(d.permitirAfiliados ?? false);
         setCarregando(false);
       })
       .catch(() => { setErro("Erro ao carregar produto."); setCarregando(false); });
@@ -65,6 +67,7 @@ export default function EditarProdutoPage() {
           nome, preco, destaques, salesLink,
           imageLinks: imageLinks.filter(l => l.trim()),
           videoLinks: videoLinks.filter(l => l.trim()),
+          permitirAfiliados,
         }),
       });
       const data = await res.json();
@@ -153,6 +156,19 @@ export default function EditarProdutoPage() {
         {/* Link de compra */}
         <label style={{ color: LABEL, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", display: "block", marginBottom: 8 }}>Link de compra</label>
         <input value={salesLink} onChange={e => setSalesLink(e.target.value)} placeholder="https://hotmart.com/..." style={{ ...inp, marginBottom: 28 }} />
+
+        {/* Toggle afiliados */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderRadius: 12, border: `1px solid ${permitirAfiliados ? "rgba(212,160,23,0.4)" : BORDER}`, background: permitirAfiliados ? "rgba(212,160,23,0.06)" : "rgba(255,255,255,0.02)", marginBottom: 28, cursor: "pointer" }} onClick={() => setPermitirAfiliados(v => !v)}>
+          <div>
+            <p style={{ margin: 0, color: permitirAfiliados ? GOLD : LABEL, fontWeight: 700, fontSize: 13 }}>🤝 Permitir Revendedores</p>
+            <p style={{ margin: "4px 0 0", color: MUTED, fontSize: 11, lineHeight: 1.5 }}>
+              {permitirAfiliados ? "Ativo — botão de revenda aparece nesta página" : "Inativo — nenhum botão de revenda nesta página"}
+            </p>
+          </div>
+          <div style={{ width: 44, height: 24, borderRadius: 12, background: permitirAfiliados ? GOLD : "rgba(255,255,255,0.08)", border: `1px solid ${permitirAfiliados ? GOLD : BORDER}`, position: "relative", flexShrink: 0, transition: "background 0.2s" }}>
+            <div style={{ position: "absolute", top: 2, left: permitirAfiliados ? 22 : 2, width: 18, height: 18, borderRadius: "50%", background: permitirAfiliados ? "#060606" : MUTED, transition: "left 0.2s" }} />
+          </div>
+        </div>
 
         {erro    && <p style={{ color: "#e74c3c", fontSize: 13, marginBottom: 16 }}>{erro}</p>}
         {sucesso && <p style={{ color: "#25D366", fontSize: 13, marginBottom: 16 }}>Salvo! Redirecionando...</p>}
