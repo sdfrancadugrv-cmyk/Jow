@@ -7,7 +7,7 @@ export async function GET(_req: NextRequest, { params }: { params: { slug: strin
   try {
     const produto = await prisma.produtoVendedor.findUnique({
       where: { slug: params.slug },
-      select: { nome: true, preco: true, imageLinks: true, videoLinks: true, salesLink: true, estrutura: true, template: true, ativo: true, permitirAfiliados: true, modalidadeVenda: true, whatsappContato: true, pixKey: true },
+      select: { nome: true, preco: true, imageLinks: true, videoLinks: true, salesLink: true, estrutura: true, template: true, ativo: true, permitirAfiliados: true, modalidadeVenda: true, whatsappContato: true, pixKey: true, opcoes: true } as any,
     });
     if (!produto || !produto.ativo) return NextResponse.json({ erro: "não encontrado" }, { status: 404 });
     return NextResponse.json(produto);

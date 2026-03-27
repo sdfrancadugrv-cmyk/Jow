@@ -57,6 +57,14 @@ interface Estrutura {
   prompt_vendas?: string;
 }
 
+interface OpcaoProduto {
+  nome: string;
+  descricao: string;
+  preco: string;
+  precoNum: number;
+  comissao: number;
+}
+
 interface Produto {
   nome: string;
   preco: string;
@@ -69,6 +77,7 @@ interface Produto {
   modalidadeVenda?: string;
   whatsappContato?: string;
   pixKey?: string;
+  opcoes?: OpcaoProduto[];
 }
 
 // Paletas por estilo — fallback se a IA não gerar cores válidas
@@ -119,6 +128,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
   // Modal de pedido de instalação
   const [pedidoModal,  setPedidoModal]    = useState(false);
   const [pedidoStep,   setPedidoStep]     = useState<"form"|"pix"|"ok">("form");
+  const [opcaoSelecionada, setOpcaoSelecionada] = useState<OpcaoProduto | null>(null);
   const [pedidoNome,   setPedidoNome]     = useState("");
   const [pedidoTel,    setPedidoTel]      = useState("");
   const [pedidoEnd,    setPedidoEnd]      = useState("");
@@ -164,7 +174,7 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
       const res = await fetch("/api/pedido/criar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: params.slug, nome: pedidoNome, telefone: pedidoTel, endereco: pedidoEnd, afiliadoId }),
+        body: JSON.stringify({ slug: params.slug, nome: pedidoNome, telefone: pedidoTel, endereco: pedidoEnd, afiliadoId, opcaoNome: opcaoSelecionada?.nome, comissao: opcaoSelecionada?.comissao, valorOpcao: opcaoSelecionada?.preco }),
       });
       const d = await res.json();
       if (!res.ok) { alert(d.error || "Erro ao enviar pedido"); return; }
@@ -182,6 +192,12 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
     setPedidoStep("form");
     setPedidoNome(""); setPedidoTel(""); setPedidoEnd("");
     setPedidoPix(null); setPixCopiado(false);
+    setOpcaoSelecionada(null);
+  }
+
+  function abrirPedidoComOpcao(opcao: OpcaoProduto) {
+    setOpcaoSelecionada(opcao);
+    setPedidoModal(true);
   }
 
   async function cadastrarAfiliado() {
@@ -633,46 +649,42 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           </p>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-          <div style={{ fontSize: "clamp(2rem, 5vw, 2.8rem)", fontWeight: 800, color: "#fff", fontFamily: "Georgia, serif" }}>
-            {produto.preco}
+        {/* Opções de produto (quando configuradas) */}
+        {produto.modalidadeVenda === "pedido" && produto.opcoes && produto.opcoes.length > 0 ? (
+          <div style={{ width: "100%", maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
+            {produto.opcoes.map((op, i) => (
+              <div key={i} style={{ padding: "22px 24px", borderRadius: 20, border: `1px solid ${th.cor1}55`, background: `linear-gradient(135deg, ${th.cor1}08, ${th.cor2}05)`, textAlign: "left" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <p style={{ margin: "0 0 4px", color: "#fff", fontWeight: 800, fontSize: "1rem" }}>{op.nome}</p>
+                    <p style={{ margin: 0, color: th.muted, fontSize: 12, lineHeight: 1.5 }}>{op.descricao}</p>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ margin: 0, color: th.cor1, fontWeight: 900, fontSize: "1.3rem", fontFamily: "Georgia, serif" }}>{op.preco}</p>
+                  </div>
+                </div>
+                <button onClick={() => abrirPedidoComOpcao(op)} style={{ width: "100%", padding: "13px", borderRadius: 50, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 900, fontSize: "0.9rem", letterSpacing: "0.08em", textTransform: "uppercase", border: "none", cursor: "pointer", fontFamily: "inherit", boxShadow: `0 0 24px ${th.cor1}55` }}>
+                  {e.cta || "SOLICITAR"} →
+                </button>
+              </div>
+            ))}
+            <p style={{ color: th.muted, fontSize: 11, textAlign: "center" }}>✓ Instalação em até 3 dias &nbsp;·&nbsp; ✓ Pagamento via PIX</p>
           </div>
-          {produto.modalidadeVenda === "pedido" ? (
-            <button
-              onClick={() => setPedidoModal(true)}
-              style={{
-                padding: "18px 56px", borderRadius: 50,
-                background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
-                color: "#060606", fontWeight: 900, fontSize: "1.05rem",
-                letterSpacing: "0.1em", textTransform: "uppercase",
-                boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`,
-                border: "none", cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              {e.cta || "SOLICITAR INSTALAÇÃO"}
-            </button>
-          ) : (
-            <a
-              href={produto.salesLink} target="_blank" rel="noopener noreferrer"
-              style={{
-                padding: "18px 56px", borderRadius: 50,
-                background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
-                color: "#060606", fontWeight: 900, fontSize: "1.05rem",
-                textDecoration: "none", letterSpacing: "0.1em", textTransform: "uppercase",
-                boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`,
-                display: "block",
-              }}
-            >
-              {e.cta || "QUERO AGORA"}
-            </a>
-          )}
-          {produto.modalidadeVenda === "pedido" && (
-            <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>✓ Instalação em até 3 dias &nbsp;·&nbsp; ✓ Pagamento via PIX</p>
-          )}
-          {produto.modalidadeVenda !== "pedido" && (
-            <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>✓ Acesso imediato &nbsp;·&nbsp; ✓ Pagamento seguro</p>
-          )}
-        </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: "clamp(2rem, 5vw, 2.8rem)", fontWeight: 800, color: "#fff", fontFamily: "Georgia, serif" }}>{produto.preco}</div>
+            {produto.modalidadeVenda === "pedido" ? (
+              <button onClick={() => setPedidoModal(true)} style={{ padding: "18px 56px", borderRadius: 50, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`, color: "#060606", fontWeight: 900, fontSize: "1.05rem", letterSpacing: "0.1em", textTransform: "uppercase", boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`, border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                {e.cta || "SOLICITAR INSTALAÇÃO"}
+              </button>
+            ) : (
+              <a href={produto.salesLink} target="_blank" rel="noopener noreferrer" style={{ padding: "18px 56px", borderRadius: 50, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`, color: "#060606", fontWeight: 900, fontSize: "1.05rem", textDecoration: "none", letterSpacing: "0.1em", textTransform: "uppercase", boxShadow: `0 0 40px ${th.cor1}70, 0 8px 32px rgba(0,0,0,0.5)`, display: "block" }}>
+                {e.cta || "QUERO AGORA"}
+              </a>
+            )}
+            <p style={{ color: th.muted, fontSize: 11, marginTop: 4 }}>{produto.modalidadeVenda === "pedido" ? "✓ Instalação em até 3 dias · ✓ Pagamento via PIX" : "✓ Acesso imediato · ✓ Pagamento seguro"}</p>
+          </div>
+        )}
       </section>
 
       {/* ── VÍDEOS — acima das fotos ── */}
@@ -820,21 +832,22 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
           <p style={{ color: th.muted, fontSize: 12, marginBottom: 28 }}>
             {produto.modalidadeVenda === "pedido" ? "Instalação em até 3 dias · Pagamento via PIX" : "Pagamento único · Acesso imediato"}
           </p>
-          {produto.modalidadeVenda === "pedido" ? (
+          {produto.modalidadeVenda === "pedido" && produto.opcoes && produto.opcoes.length > 0 ? (
             <>
-              <button
-                onClick={() => setPedidoModal(true)}
-                style={{
-                  display: "inline-block", padding: "20px 60px", borderRadius: 50,
-                  background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2}, ${th.cor1})`,
-                  color: "#060606", fontWeight: 900, fontSize: "1.05rem",
-                  letterSpacing: "0.12em", textTransform: "uppercase",
-                  boxShadow: `0 0 50px ${th.cor1}80, 0 8px 32px rgba(0,0,0,0.5)`,
-                  border: "none", cursor: "pointer", fontFamily: "inherit",
-                }}
-              >
-                {e.cta || "SOLICITAR INSTALAÇÃO"}
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+                {produto.opcoes.map((op, i) => (
+                  <div key={i} style={{ padding: "18px 20px", borderRadius: 16, border: `1px solid ${th.cor1}44`, background: `${th.cor1}06`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ textAlign: "left" }}>
+                      <p style={{ margin: "0 0 2px", color: "#fff", fontWeight: 700, fontSize: 14 }}>{op.nome}</p>
+                      <p style={{ margin: 0, color: th.muted, fontSize: 11 }}>{op.descricao}</p>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ margin: "0 0 6px", color: th.cor1, fontWeight: 900, fontSize: "1.1rem", fontFamily: "Georgia, serif" }}>{op.preco}</p>
+                      <button onClick={() => abrirPedidoComOpcao(op)} style={{ padding: "8px 18px", borderRadius: 20, background: `linear-gradient(135deg, ${th.cor1}, ${th.cor2})`, color: "#060606", fontWeight: 800, fontSize: 12, border: "none", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Solicitar →</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               {(produto.whatsappContato || afiliadoWpp) && (
                 <div style={{ marginTop: 20 }}>
                   <a
@@ -1133,7 +1146,12 @@ export default function PaginaVendas({ params }: { params: { slug: string } }) {
                 <div style={{ textAlign: "center", marginBottom: 24 }}>
                   <div style={{ fontSize: 40, marginBottom: 10 }}>📋</div>
                   <h3 style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "1.2rem", margin: "0 0 8px" }}>Solicitar Instalação</h3>
-                  <p style={{ color: th.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Preencha seus dados para agendar a instalação em até <strong style={{ color: th.cor2 }}>3 dias úteis</strong>.</p>
+                  {opcaoSelecionada && (
+                    <div style={{ background: `${th.cor1}15`, border: `1px solid ${th.cor1}44`, borderRadius: 10, padding: "8px 14px", marginBottom: 12 }}>
+                      <p style={{ margin: 0, color: th.cor1, fontWeight: 700, fontSize: 13 }}>{opcaoSelecionada.nome} — {opcaoSelecionada.preco}</p>
+                    </div>
+                  )}
+                  <p style={{ color: th.muted, fontSize: 13, margin: 0, lineHeight: 1.6 }}>Preencha seus dados para agendar em até <strong style={{ color: th.cor2 }}>3 dias úteis</strong>.</p>
                 </div>
                 {[
                   { label: "Nome completo *", value: pedidoNome, set: setPedidoNome, placeholder: "Seu nome" },

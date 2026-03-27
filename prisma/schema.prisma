@@ -186,6 +186,7 @@ model ProdutoVendedor {
   modalidadeVenda   String   @default("link")    // "link" | "pedido"
   whatsappContato   String?  // WhatsApp do dono exibido no botão de contato
   pixKey            String?  // Chave PIX para receber pagamentos manuais
+  opcoes            Json?    // [{nome, descricao, preco, precoNum, comissao}]
   permitirAfiliados Boolean  @default(false)
   ativo             Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -246,6 +247,8 @@ model PedidoInstalacao {
   telefone    String
   endereco    String
   valor       String   // ex: "R$ 97,00"
+  opcaoNome   String?  // qual opção foi selecionada
+  comissao    Float    @default(0)
   status      String   @default("aguardando") // aguardando | pago | agendado | instalado | cancelado
   afiliadoId  String?
   obs         String?

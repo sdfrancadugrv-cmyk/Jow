@@ -25,22 +25,23 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
 
     // Libera comissão do afiliado quando marcado como pago
-    if (status === "pago" && pedido.afiliadoId) {
+    const pedidoAny = pedido as any;
+    if (status === "pago" && pedidoAny.afiliadoId) {
       await prisma.afiliado.update({
-        where: { id: pedido.afiliadoId },
-        data: { saldo: { increment: 30 } },
+        where: { id: pedidoAny.afiliadoId },
+        data: { saldo: { increment: pedidoAny.comissao } },
       });
       await prisma.vendaAfiliado.create({
         data: {
-          afiliadoId: pedido.afiliadoId,
-          produtoSlug: pedido.produtoSlug,
-          clientePhone: pedido.telefone,
+          afiliadoId: pedidoAny.afiliadoId,
+          produtoSlug: pedidoAny.produtoSlug,
+          clientePhone: pedidoAny.telefone,
           valorPago: 0,
-          comissao: 30,
+          comissao: pedidoAny.comissao,
           status: "paga",
         },
       });
-      const afiliado = await prisma.afiliado.findUnique({ where: { id: pedido.afiliadoId }, select: { whatsapp: true, codigo: true } });
+      const afiliado = await prisma.afiliado.findUnique({ where: { id: pedidoAny.afiliadoId }, select: { whatsapp: true, codigo: true } });
       if (afiliado?.whatsapp) {
         const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
         await sendWhatsApp(afiliado.whatsapp, `🎉 *Venda confirmada!* Comissão de R$ 30,00 liberada no seu dashboard:\n${APP_URL}/afiliado/${afiliado.codigo}`);

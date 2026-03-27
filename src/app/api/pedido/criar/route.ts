@@ -6,7 +6,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app
 
 export async function POST(req: NextRequest) {
   try {
-    const { slug, nome, telefone, endereco, afiliadoId } = await req.json();
+    const { slug, nome, telefone, endereco, afiliadoId, opcaoNome, comissao, valorOpcao } = await req.json();
 
     if (!slug || !nome?.trim() || !telefone?.trim() || !endereco?.trim()) {
       return NextResponse.json({ error: "Preencha todos os campos obrigatórios" }, { status: 400 });
@@ -20,13 +20,15 @@ export async function POST(req: NextRequest) {
 
     const cleanPhone = telefone.replace(/\D/g, "");
 
-    const pedido = await prisma.pedidoInstalacao.create({
+    const pedido = await (prisma.pedidoInstalacao.create as any)({
       data: {
         produtoSlug: slug,
         nome: nome.trim(),
         telefone: cleanPhone,
         endereco: endereco.trim(),
-        valor: produto.preco,
+        valor: valorOpcao || produto.preco,
+        opcaoNome: opcaoNome || null,
+        comissao: comissao || 0,
         status: "aguardando",
         afiliadoId: afiliadoId || null,
       },
@@ -39,10 +41,12 @@ export async function POST(req: NextRequest) {
         ownerPhone,
         `🔔 *NOVO PEDIDO DE INSTALAÇÃO!*\n\n` +
         `Produto: *${produto.nome}*\n` +
+        (opcaoNome ? `Opção: *${opcaoNome}*\n` : "") +
         `Cliente: *${nome.trim()}*\n` +
         `Telefone: ${cleanPhone}\n` +
         `Endereço: ${endereco.trim()}\n` +
-        `Valor: *${produto.preco}*\n\n` +
+        `Valor: *${valorOpcao || produto.preco}*\n` +
+        (comissao ? `Comissão revendedor: R$ ${Number(comissao).toFixed(2).replace(".", ",")}\n` : "") +
         `Pedido #${pedido.id.slice(-6).toUpperCase()}\n` +
         `Painel: ${APP_URL}/admin/pedidos`
       );
