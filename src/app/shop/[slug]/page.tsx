@@ -12,6 +12,17 @@ function getYouTubeId(url: string) {
   return m ? m[1] : null;
 }
 
+function convertDriveUrl(url: string): string {
+  if (!url) return url;
+  // /file/d/FILE_ID/view
+  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  // ?id=FILE_ID ou &id=FILE_ID
+  m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  return url;
+}
+
 function ProdutoShopContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -245,7 +256,7 @@ function ProdutoShopContent() {
                 {todasMidias.length === 0 ? (
                   <span style={{ fontSize: 48 }}>🛍️</span>
                 ) : todasMidias[fotoAtiva]?.tipo === "foto" ? (
-                  <img src={todasMidias[fotoAtiva].url} alt={produto.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  <img src={convertDriveUrl(todasMidias[fotoAtiva].url)} alt={produto.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 ) : (
                   <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(todasMidias[fotoAtiva].url)}`} frameBorder={0} allowFullScreen />
                 )}
@@ -259,7 +270,7 @@ function ProdutoShopContent() {
                       border: `2px solid ${i === fotoAtiva ? AZUL : BORDA}`, background: "#f5f5f5",
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
-                      {m.tipo === "foto" ? <img src={m.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 24 }}>▶</span>}
+                      {m.tipo === "foto" ? <img src={convertDriveUrl(m.url)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 24 }}>▶</span>}
                     </div>
                   ))}
                 </div>

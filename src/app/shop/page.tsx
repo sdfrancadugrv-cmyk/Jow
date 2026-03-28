@@ -6,6 +6,15 @@ export const dynamic = "force-dynamic";
 
 const AZUL = "#3483FA"; const BG = "#F5F5F5"; const BORDA = "#e5e5e5"; const CINZA = "#666";
 
+function convertDriveUrl(url: string): string {
+  if (!url) return url;
+  let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (m) return `https://lh3.googleusercontent.com/d/${m[1]}`;
+  return url;
+}
+
 function ShopContent() {
   const searchParams = useSearchParams();
   const ref = searchParams?.get("ref") || "";
@@ -44,7 +53,7 @@ function ShopContent() {
                   onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.12)")}
                   onMouseLeave={e => (e.currentTarget.style.boxShadow = "none")}>
                   <div style={{ aspectRatio: "1/1", background: "#f5f5f5", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-                    {p.fotos?.[0] ? <img src={p.fotos[0]} alt={p.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 40 }}>🛍️</span>}
+                    {p.fotos?.[0] ? <img src={convertDriveUrl(p.fotos[0])} alt={p.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 40 }}>🛍️</span>}
                   </div>
                   <div style={{ padding: "12px 14px" }}>
                     <p style={{ color: "#333", fontSize: 13, lineHeight: 1.4, marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.nome}</p>
