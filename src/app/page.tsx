@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ const PARTICLES = Array.from({ length: 80 }, (_, i) => ({
   delay: pr(i * 1.7) * 4,
 }));
 
-const WAKE_WORDS = ["oi kadosh", "oi kadoch", "hey kadosh"];
+const WAKE_WORDS = ["oi jennifer", "oi jeniffer", "hey jennifer"];
 type VoiceState = "idle" | "listening" | "thinking" | "speaking";
 
 function matchWake(t: string) {
@@ -51,7 +51,7 @@ export default function LandingPage() {
   const [activated, setActivated] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [conversationActive, setConversationActive] = useState(false);
-  const [statusText, setStatusText] = useState('diga "oi Kadosh"');
+  const [statusText, setStatusText] = useState('diga "oi Jennifer"');
   const [bubble, setBubble] = useState("");
   const [srReady, setSrReady] = useState(false);
 
@@ -205,7 +205,7 @@ export default function LandingPage() {
     setConversationActive(false);
     setVoiceState("idle");
     setBubble("");
-    setStatusText('diga "oi Kadosh" ou clique no microfone');
+    setStatusText('diga "oi Jennifer" ou clique no microfone');
     historyRef.current = [];
   }, []);
 
@@ -224,7 +224,7 @@ export default function LandingPage() {
         setVoiceState("idle");
         setConversationActive(false);
         activeRef.current = false;
-        setStatusText('diga "oi Kadosh" ou clique no microfone');
+        setStatusText('diga "oi Jennifer" ou clique no microfone');
       }
       return;
     }
@@ -266,7 +266,7 @@ export default function LandingPage() {
         setVoiceState("idle");
         setConversationActive(false);
         activeRef.current = false;
-        setStatusText('diga "oi Kadosh" para continuar');
+        setStatusText('diga "oi Jennifer" para continuar');
         return;
       }
 
@@ -290,7 +290,7 @@ export default function LandingPage() {
         setVoiceState("idle");
         setConversationActive(false);
         activeRef.current = false;
-        setStatusText('diga "oi Kadosh" ou clique no microfone');
+        setStatusText('diga "oi Jennifer" ou clique no microfone');
       }
     }
   }, [speak, getInput, router]);
@@ -392,7 +392,7 @@ export default function LandingPage() {
       activeRef.current = false;
       setConversationActive(false);
       setVoiceState("idle");
-      setStatusText('diga "oi Kadosh" ou clique no microfone');
+      setStatusText('diga "oi Jennifer" ou clique no microfone');
     }
   }, [speak, getInput, processMessage, router]);
 
@@ -427,7 +427,7 @@ export default function LandingPage() {
             backgroundClip: "text",
             filter: "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
           }}>
-            KADOSH
+            JENNIFER
           </h1>
           <p className="text-xs tracking-[0.55em] mb-16 uppercase" style={{ color: "#7A6010" }}>
             — AI ORCHESTRATOR —
@@ -448,7 +448,7 @@ export default function LandingPage() {
               toque para ativar
             </p>
             <p className="text-xs" style={{ color: "#4A3A08" }}>
-              após isso diga "oi Kadosh" a qualquer momento
+              após isso diga "oi Jennifer" a qualquer momento
             </p>
           </div>
         </div>
@@ -509,7 +509,7 @@ export default function LandingPage() {
           backgroundClip: "text",
           filter: "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
         }}>
-          KADOSH
+          JENNIFER
         </h1>
         <p className="text-xs tracking-[0.55em] mb-14 uppercase" style={{ color: "#7A6010" }}>
           — AI ORCHESTRATOR —
@@ -520,7 +520,7 @@ export default function LandingPage() {
           onClick={conversationActive ? stopConversation : startConversation}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
-          aria-label={conversationActive ? "Encerrar conversa" : "Falar com Kadosh"}
+          aria-label={conversationActive ? "Encerrar conversa" : "Falar com Jennifer"}
         >
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="absolute rounded-full" style={{
@@ -552,7 +552,7 @@ export default function LandingPage() {
           </svg>
         </button>
 
-        {/* Balão do Kadosh */}
+        {/* Balão do JENNIFER */}
         {bubble ? (
           <div className="mb-6 px-5 py-3 rounded-2xl max-w-xs text-sm leading-relaxed"
             style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.3)", color: "#FFE082" }}>
@@ -596,7 +596,7 @@ export default function LandingPage() {
               onChange={(e) => setTextInput(e.target.value)}
               placeholder="escreva aqui..."
               autoFocus
-              className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-kadosh"
+              className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-JENNIFER"
               style={{
                 border: "1px solid rgba(212,160,23,0.35)",
                 color: "#FFE082",
@@ -633,7 +633,7 @@ export default function LandingPage() {
         >
           {conversationActive
             ? "aperte para encerrar o diálogo"
-            : 'diga "oi Kadosh" ou aperte aqui e faça uma pergunta'}
+            : 'diga "oi Jennifer" ou aperte aqui e faça uma pergunta'}
         </button>
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
@@ -651,7 +651,7 @@ export default function LandingPage() {
           70%  { transform: scale(1.15); opacity: 0.4; }
           100% { transform: scale(1);    opacity: 1; }
         }
-        .text-input-kadosh::placeholder { color: #3A2C06; }
+        .text-input-JENNIFER::placeholder { color: #3A2C06; }
       `}</style>
     </main>
   );

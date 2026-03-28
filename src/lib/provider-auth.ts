@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
 const JWT_SECRET = process.env.JWT_SECRET || "jow-dev-secret-mude-em-producao-2026";
@@ -26,7 +26,7 @@ export function verifyProviderToken(token: string): ProviderPayload | null {
 
 export async function getAuthProvider(): Promise<ProviderPayload | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("kadosh_provider_token")?.value;
+  const token = cookieStore.get("JENNIFER_provider_token")?.value;
   if (!token) return null;
   return verifyProviderToken(token);
 }

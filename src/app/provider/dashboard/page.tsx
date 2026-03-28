@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -74,7 +74,7 @@ export default function ProviderDashboardPage() {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
           <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.4rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-            KADOSH
+            JENNIFER
           </h1>
           <a href="/" style={{ fontSize: 11, color: LABEL, letterSpacing: "0.1em", textDecoration: "none" }}>SAIR</a>
         </div>

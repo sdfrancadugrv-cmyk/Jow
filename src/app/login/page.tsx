@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -15,7 +15,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (params.get("payment") === "success") {
-      setMessage("Pagamento confirmado! Faça login para acessar o KADOSH.");
+      setMessage("Pagamento confirmado! Faça login para acessar o JENNIFER.");
     }
     if (params.get("expired") === "true") {
       setMessage("Sua assinatura expirou. Renove para continuar.");
@@ -62,7 +62,7 @@ function LoginForm() {
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold tracking-[0.5em]"
             style={{ color: "#E0D4D0", textShadow: "0 0 30px rgba(139,26,46,0.5)" }}>
-            KADOSH
+            JENNIFER
           </h1>
           <p className="text-xs tracking-widest mt-2 uppercase" style={{ color: "#7A4040" }}>Assistente de IA Pessoal</p>
         </div>
@@ -117,7 +117,7 @@ function LoginForm() {
         <p className="text-center text-xs mt-6" style={{ color: "#5A3030" }}>
           Não tem conta?{" "}
           <Link href="/register" className="underline" style={{ color: "#C4A8A4" }}>
-            Assinar o KADOSH
+            Assinar o JENNIFER
           </Link>
         </p>
       </div>

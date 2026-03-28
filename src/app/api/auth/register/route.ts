@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             unit_amount: 9700, // R$97,00
             recurring: { interval: "month" },
             product_data: {
-              name: "KADOSH — Assistente de IA Pessoal",
+              name: "JENNIFER — Assistente de IA Pessoal",
               description: "Voz, memória, agentes de IA e busca web em tempo real",
             },
           },

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -28,7 +28,7 @@ export async function GET() {
     },
     body: JSON.stringify({
       phone: agent.phone,
-      message: "Teste de conexão KADOSH ✓",
+      message: "Teste de conexão JENNIFER ✓",
     }),
   });
 

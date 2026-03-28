@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -58,7 +58,7 @@ export default function CompleteProfilePage() {
     try {
       const q = encodeURIComponent(cityInput + ", Brasil");
       const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
-        headers: { "Accept-Language": "pt-BR", "User-Agent": "Kadosh/1.0" },
+        headers: { "Accept-Language": "pt-BR", "User-Agent": "JENNIFER/1.0" },
       });
       const data = await res.json();
       if (!data?.length) { setError("Cidade não encontrada"); setLoading(false); return; }
@@ -106,7 +106,7 @@ export default function CompleteProfilePage() {
     <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 480 }}>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "2rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", textAlign: "center", marginBottom: 4 }}>
-          KADOSH
+          JENNIFER
         </h1>
         <p style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 8 }}>
           Complete seu perfil

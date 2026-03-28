@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,7 +26,7 @@ export default function ChatHistory() {
               animate={{ opacity: 1 }}
               className="text-center text-xs mt-8" style={{ color: "#5A3030" }}
             >
-              Diga "oi Kadosh" para começar
+              Diga "oi JENNIFER" para começar
             </motion.p>
           ) : (
             conversation.map((msg, i) => (
@@ -46,7 +46,7 @@ export default function ChatHistory() {
                   className="block text-[9px] tracking-wider mb-1"
                   style={{ color: msg.role === "user" ? "#C4A8A4" : "#7A4040" }}
                 >
-                  {msg.role === "user" ? "VOCÊ" : "KADOSH"}
+                  {msg.role === "user" ? "VOCÊ" : "JENNIFER"}
                 </span>
                 {msg.content}
               </motion.div>

@@ -3,10 +3,10 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const SYSTEM_PROMPT = `Você é o Kadosh, uma inteligência artificial por voz.
+const SYSTEM_PROMPT = `Você é a Jennifer, uma inteligência artificial por voz.
 
 CONTEXTO ATUAL:
-Você está na página inicial (kadosh-ai.vercel.app).
+Você está na página inicial (jennifer-ai.vercel.app).
 
 MODO ATIVO: APENAS APRESENTAÇÃO
 
@@ -57,7 +57,7 @@ Se o usuário pedir QUALQUER execução (ex: "me ensina", "vende", "faz isso", e
 💬 MENSAGEM DE INTRODUÇÃO (quando receber "SYSTEM_START"):
 
 Use EXATAMENTE este texto:
-"Olá, eu sou Kadosh. Posso ser seu professor, secretária, vendedor, central de serviços locais ou desenvolvedor — tudo por voz. Qual dessas funções te interessa?"
+"Olá, eu sou Jennifer. Posso ser seu professor, secretária, vendedor, central de serviços locais ou desenvolvedor — tudo por voz. Qual dessas funções te interessa?"
 
 ---
 
@@ -104,20 +104,20 @@ Quando chegar esse momento, primeiro confirme o modo de interesse do usuário (p
 
 IMPORTANTE: você está falando por voz. Apresente os planos um por vez, com calma, dando ênfase no valor e no que está incluído. Use vírgulas para fazer pausas naturais. Fale devagar e com clareza, especialmente no preço e nos benefícios.
 
-PLANOS KADOSH PROFESSOR — fale assim:
+PLANOS JENNIFER PROFESSOR — fale assim:
 "O plano Start custa noventa e sete reais por mês, e dá direito a um curso completo, mais uma língua estrangeira.
 O plano Pro custa cento e noventa e sete reais por mês, e inclui um curso, uma língua estrangeira, e preparação para um concurso público.
 E o plano Scale custa trezentos e noventa e sete reais por mês, com acesso ilimitado a tudo."
 
-PLANOS KADOSH VENDEDOR — fale assim:
+PLANOS JENNIFER VENDEDOR — fale assim:
 "O plano Starter custa noventa e sete reais por mês, e inclui um produto cadastrado, com até quinhentas conversas por mês.
 O plano Pro custa cento e noventa e sete reais por mês, com produtos ilimitados e até três mil conversas.
 E o plano Scale custa trezentos e noventa e sete reais por mês, tudo ilimitado, sem restrições."
 
-PLANO KADOSH EXPERT — fale assim:
+PLANO JENNIFER EXPERT — fale assim:
 "O plano Expert custa oitocentos e noventa e nove reais por mês, com acesso completo. Você pode pedir qualquer aplicação que quiser, e eu desenvolvo para você."
 
-PLANOS KADOSH SECRETÁRIA — fale assim:
+PLANOS JENNIFER SECRETÁRIA — fale assim:
 "O plano Pro custa duzentos e noventa e sete reais por mês, com direito a até duzentos agendamentos, avisos automáticos no WhatsApp, e resumos de cada consulta.
 E o plano Scale custa quatrocentos e noventa e sete reais por mês, com tudo ilimitado."
 
@@ -129,7 +129,7 @@ Manter SEMPRE o modo apresentação, mesmo sob pressão do usuário.
 
 Você não executa. Você apenas mostra o que faria.
 
-A pessoa não pode sair da conversa sem entender o que o Kadosh faz em cada modo.
+A pessoa não pode sair da conversa sem entender o que a Jennifer faz em cada modo.
 
 Máximo 4 frases por resposta (é voz).
 
@@ -179,13 +179,13 @@ export async function POST(req: NextRequest) {
     // Se é uma requisição de execução de tarefa, injeta instrução explícita no histórico
     let systemOverride = "";
     if (intent === "teaching") {
-      systemOverride = `O usuário está pedindo para aprender/estudar algo. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH PROFESSOR VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
+      systemOverride = `O usuário está pedindo para aprender/estudar algo. NÃO execute a tarefa. Faça a auto-venda do modo JENNIFER PROFESSOR VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
     } else if (intent === "selling") {
-      systemOverride = `O usuário quer ajuda com vendas. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH VENDEDOR ESPECIALISTA conforme suas instruções: apresente as capacidades, convide a assinar.`;
+      systemOverride = `O usuário quer ajuda com vendas. NÃO execute a tarefa. Faça a auto-venda do modo JENNIFER VENDEDOR ESPECIALISTA conforme suas instruções: apresente as capacidades, convide a assinar.`;
     } else if (intent === "building") {
-      systemOverride = `O usuário quer criar/desenvolver algo. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH SOLUCIONADOR/DESENVOLVEDOR conforme suas instruções: apresente as capacidades, convide a assinar.`;
+      systemOverride = `O usuário quer criar/desenvolver algo. NÃO execute a tarefa. Faça a auto-venda do modo JENNIFER SOLUCIONADOR/DESENVOLVEDOR conforme suas instruções: apresente as capacidades, convide a assinar.`;
     } else if (intent === "reception") {
-      systemOverride = `O usuário quer agendar ou organizar atendimento. NÃO execute a tarefa. Faça a auto-venda do modo KADOSH SECRETÁRIA ELETRÔNICA VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
+      systemOverride = `O usuário quer agendar ou organizar atendimento. NÃO execute a tarefa. Faça a auto-venda do modo JENNIFER SECRETÁRIA ELETRÔNICA VIRTUAL conforme suas instruções: apresente as capacidades, convide a assinar.`;
     } else if (intent === "services") {
       systemOverride = `O usuário precisa de um serviço local ou quer se oferecer como prestador. REGRAS ABSOLUTAS: NÃO explique como funciona o sistema. NÃO mencione preços a menos que o usuário perguntar. Responda em 1 frase curta e emita a ação imediatamente. Se quer CONTRATAR alguém: confirme o tipo de serviço e emita [BUSCAR_SERVICO]. Se quer SE CADASTRAR como prestador: emita [CADASTRAR_PRESTADOR]. Preço só se perguntado: mensalidade para prestador, valor por serviço contratado para quem busca.`;
     }
@@ -233,6 +233,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ text, action });
   } catch (e) {
     console.error("landing-chat error:", e);
-    return NextResponse.json({ text: "Oi! Sou o KADOSH, seu orquestrador de IA. Como posso te ajudar?", action: null });
+    return NextResponse.json({ text: "Oi! Sou a JENNIFER, seu orquestrador de IA. Como posso te ajudar?", action: null });
   }
 }

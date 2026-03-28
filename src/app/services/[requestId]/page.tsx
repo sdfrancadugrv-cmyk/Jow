@@ -86,7 +86,7 @@ export default function ServiceBidsPage() {
     <main style={{ minHeight: "100vh", background: BG, padding: "24px 16px" }}>
       <div style={{ maxWidth: 440, margin: "0 auto" }}>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.6rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", textAlign: "center", marginBottom: 4 }}>
-          KADOSH
+          JENNIFER
         </h1>
         <p style={{ textAlign: "center", color: "#4A3A08", fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 20 }}>
           Propostas recebidas

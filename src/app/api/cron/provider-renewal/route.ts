@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     });
     if (p.phone) {
       await sendWhatsApp(p.phone,
-        `Olá ${p.name}! Seu plano Kadosh Prestador expirou. Para continuar recebendo pedidos, renove em: https://kadosh-ai.vercel.app/provider/subscribe`
+        `Olá ${p.name}! Seu plano JENNIFER Prestador expirou. Para continuar recebendo pedidos, renove em: https://JENNIFER-ai.vercel.app/provider/subscribe`
       );
     }
   }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   for (const p of expiringSoon) {
     if (p.phone) {
       await sendWhatsApp(p.phone,
-        `Olá ${p.name}! Seu plano Kadosh Prestador vence em 7 dias. Renove agora para não perder pedidos: https://kadosh-ai.vercel.app/provider/subscribe`
+        `Olá ${p.name}! Seu plano JENNIFER Prestador vence em 7 dias. Renove agora para não perder pedidos: https://JENNIFER-ai.vercel.app/provider/subscribe`
       );
     }
   }

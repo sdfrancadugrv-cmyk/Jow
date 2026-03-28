@@ -42,7 +42,7 @@ export default function ServiceContatoPage() {
     <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.8rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", marginBottom: 4 }}>
-          KADOSH
+          JENNIFER
         </h1>
         <p style={{ color: "#4A3A08", fontSize: 10, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 32 }}>
           Contato Desbloqueado

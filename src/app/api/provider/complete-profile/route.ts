@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthProvider, signProviderToken } from "@/lib/provider-auth";
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     });
 
     const response = NextResponse.json({ ok: true });
-    response.cookies.set("kadosh_provider_token", token, {
+    response.cookies.set("JENNIFER_provider_token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",

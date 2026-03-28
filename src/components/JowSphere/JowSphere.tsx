@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useJowStore, JowState } from "@/stores/jowStore";
@@ -239,7 +239,7 @@ export default function JowSphere() {
             textShadow: `0 0 25px ${c.glow}, 0 0 50px ${c.glow}`,
           }}
         >
-          KADOSH
+          JENNIFER
         </h1>
         <p
           className="text-xs tracking-[0.3em] mt-1 transition-all duration-300"

@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     if (client.status !== "active") {
       return NextResponse.json({
-        error: "Assinatura inativa. Verifique seu pagamento ou assine em kadosh.ai",
+        error: "Assinatura inativa. Verifique seu pagamento ou assine em JENNIFER.ai",
         code: "INACTIVE",
       }, { status: 403 });
     }

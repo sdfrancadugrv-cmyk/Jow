@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useJowStore } from "@/stores/jowStore";
 import { useJow, unlockJowAudio, stopJowAudio } from "@/hooks/useJow";
 
-const WAKE_WORDS = ["oi kadosh", "oi kadoch", "hey kadosh"];
+const WAKE_WORDS = ["oi jennifer", "oi jeniffer", "hey jennifer"];
 const STOP_WORDS = ["encerrar conversa", "encerra conversa", "encerrar a conversa"];
 
 function matchesWakeWord(transcript: string): boolean {
@@ -295,7 +295,7 @@ export default function VoiceButton() {
         style={{ color: isActive ? "#FFD700" : isProcessing ? "#F59E0B" : "#7A6010" }}>
         {isActive ? "ouvindo • 5s sem falar envia"
           : isProcessing ? "processando..."
-          : wakeWordReady ? '"oi Kadosh" ou clique'
+          : wakeWordReady ? '"oi JENNIFER" ou clique'
           : "clique para falar"}
       </p>
     </div>

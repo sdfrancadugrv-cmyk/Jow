@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -140,7 +140,7 @@ export default function AppPage() {
               "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
           }}
         >
-          KADOSH
+          JENNIFER
         </h1>
 
         <p
@@ -197,7 +197,7 @@ export default function AppPage() {
           className="text-[9px] tracking-[0.4em] uppercase"
           style={{ color: "#2A2208" }}
         >
-          KADOSH AI Orchestrator v0.1 — Powered by GPT-4o
+          JENNIFER AI Orchestrator v0.1 — Powered by GPT-4o
         </p>
       </div>
 
@@ -260,7 +260,7 @@ export default function AppPage() {
                     "drop-shadow(0 0 24px rgba(212,160,23,0.7)) drop-shadow(0 0 60px rgba(212,160,23,0.3))",
                 }}
               >
-                KADOSH
+                JENNIFER
               </h1>
 
               <p

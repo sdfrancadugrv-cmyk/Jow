@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://JENNIFER-ai.vercel.app";
 
 export async function POST(req: NextRequest) {
   try {

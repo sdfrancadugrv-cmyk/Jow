@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendWhatsApp, distanceKm } from "@/lib/whatsapp-send";
 import { signBidLinkToken } from "@/lib/provider-auth";
 
 const RADIUS_KM = 15;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://JENNIFER-ai.vercel.app";
 
 const SERVICE_LABELS: Record<string, string> = {
   faxineira: "Faxina",

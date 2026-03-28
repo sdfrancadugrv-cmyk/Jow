@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { signProviderToken } from "@/lib/provider-auth";
 
 export async function GET(req: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://kadosh-ai.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://JENNIFER-ai.vercel.app";
   const code = req.nextUrl.searchParams.get("code");
   if (!code) return NextResponse.redirect(`${appUrl}/provider/login?error=fb_cancelled`);
 
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     const dest = needsProfile ? "/provider/complete-profile" : "/provider/dashboard";
 
     const response = NextResponse.redirect(`${appUrl}${dest}`);
-    response.cookies.set("kadosh_provider_token", token, {
+    response.cookies.set("JENNIFER_provider_token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "lax",

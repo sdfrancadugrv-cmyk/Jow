@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const token = signProviderToken({ sub: provider.id, email: provider.email || "", name: provider.name, status: provider.status });
     const cookieStore = await cookies();
-    cookieStore.set("kadosh_provider_token", token, { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 * 7, path: "/" });
+    cookieStore.set("JENNIFER_provider_token", token, { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 * 7, path: "/" });
 
     return NextResponse.json({ ok: true, provider: { id: provider.id, name: provider.name, email: provider.email } });
   } catch (e) {

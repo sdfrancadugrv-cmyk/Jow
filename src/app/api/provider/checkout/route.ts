@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getAuthProvider } from "@/lib/provider-auth";
 import prisma from "@/lib/prisma";
 
-const APP_URL = "https://kadosh-ai.vercel.app";
+const APP_URL = "https://JENNIFER-ai.vercel.app";
 
 export async function POST() {
   const auth = await getAuthProvider();
@@ -25,7 +25,7 @@ export async function POST() {
         price_data: {
           currency: "brl",
           product_data: {
-            name: "Kadosh Prestador — 30 dias",
+            name: "JENNIFER Prestador — 30 dias",
             description: "Receba pedidos de clientes próximos a você via WhatsApp por 30 dias.",
           },
           unit_amount: 2990,

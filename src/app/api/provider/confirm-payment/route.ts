@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getAuthProvider, signProviderToken } from "@/lib/provider-auth";
 import prisma from "@/lib/prisma";
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       const provider = await activateProvider(auth.sub);
       const token = signProviderToken({ sub: provider.id, email: provider.email || "", name: provider.name, status: "active" });
       const res = NextResponse.json({ ok: true });
-      res.cookies.set("kadosh_provider_token", token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
+      res.cookies.set("JENNIFER_provider_token", token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
       return res;
     }
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       const provider = await activateProvider(auth.sub);
       const token = signProviderToken({ sub: provider.id, email: provider.email || "", name: provider.name, status: "active" });
       const res = NextResponse.json({ ok: true });
-      res.cookies.set("kadosh_provider_token", token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
+      res.cookies.set("JENNIFER_provider_token", token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
       return res;
     }
 

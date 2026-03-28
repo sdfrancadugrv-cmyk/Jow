@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+﻿import OpenAI from "openai";
 import { selectAgents, AgentDef } from "../agents/agents";
 import { getMemorySystemPrompt, checkAndSummarize, saveExchange } from "../memory/MemoryManager";
 import { webSearch, needsWebSearch } from "../tools/webSearch";
@@ -9,7 +9,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const ZAPI_BASE = "https://api.z-api.io/instances";
 const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || "";
 
-const JOW_SYSTEM_PROMPT = `Você é KADOSH, um assistente pessoal de IA altamente especializado, capaz de executar tarefas reais.
+const JOW_SYSTEM_PROMPT = `Você é JENNIFER, um assistente pessoal de IA altamente especializado, capaz de executar tarefas reais.
 
 PERSONALIDADE:
 - Confiante, direto e inteligente
@@ -27,12 +27,12 @@ CAPACIDADES:
 REGRAS:
 - Responda SEMPRE em português
 - Seja conciso mas completo
-- Responda como KADOSH, uma entidade única e coesa
+- Responda como JENNIFER, uma entidade única e coesa
 - Use a memória de conversas anteriores para personalizar respostas
 - Você tem acesso à internet em tempo real
 - Quando criar um agente, confirme o que foi configurado de forma clara`;
 
-// Ferramentas que o KADOSH pode executar
+// Ferramentas que o JENNIFER pode executar
 const TOOLS: OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: "function",
