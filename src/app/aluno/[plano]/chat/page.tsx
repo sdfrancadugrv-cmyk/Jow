@@ -364,14 +364,18 @@ export default function ProfessorChatPage() {
     try {
       const res  = await fetch("/api/professor/upload", { method: "POST", body: form });
       const data = await res.json();
+      if (data.erro) {
+        alert("Erro ao ler o PDF: " + data.erro);
+        return;
+      }
       if (data.texto) {
         setPdfTexto(data.texto);
         setPdfNome(data.nome);
         pdfTextoRef.current = data.texto;
         pararAudio();
-        enviarMensagem(`Recebi o material "${data.nome}" com ${data.paginas} página(s). Estude e crie um roteiro de ensino.`);
+        enviarMensagem(`O aluno enviou o seguinte material em PDF (nome: "${data.nome}", ${data.paginas} página(s)). Leia o conteúdo abaixo e dê uma aula completa e focada nesse material, do início ao fim, explicando o conteúdo de forma didática:\n\n${data.texto.substring(0, 3000)}`);
       }
-    } catch { alert("Erro ao processar o PDF."); }
+    } catch { alert("Erro ao processar o PDF. Tente novamente."); }
     finally  { setUploadando(false); }
   }
 
