@@ -273,7 +273,7 @@ export default function ProfessorChatPage() {
 
     const abertura = formatoAvaliacao && materiasAvaliacao.length > 0
       ? `O aluno quer ser avaliado. Formato da avaliação: ${nomesFormatos[formatoAvaliacao] || formatoAvaliacao}. Matérias selecionadas: ${materiasAvaliacao.join(", ")}. Apresente-se como Professora Jennifer, confirme o que será avaliado e inicie a avaliação imediatamente com postura técnica e exigente. Avalie com rigor, dê notas ou conceitos, e ao final dê um parecer completo do desempenho do aluno.`
-      : "O aluno acabou de entrar na aula. Apresente-se brevemente como Professora Jennifer e faça exatamente estas duas perguntas: primeiro, o que ele quer aprender hoje. Segundo, se ele tem algum PDF, apostila, cronograma ou material disponível para que você ensine com base nesse conteúdo. Caso tenha, peça para enviar usando o botão de PDF na tela. Se não tiver material, você mesmo criará o roteiro.";
+      : "O aluno acabou de entrar na aula. Diga EXATAMENTE e APENAS isto, sem adicionar mais nada: Oi, sou a Professora Jennifer, tudo bem? O que você gostaria de estudar hoje?";
 
     let streamCompleto = "";
     let buffer = "";
