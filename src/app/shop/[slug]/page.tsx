@@ -7,9 +7,17 @@ export const dynamic = "force-dynamic";
 const BG = "#F5F5F5"; const AZUL = "#3483FA"; const AZUL_ESC = "#2968C8";
 const VERDE = "#00A650"; const CINZA = "#666"; const BORDA = "#e5e5e5";
 
-function getYouTubeId(url: string) {
-  const m = url.match(/(?:v=|\/embed\/|youtu\.be\/)([^&?/]+)/);
-  return m ? m[1] : null;
+function getVideoEmbedUrl(url: string): string | null {
+  // YouTube
+  const yt = url.match(/(?:v=|\/embed\/|youtu\.be\/)([^&?/]+)/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  // Google Drive: /file/d/FILE_ID/
+  const driveFile = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFile) return `https://drive.google.com/file/d/${driveFile[1]}/preview`;
+  // Google Drive: ?id=FILE_ID
+  const driveId = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (driveId) return `https://drive.google.com/file/d/${driveId[1]}/preview`;
+  return null;
 }
 
 function convertDriveUrl(url: string): string {
@@ -258,7 +266,7 @@ function ProdutoShopContent() {
                 ) : todasMidias[fotoAtiva]?.tipo === "foto" ? (
                   <img src={convertDriveUrl(todasMidias[fotoAtiva].url)} alt={produto.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                 ) : (
-                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(todasMidias[fotoAtiva].url)}`} frameBorder={0} allowFullScreen />
+                  <iframe width="100%" height="100%" src={getVideoEmbedUrl(todasMidias[fotoAtiva].url) || ""} frameBorder={0} allowFullScreen allow="autoplay" />
                 )}
               </div>
               {/* Thumbnails */}
