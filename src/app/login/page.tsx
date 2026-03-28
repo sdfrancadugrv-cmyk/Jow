@@ -22,8 +22,9 @@ function LoginForm() {
   }, [params]);
 
   const handleLogin = useCallback(async () => {
-    const clean = phone.replace(/\D/g, "");
-    if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 9) { setError("Digite um número de WhatsApp válido"); return; }
+    const clean = "55" + digits;
     if (!password) { setError("Digite sua senha"); return; }
     setLoading(true); setError("");
     try {
@@ -86,18 +87,22 @@ function LoginForm() {
             Entre com seu WhatsApp e senha
           </p>
 
-          <input
-            type="tel"
-            placeholder="55 11 99999-9999"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-3 rounded-full text-sm text-center outline-none"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(212,160,23,0.35)",
-              color: "#FFE082",
-            }}
-          />
+          <div className="flex items-center rounded-full overflow-hidden" style={{
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(212,160,23,0.35)",
+          }}>
+            <span className="px-4 py-3 text-sm font-bold select-none" style={{ color: "#FFE082", borderRight: "1px solid rgba(212,160,23,0.25)" }}>
+              +55
+            </span>
+            <input
+              type="tel"
+              placeholder="99 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="flex-1 px-4 py-3 text-sm text-center outline-none bg-transparent"
+              style={{ color: "#FFE082" }}
+            />
+          </div>
 
           <input
             type="password"
