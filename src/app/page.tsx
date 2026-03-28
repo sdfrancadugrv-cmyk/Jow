@@ -309,50 +309,9 @@ export default function LandingPage() {
   }, [getInput, processMessage]);
 
   // ── Saudação ao ativar ───────────────────────────────────────────
-  useEffect(() => {
-    if (activated) greetAndListen();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activated]);
+  // (removido auto-start: Jennifer só fala após "oi Jennifer" ou clique no botão)
 
-  // ── Wake word em background ──────────────────────────────────────
-  useEffect(() => {
-    if (!activated) return;
-    if (typeof window === "undefined") return;
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
-
-    let stopped = false;
-    let rec: any = null;
-
-    function startWake() {
-      if (stopped) return;
-      rec = new SR();
-      rec.continuous = false;
-      rec.interimResults = true;
-      rec.lang = "pt-BR";
-      rec.maxAlternatives = 3;
-
-      rec.onresult = (e: any) => {
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          for (let j = 0; j < e.results[i].length; j++) {
-            if (matchWake(e.results[i][j].transcript)) {
-              rec.stop();
-              if (!activeRef.current) startConversation();
-              return;
-            }
-          }
-        }
-      };
-      rec.onerror = (e: any) => { if (e.error === "not-allowed") stopped = true; };
-      rec.onend   = () => { if (!stopped && !activeRef.current) setTimeout(startWake, 400); };
-      try { rec.start(); setSrReady(true); } catch {}
-    }
-
-    startWake();
-    return () => { stopped = true; try { rec?.stop(); } catch {} };
-  }, [activated, startConversation]);
-
-  // ── Saudação automática ao ativar ────────────────────────────────
+  // ── Saudação automática: chamada pela wake word ou pelo botão ────
   const greetAndListen = useCallback(async () => {
     if (activeRef.current) return;
     abortRef.current  = false;
@@ -395,6 +354,44 @@ export default function LandingPage() {
       setStatusText('diga "oi Jennifer" ou clique no microfone');
     }
   }, [speak, getInput, processMessage, router]);
+
+  // ── Wake word em background ──────────────────────────────────────
+  useEffect(() => {
+    if (!activated) return;
+    if (typeof window === "undefined") return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+
+    let stopped = false;
+    let rec: any = null;
+
+    function startWake() {
+      if (stopped) return;
+      rec = new SR();
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = "pt-BR";
+      rec.maxAlternatives = 3;
+
+      rec.onresult = (e: any) => {
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          for (let j = 0; j < e.results[i].length; j++) {
+            if (matchWake(e.results[i][j].transcript)) {
+              rec.stop();
+              if (!activeRef.current) greetAndListen();
+              return;
+            }
+          }
+        }
+      };
+      rec.onerror = (e: any) => { if (e.error === "not-allowed") stopped = true; };
+      rec.onend   = () => { if (!stopped && !activeRef.current) setTimeout(startWake, 400); };
+      try { rec.start(); setSrReady(true); } catch {}
+    }
+
+    startWake();
+    return () => { stopped = true; try { rec?.stop(); } catch {} };
+  }, [activated, greetAndListen]);
 
   // ── Ativar com um clique ─────────────────────────────────────────
   const handleActivate = useCallback(() => {
@@ -517,7 +514,7 @@ export default function LandingPage() {
 
         {/* Microfone com anéis */}
         <button
-          onClick={conversationActive ? stopConversation : startConversation}
+          onClick={conversationActive ? stopConversation : greetAndListen}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
           aria-label={conversationActive ? "Encerrar conversa" : "Falar com Jennifer"}
@@ -619,7 +616,7 @@ export default function LandingPage() {
 
         {/* Botão CTA — alterna entre dourado e laranja */}
         <button
-          onClick={conversationActive ? stopConversation : startConversation}
+          onClick={conversationActive ? stopConversation : greetAndListen}
           className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
           style={conversationActive ? {
             background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
