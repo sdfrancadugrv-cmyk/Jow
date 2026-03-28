@@ -49,7 +49,6 @@ function getMicStyle(s: VoiceState) {
 
 export default function LandingPage() {
   const [activated, setActivated] = useState(false);
-  const [justActivated, setJustActivated] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [conversationActive, setConversationActive] = useState(false);
   const [statusText, setStatusText] = useState('diga "oi Jennifer"');
@@ -67,6 +66,8 @@ export default function LandingPage() {
   const textModeRef       = useRef(false);
   const textResolveRef    = useRef<((v: string) => void) | null>(null);
   const cancelListenRef   = useRef(false);
+  const justActivatedRef  = useRef(false);
+  const greetRef          = useRef<() => void>(() => {});
   const router = useRouter();
 
   // Desbloqueia autoplay no gesto do usuário (deve ser síncrono)
@@ -356,9 +357,12 @@ export default function LandingPage() {
     }
   }, [speak, getInput, processMessage, router]);
 
+  // Mantém ref atualizada para o wake word usar sem criar dependência no useEffect
+  greetRef.current = greetAndListen;
+
   // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
-    if (!activated) return;
+    if (!activated || conversationActive) return;
     if (typeof window === "undefined") return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
@@ -379,7 +383,7 @@ export default function LandingPage() {
           for (let j = 0; j < e.results[i].length; j++) {
             if (matchWake(e.results[i][j].transcript)) {
               rec.stop();
-              if (!activeRef.current) greetAndListen();
+              if (!activeRef.current) greetRef.current();
               return;
             }
           }
@@ -392,14 +396,14 @@ export default function LandingPage() {
 
     startWake();
     return () => { stopped = true; try { rec?.stop(); } catch {} };
-  }, [activated, greetAndListen]);
+  }, [activated, conversationActive]);
 
   // ── Ativar com um clique ─────────────────────────────────────────
   const handleActivate = useCallback(() => {
     ensureAudioUnlocked();
+    justActivatedRef.current = true;
+    setTimeout(() => { justActivatedRef.current = false; }, 800);
     setActivated(true);
-    setJustActivated(true);
-    setTimeout(() => setJustActivated(false), 600);
   }, [ensureAudioUnlocked]);
 
   const ringDur = getRingDur(voiceState);
@@ -517,7 +521,7 @@ export default function LandingPage() {
 
         {/* Microfone com anéis */}
         <button
-          onClick={justActivated ? undefined : (conversationActive ? stopConversation : greetAndListen)}
+          onClick={() => { if (justActivatedRef.current) return; conversationActive ? stopConversation() : greetAndListen(); }}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
           aria-label={conversationActive ? "Encerrar conversa" : "Falar com Jennifer"}
@@ -619,7 +623,7 @@ export default function LandingPage() {
 
         {/* Botão CTA — alterna entre dourado e laranja */}
         <button
-          onClick={justActivated ? undefined : (conversationActive ? stopConversation : greetAndListen)}
+          onClick={() => { if (justActivatedRef.current) return; conversationActive ? stopConversation() : greetAndListen(); }}
           className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
           style={conversationActive ? {
             background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
