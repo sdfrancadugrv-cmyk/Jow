@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import { createRequire } from "module";
+import OpenAI from "openai";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-const require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse: (buf: Buffer) => Promise<{ text: string; numpages: number }> = require("pdf-parse");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,32 +24,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ erro: "PDF muito grande. Máximo 20MB." }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Envia o PDF para a OpenAI extrair o texto
+    const uploadedFile = await openai.files.create({
+      file: new File([await file.arrayBuffer()], file.name, { type: "application/pdf" }),
+      purpose: "assistants",
+    });
 
-    let texto = "";
-    let paginas = 0;
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extraia TODO o texto deste PDF e retorne apenas o texto extraído, sem comentários, sem introdução, sem formatação extra. Apenas o conteúdo bruto do documento.",
+            },
+            {
+              // @ts-expect-error: file type supported pelo gpt-4o mas sem tipagem oficial
+              type: "file",
+              file: { file_id: uploadedFile.id },
+            },
+          ],
+        },
+      ],
+      max_tokens: 4000,
+    });
 
-    try {
-      const parsed = await pdfParse(buffer);
-      texto = parsed.text?.trim() ?? "";
-      paginas = parsed.numpages ?? 0;
-    } catch (parseErr: any) {
-      console.error("[PROFESSOR/UPLOAD] pdf-parse falhou:", parseErr.message);
-      return NextResponse.json({
-        erro: "Não foi possível extrair o texto do PDF. Certifique-se de que o PDF contém texto selecionável.",
-      }, { status: 422 });
-    }
+    // Remove o arquivo temporário da OpenAI
+    await openai.files.del(uploadedFile.id).catch(() => {});
+
+    const texto = response.choices[0]?.message?.content?.trim() ?? "";
 
     if (!texto || texto.length < 50) {
       return NextResponse.json({
-        erro: "O PDF parece estar vazio ou contém apenas imagens. Envie um PDF com texto selecionável.",
+        erro: "Não foi possível extrair texto do PDF. O arquivo pode conter apenas imagens.",
       }, { status: 422 });
     }
 
     return NextResponse.json({
       texto: texto.substring(0, 15000),
-      paginas,
+      paginas: 1,
       nome: file.name,
     });
   } catch (e: any) {
