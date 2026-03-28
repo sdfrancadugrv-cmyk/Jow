@@ -49,6 +49,7 @@ function getMicStyle(s: VoiceState) {
 
 export default function LandingPage() {
   const [activated, setActivated] = useState(false);
+  const [ready, setReady] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [conversationActive, setConversationActive] = useState(false);
   const [statusText, setStatusText] = useState('diga "oi Jennifer"');
@@ -405,6 +406,7 @@ export default function LandingPage() {
   const handleActivate = useCallback(() => {
     ensureAudioUnlocked();
     setActivated(true);
+    setTimeout(() => setReady(true), 700);
   }, [ensureAudioUnlocked]);
 
   const ringDur = getRingDur(voiceState);
@@ -464,6 +466,28 @@ export default function LandingPage() {
             to   { opacity: 1;   transform: scale(1.3); }
           }
         `}</style>
+      </main>
+    );
+  }
+
+  // ── Tela de transição (sem botões — evita ghost click) ───────────
+  if (!ready) {
+    return (
+      <main
+        className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+        style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
+      >
+        <h1 className="font-bold tracking-[0.35em]" style={{
+          fontFamily: "Georgia, 'Times New Roman', serif",
+          fontSize: "clamp(3.5rem, 12vw, 7rem)",
+          background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          filter: "drop-shadow(0 0 24px rgba(212,160,23,0.7))",
+        }}>
+          JENNIFER
+        </h1>
       </main>
     );
   }
