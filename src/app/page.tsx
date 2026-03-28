@@ -402,8 +402,9 @@ export default function LandingPage() {
     return () => { stopped = true; try { rec?.stop(); } catch {} };
   }, [activated, greetAndListen]);
 
-  // ── Ativar com um clique (tela inicial) ─────────────────────────
-  const handleActivate = useCallback(() => {
+  // ── Ativar com toque (tela inicial) ─────────────────────────────
+  const handleActivate = useCallback((e: React.SyntheticEvent) => {
+    e.preventDefault();
     ensureAudioUnlocked();
     setActivated(true);
     setTimeout(() => setReady(true), 700);
@@ -417,6 +418,7 @@ export default function LandingPage() {
       <main
         className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden cursor-pointer"
         style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
+        onTouchEnd={handleActivate}
         onClick={handleActivate}
       >
         <div className="absolute inset-0 pointer-events-none" style={{
