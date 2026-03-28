@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import MercadoPago from "mercadopago";
 
 const mp = new MercadoPago({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! });
