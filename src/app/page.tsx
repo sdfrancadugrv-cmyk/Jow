@@ -520,11 +520,6 @@ export default function LandingPage() {
         ))}
       </div>
 
-      <a href="/login"
-        className="absolute top-5 right-6 z-20 text-[11px] tracking-widest uppercase transition-opacity hover:opacity-80"
-        style={{ color: "#C8A850", letterSpacing: "0.2em", fontWeight: 600 }}>
-        Conectar Jennifer
-      </a>
 
       <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
 
@@ -659,6 +654,20 @@ export default function LandingPage() {
           >
             diga &quot;oi Jennifer&quot; ou aperte aqui e faça uma pergunta
           </button>
+        )}
+
+        {!conversationActive && (
+          <a href="/login"
+            className="mt-3 px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95 text-center"
+            style={{
+              background: "linear-gradient(135deg, #166534, #22c55e, #166534)",
+              color: "#fff",
+              boxShadow: "0 0 30px rgba(34,197,94,0.5), 0 4px 20px rgba(0,0,0,0.4)",
+              textDecoration: "none",
+            }}
+          >
+            Conectar Jennifer
+          </a>
         )}
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
