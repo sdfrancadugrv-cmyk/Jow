@@ -523,7 +523,7 @@ export default function LandingPage() {
       <a href="/login"
         className="absolute top-5 right-6 z-20 text-[11px] tracking-widest uppercase transition-opacity hover:opacity-80"
         style={{ color: "#C8A850", letterSpacing: "0.2em", fontWeight: 600 }}>
-        Já tenho acesso
+        Conectar Jennifer
       </a>
 
       <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
@@ -583,11 +583,7 @@ export default function LandingPage() {
             {bubble}
           </div>
         ) : (
-          <p className="mb-6 text-base max-w-sm leading-relaxed" style={{ color: "#C8CDD8" }}>
-            {conversationActive
-              ? "Ordene seus 300 agentes de IA e conquiste sua missão."
-              : 'Diga "oi Jennifer" para conversar'}
-          </p>
+          <div className="mb-6" />
         )}
 
         <p className="text-[11px] tracking-widest uppercase mb-3 transition-all duration-300"
