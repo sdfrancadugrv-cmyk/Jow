@@ -28,18 +28,24 @@ export async function POST(req: NextRequest) {
     let paginas = 0;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require("pdf-parse");
+      // Importa direto da lib para evitar o bug do isDebugMode do pdf-parse
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mod = await import("pdf-parse/lib/pdf-parse.js" as any);
+      const pdfParse = mod.default ?? mod;
       const parsed = await pdfParse(buffer);
       texto = parsed.text?.trim() ?? "";
       paginas = parsed.numpages ?? 0;
     } catch (parseErr: any) {
       console.error("[PROFESSOR/UPLOAD] pdf-parse falhou:", parseErr.message);
-      return NextResponse.json({ erro: "Não foi possível extrair o texto do PDF. Certifique-se de que o PDF contém texto (não é uma imagem escaneada)." }, { status: 422 });
+      return NextResponse.json({
+        erro: "Não foi possível extrair o texto do PDF. Certifique-se de que o PDF contém texto (não é uma imagem escaneada).",
+      }, { status: 422 });
     }
 
     if (!texto || texto.length < 50) {
-      return NextResponse.json({ erro: "O PDF parece estar vazio ou é composto apenas por imagens. Envie um PDF com texto selecionável." }, { status: 422 });
+      return NextResponse.json({
+        erro: "O PDF parece estar vazio ou é composto apenas por imagens. Envie um PDF com texto selecionável.",
+      }, { status: 422 });
     }
 
     return NextResponse.json({
