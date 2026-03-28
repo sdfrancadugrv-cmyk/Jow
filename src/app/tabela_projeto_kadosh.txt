@@ -1,0 +1,26 @@
+Projeto Kadosh - Tabela Resumo
+
+1. Stack Técnica:
+   - Framework: Next.js 14
+   - Linguagem: TypeScript
+   - Banco de Dados: PostgreSQL Neon
+   - ORM: Prisma
+   - Deploy: Vercel
+
+2. Funcionalidades:
+   - Pagamentos: Mercado Pago (PIX + Cartão Bricks)
+   - WhatsApp: Z-API
+   - IA: OpenAI GPT-4o + TTS
+
+3. Integrações:
+   - Pagamentos via Mercado Pago
+   - Mensagens via WhatsApp (Z-API)
+   - Inteligência Artificial com OpenAI
+
+4. Módulos:
+   - Autenticação de Usuários
+   - Módulos de Prestadores de Serviços
+   - Serviços Locais
+
+5. Outros Detalhes:
+   - Deploy automático com push no branch main

@@ -53,8 +53,50 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ── Clientes Kadosh ──────────────────────────────────────────────
+  // Desativa clientes com plano vencido
+  const expiredClients = await prisma.client.findMany({
+    where: { status: "active", planExpiresAt: { lt: now } },
+    select: { id: true, phone: true, name: true, plan: true },
+  });
+
+  for (const c of expiredClients) {
+    await prisma.client.update({
+      where: { id: c.id },
+      data: { status: "inactive" },
+    });
+    if (c.phone) {
+      await sendWhatsApp(c.phone,
+        `Olá ${c.name}! Seu plano Kadosh expirou. Para continuar usando, renove agora: https://kadosh-ai.vercel.app/assinar/${c.plan}`
+      );
+    }
+  }
+
+  // Notifica clientes nos últimos 7 dias antes do vencimento (aviso diário)
+  const clientExpiry7 = new Date(now);
+  clientExpiry7.setDate(clientExpiry7.getDate() + 7);
+
+  const expiringClients = await prisma.client.findMany({
+    where: {
+      status: "active",
+      planExpiresAt: { gte: now, lte: clientExpiry7 },
+    },
+    select: { id: true, phone: true, name: true, plan: true, planExpiresAt: true },
+  });
+
+  for (const c of expiringClients) {
+    if (c.phone && c.planExpiresAt) {
+      const daysLeft = Math.ceil((c.planExpiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      await sendWhatsApp(c.phone,
+        `Olá ${c.name}! Seu plano Kadosh vence em ${daysLeft} dia${daysLeft !== 1 ? "s" : ""}. Renove para não perder o acesso: https://kadosh-ai.vercel.app/assinar/${c.plan}`
+      );
+    }
+  }
+
   return NextResponse.json({
     expired: expired.length,
     notified: expiringSoon.length,
+    clientsExpired: expiredClients.length,
+    clientsNotified: expiringClients.length,
   });
 }

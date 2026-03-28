@@ -2,6 +2,12 @@ import prisma from "@/lib/prisma";
 
 const ZAPI_BASE = "https://api.z-api.io/instances";
 
+function normalizarTelefone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length >= 12) return digits;
+  return "55" + digits;
+}
+
 export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
   try {
     const agent = await prisma.whatsappAgent.findFirst({ where: { active: true } });
@@ -14,7 +20,7 @@ export async function sendWhatsApp(phone: string, message: string): Promise<bool
         "Content-Type": "application/json",
         "Client-Token": process.env.ZAPI_CLIENT_TOKEN || "",
       },
-      body: JSON.stringify({ phone, message }),
+      body: JSON.stringify({ phone: normalizarTelefone(phone), message }),
     });
 
     return res.ok;

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
       status: provider.status,
     });
 
-    const needsProfile = !provider.serviceType;
+    const needsProfile = !provider.serviceType || !provider.city || provider.name === "Prestador";
     const response = NextResponse.json({ ok: true, needsProfile });
     response.cookies.set("JENNIFER_provider_token", token, {
       httpOnly: true,

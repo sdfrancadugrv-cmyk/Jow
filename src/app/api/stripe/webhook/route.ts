@@ -28,12 +28,15 @@ export async function POST(req: NextRequest) {
         const clientId = session.metadata?.clientId;
         const providerId = session.metadata?.providerId;
         if (clientId) {
+          const type = session.metadata?.type;
+          const plan = session.metadata?.plan;
           await prisma.client.update({
             where: { id: clientId },
             data: {
               status: "active",
               subscriptionId: session.subscription as string,
               stripeCustomerId: session.customer as string,
+              ...(type === "client_plan" && plan ? { plan } : {}),
             },
           });
         }

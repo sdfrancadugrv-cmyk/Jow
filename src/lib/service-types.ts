@@ -136,3 +136,42 @@ export const SERVICE_LABELS: Record<string, string> = Object.fromEntries(
 
 // Lista flat para uso em selects simples
 export const ALL_SERVICES: ServiceType[] = SERVICE_CATEGORIES.flatMap(c => c.services);
+
+// ── Faixas de preço da mensalidade do prestador ──────────────────────────────
+// Premium R$99,90: médicos, psicólogos, psiquiatras, advogado criminal
+const PREMIUM_SERVICES = new Set([
+  "psicologo","psiquiatra","psicoterapeuta","neuropsicólogo",
+  "clinico_geral","cardiologista","dermatologista","endocrinologista",
+  "ginecologista","neurologista","oftalmologista","ortopedista",
+  "otorrino","pediatra","traumatologista","urologista","reumatologista",
+  "gastroenterologista","pneumologista","adv_criminal",
+]);
+
+// Profissional R$49,90: advogados (exceto criminal), fisio, personal, contador...
+const PROFESSIONAL_SERVICES = new Set([
+  "adv_trabalhista","adv_civil","adv_familia","adv_empresarial",
+  "adv_tributario","adv_imobiliario","adv_previdenciario",
+  "fisioterapeuta","fonoaudiologo","nutricionista","enfermeiro","cuidador_idosos",
+  "contador","consultor_financeiro","administrador","coach",
+  "personal_trainer","professor_particular","instrutor_idiomas","tutor_concursos",
+  "seguranca","fotografo",
+]);
+
+// Básico R$29,90: todo o resto (manutenção, beleza, transporte, etc.)
+
+export function getProviderPrice(serviceType: string): number {
+  const types = serviceType.split(",").map(s => s.trim());
+  let price = 2990; // básico
+  for (const t of types) {
+    if (PREMIUM_SERVICES.has(t)) { price = 9990; break; }
+    if (PROFESSIONAL_SERVICES.has(t) && price < 4990) price = 4990;
+  }
+  return price; // em centavos
+}
+
+export function getProviderPriceLabel(serviceType: string): string {
+  const p = getProviderPrice(serviceType);
+  if (p === 9990) return "R$99,90";
+  if (p === 4990) return "R$49,90";
+  return "R$29,90";
+}

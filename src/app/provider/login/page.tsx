@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { SERVICE_CATEGORIES, getProviderPriceLabel } from "@/lib/service-types";
 
 const GOLD = "#D4A017";
 const GOLD_LIGHT = "#FFE082";
@@ -10,75 +11,140 @@ const TEXT = "#D8C890";
 const LABEL = "#A08030";
 const MUTED = "#7A6018";
 
+type Step = "phone" | "services" | "location";
+
 export default function ProviderLoginPage() {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
+  const [step, setStep] = useState<Step>("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [cityInput, setCityInput] = useState("");
+  const [providerId, setProviderId] = useState("");
+  const [isExisting, setIsExisting] = useState(false);
+
+  const toggleService = (value: string) => {
+    setSelectedServices(prev =>
+      prev.includes(value) ? prev.filter(s => s !== value) : [...prev, value]
+    );
+  };
+
+  // Passo 1: registra/loga pelo telefone
+  const handlePhone = async () => {
+    const clean = phone.replace(/\D/g, "");
+    if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/provider/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: clean }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Erro ao continuar"); setLoading(false); return; }
+      setProviderId(data.providerId);
+      setStep("services");
+      setLoading(false);
+    } catch {
+      setError("Erro de conexão"); setLoading(false);
+    }
+  };
+
+  // Passo 2: salva serviços e vai para localização
+  const handleServices = () => {
+    if (selectedServices.length === 0) { setError("Selecione pelo menos uma habilidade"); return; }
+    if (!name.trim()) { setError("Digite seu nome"); return; }
+    setError("");
+    setStep("location");
+  };
+
+  // Passo 3: captura GPS
+  const captureGPS = useCallback(() => {
+    setLoading(true); setError("");
+    if (!navigator.geolocation) { setStep("location"); setLoading(false); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        let city = "";
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          city = data.address?.city || data.address?.town || data.address?.village || "";
+        } catch { /* ignora */ }
+        await submitProfile({ lat: latitude, lng: longitude, city });
+      },
+      () => { setLoading(false); submitWithCity(); },
+      { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
+    );
+  }, [name, selectedServices, cityInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Passo 3b: geocoda cidade manual
+  const submitWithCity = useCallback(async () => {
+    if (!cityInput.trim()) { setError("Digite sua cidade"); return; }
+    setLoading(true); setError("");
+    try {
+      const q = encodeURIComponent(cityInput + ", Brasil");
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { "Accept-Language": "pt-BR", "User-Agent": "Kadosh/1.0" },
+      });
+      const data = await res.json();
+      if (!data?.length) { setError("Cidade não encontrada"); setLoading(false); return; }
+      await submitProfile({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), city: cityInput });
+    } catch {
+      setError("Erro ao buscar localização"); setLoading(false);
+    }
+  }, [cityInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitProfile = async (loc: { lat: number; lng: number; city: string }) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/provider/complete-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          serviceType: selectedServices.join(","),
+          ...loc,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Erro ao salvar"); setLoading(false); return; }
+      router.push("/provider/subscribe");
+    } catch {
+      setError("Erro de conexão"); setLoading(false);
+    }
+  };
 
   const inputStyle: React.CSSProperties = {
     width: "100%", padding: "13px 16px", borderRadius: 12,
     border: "1px solid rgba(212,160,23,0.4)",
     background: "rgba(255,255,255,0.06)",
-    color: GOLD_LIGHT, fontSize: 16, outline: "none",
-    boxSizing: "border-box", textAlign: "center",
+    color: GOLD_LIGHT, fontSize: 14, outline: "none", boxSizing: "border-box",
   };
-
   const btnStyle: React.CSSProperties = {
     width: "100%", padding: "14px 0", borderRadius: 24,
     background: `linear-gradient(135deg, #C8900A, ${GOLD}, #C8900A)`,
-    color: "#0A0808", fontWeight: 700, fontSize: 15,
-    cursor: "pointer", border: "none",
+    color: "#0A0808", fontWeight: 700, fontSize: 15, cursor: "pointer", border: "none",
   };
-
-  const sendOtp = useCallback(async () => {
-    const clean = phone.replace(/\D/g, "");
-    if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
-    setLoading(true); setError("");
-    try {
-      const res = await fetch("/api/provider/otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send", phone: clean }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || "Erro ao enviar código"); setLoading(false); return; }
-      setOtpSent(true); setLoading(false);
-    } catch {
-      setError("Erro de conexão"); setLoading(false);
-    }
-  }, [phone]);
-
-  const verifyOtp = useCallback(async () => {
-    if (!otpCode) { setError("Digite o código"); return; }
-    setLoading(true); setError("");
-    try {
-      const res = await fetch("/api/provider/otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "verify", phone: phone.replace(/\D/g, ""), code: otpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || "Código inválido"); setLoading(false); return; }
-      router.push(data.needsProfile ? "/provider/complete-profile" : "/provider/dashboard");
-    } catch {
-      setError("Erro de conexão"); setLoading(false);
-    }
-  }, [phone, otpCode, router]);
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase",
+    color: LABEL, marginBottom: 5, display: "block", fontWeight: 600,
+  };
 
   return (
     <main style={{ minHeight: "100vh", background: BG, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
-      <div style={{ width: "100%", maxWidth: 360 }}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
         <h1 style={{ fontFamily: "Georgia, serif", fontSize: "2rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", textAlign: "center", marginBottom: 4 }}>
           JENNIFER
         </h1>
-        <p style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 36 }}>
-          Área do Prestador
+        <p style={{ textAlign: "center", color: MUTED, fontSize: 11, letterSpacing: "0.3em", textTransform: "uppercase", marginBottom: 28 }}>
+          {step === "phone" ? "Área do Prestador" : step === "services" ? "Seus serviços" : "Sua localização"}
         </p>
 
-        {!otpSent ? (
+        {/* ── Passo 1: Telefone ── */}
+        {step === "phone" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
@@ -86,57 +152,83 @@ export default function ProviderLoginPage() {
               </div>
               <p style={{ color: TEXT, fontSize: 14 }}>Digite seu WhatsApp para entrar</p>
             </div>
-
-            <input
-              style={inputStyle}
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendOtp()}
-              placeholder="55 11 99999-9999"
-              type="tel"
-            />
-
+            <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === "Enter" && handlePhone()} placeholder="55 11 99999-9999" type="tel" />
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
-
-            <button onClick={sendOtp} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}>
-              {loading ? "Enviando..." : "Receber código no WhatsApp"}
+            <button onClick={handlePhone} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}>
+              {loading ? "Aguarde..." : "Continuar"}
             </button>
-
-            <p style={{ textAlign: "center", fontSize: 12, color: MUTED }}>
-              Não tem conta? O cadastro é feito automaticamente.
-            </p>
-            <p style={{ textAlign: "center", fontSize: 12 }}>
-              <a href="/" style={{ color: MUTED }}>← Voltar ao início</a>
-            </p>
+            <p style={{ textAlign: "center", fontSize: 12, color: MUTED }}>Não tem conta? O cadastro é feito automaticamente.</p>
+            <p style={{ textAlign: "center", fontSize: 12 }}><a href="/" style={{ color: MUTED }}>← Voltar ao início</a></p>
           </div>
-        ) : (
+        )}
+
+        {/* ── Passo 2: Serviços ── */}
+        {step === "services" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <p style={{ color: TEXT, fontSize: 14 }}>
-                Código enviado para <strong style={{ color: GOLD_LIGHT }}>{phone}</strong>
-              </p>
-              <p style={{ color: LABEL, fontSize: 12, marginTop: 4 }}>Verifique seu WhatsApp.</p>
+            <div>
+              <label style={labelStyle}>Seu nome completo</label>
+              <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Como os clientes vão te ver" />
             </div>
 
-            <input
-              style={{ ...inputStyle, fontSize: 24, letterSpacing: "0.4em", fontWeight: 700 }}
-              value={otpCode}
-              onChange={e => setOtpCode(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && verifyOtp()}
-              placeholder="000000"
-              maxLength={6}
-              type="number"
-              autoFocus
-            />
+            <div>
+              <label style={labelStyle}>Suas habilidades / serviços <span style={{ color: GOLD, fontSize: 11 }}>(selecione quantas quiser)</span></label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 320, overflowY: "auto", paddingRight: 4 }}>
+                {SERVICE_CATEGORIES.map(cat => (
+                  <div key={cat.label}>
+                    <p style={{ fontSize: 11, color: MUTED, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6, marginTop: 4 }}>{cat.label}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {cat.services.map(s => {
+                        const selected = selectedServices.includes(s.value);
+                        return (
+                          <button key={s.value} type="button" onClick={() => toggleService(s.value)} style={{ padding: "6px 12px", borderRadius: 20, fontSize: 13, cursor: "pointer", border: selected ? `1.5px solid ${GOLD}` : "1.5px solid rgba(212,160,23,0.25)", background: selected ? "rgba(212,160,23,0.18)" : "rgba(255,255,255,0.04)", color: selected ? GOLD_LIGHT : TEXT, fontWeight: selected ? 600 : 400, transition: "all 0.15s" }}>
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {selectedServices.length > 0 && (
+                <p style={{ fontSize: 12, color: GOLD, marginTop: 8 }}>
+                  {selectedServices.length} selecionado{selectedServices.length > 1 ? "s" : ""} · Plano: <strong>{getProviderPriceLabel(selectedServices.join(","))}/mês</strong>
+                </p>
+              )}
+            </div>
+
+            {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
+            <button onClick={handleServices} style={btnStyle}>Continuar</button>
+          </div>
+        )}
+
+        {/* ── Passo 3: Localização ── */}
+        {step === "location" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", background: `radial-gradient(circle, ${GOLD_LIGHT}, ${GOLD})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>
+                📍
+              </div>
+              <p style={{ color: TEXT, fontSize: 14, lineHeight: 1.6 }}>Precisamos da sua localização para enviar pedidos próximos de você.</p>
+            </div>
 
             {error && <p style={{ color: "#F97316", fontSize: 13, textAlign: "center" }}>{error}</p>}
 
-            <button onClick={verifyOtp} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.7 : 1, cursor: loading ? "default" : "pointer" }}>
-              {loading ? "Verificando..." : "Confirmar"}
+            <button onClick={captureGPS} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.6 : 1, cursor: loading ? "default" : "pointer" }}>
+              {loading ? "Obtendo localização..." : "Usar minha localização atual"}
             </button>
 
-            <button onClick={() => { setOtpSent(false); setOtpCode(""); setError(""); }} style={{ background: "none", border: "none", color: LABEL, fontSize: 13, cursor: "pointer", textAlign: "center" }}>
-              Reenviar código
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(212,160,23,0.2)" }} />
+              <span style={{ color: MUTED, fontSize: 12 }}>ou</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(212,160,23,0.2)" }} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Digite sua cidade</label>
+              <input style={inputStyle} value={cityInput} onChange={e => setCityInput(e.target.value)} onKeyDown={e => e.key === "Enter" && submitWithCity()} placeholder="Ex: Campinas SP, Lapa São Paulo..." autoFocus />
+            </div>
+            <button onClick={submitWithCity} disabled={loading} style={{ ...btnStyle, opacity: loading ? 0.6 : 1, cursor: loading ? "default" : "pointer" }}>
+              {loading ? "Finalizando..." : "Finalizar cadastro"}
             </button>
           </div>
         )}

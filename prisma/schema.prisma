@@ -10,13 +10,16 @@ datasource db {
 // Clientes do Jow
 model Client {
   id               String   @id @default(cuid())
-  email            String   @unique
-  password         String
+  email            String?  @unique
+  password         String?
+  phone            String?  @unique
   name             String
   stripeCustomerId String?  @unique
   subscriptionId   String?
   status           String   @default("inactive") // active | inactive | cancelled
   plan             String   @default("basic")
+  isAdmin          Boolean  @default(false)
+  planExpiresAt    DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   devices          Device[]
@@ -164,6 +167,133 @@ model Bid {
   review     ServiceReview?
 
   @@unique([requestId, providerId])
+}
+
+// ─── KADOSH VENDEDOR ──────────────────────────────────────────────────────────
+
+model ProdutoVendedor {
+  id          String   @id @default(cuid())
+  clientId    String
+  slug        String   @unique
+  nome        String
+  destaques   String   // o que o cliente quer destacar — vira o prompt base
+  imageLinks  String[] // links do Google Drive
+  videoLinks  String[] // YouTube URLs (múltiplos)
+  salesLink   String   // link de compra do produto
+  preco       String   // ex: "R$ 97,00"
+  estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
+  template          String   @default("produto") // "produto" | "profissional"
+  modalidadeVenda   String   @default("link")    // "link" | "pedido"
+  whatsappContato   String?  // WhatsApp do dono exibido no botão de contato
+  pixKey            String?  // Chave PIX para receber pagamentos manuais
+  opcoes            Json?    // [{nome, descricao, preco, precoNum, comissao}]
+  permitirAfiliados Boolean  @default(false)
+  ativo             Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// ─── KADOSH AFILIADOS ─────────────────────────────────────────────────────────
+
+model Afiliado {
+  id        String   @id @default(cuid())
+  slug      String   // slug do ProdutoVendedor
+  nome      String
+  whatsapp  String
+  codigo    String   @unique
+  saldo     Float    @default(0)
+  createdAt DateTime @default(now())
+  vendas    VendaAfiliado[]
+  saques    SaqueAfiliado[]
+
+  @@index([slug])
+}
+
+model VendaAfiliado {
+  id           String   @id @default(cuid())
+  afiliadoId   String
+  produtoSlug  String
+  clientePhone String
+  valorPago    Float
+  comissao     Float    @default(30)
+  paymentId    String?
+  status       String   @default("paga")
+  createdAt    DateTime @default(now())
+  afiliado     Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+
+  @@index([afiliadoId])
+}
+
+model SaqueAfiliado {
+  id         String   @id @default(cuid())
+  afiliadoId String
+  valor      Float
+  pixKey     String
+  status     String   @default("pendente") // pendente | pago
+  createdAt  DateTime @default(now())
+  afiliado   Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
+
+  @@index([afiliadoId])
+}
+
+// ─── KADOSH PEDIDOS DE INSTALAÇÃO ─────────────────────────────────────────────
+
+model PedidoInstalacao {
+  id          String   @id @default(cuid())
+  produtoSlug String
+  nome        String
+  telefone    String
+  endereco    String
+  valor       String   // ex: "R$ 97,00"
+  opcaoNome   String?  // qual opção foi selecionada
+  comissao    Float    @default(0)
+  status      String   @default("aguardando") // aguardando | pago | agendado | instalado | cancelado
+  afiliadoId  String?
+  obs         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([produtoSlug])
+  @@index([status])
+}
+
+// ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────
+
+model ConfigProfessor {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  plano     String
+  linguas   String[] // idiomas escolhidos
+  concursos String[] // concursos escolhidos
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AulaProfessor {
+  id        String   @id @default(cuid())
+  clientId  String
+  materia   String   // ex: "Matemática - Frações", "Inglês - Present Perfect"
+  resumo    String?  // resumo gerado ao encerrar
+  mensagens Json     // histórico completo [{role, content}]
+  plano     String   @default("professor-start")
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
+}
+
+model AvaliacaoProfessor {
+  id        String   @id @default(cuid())
+  clientId  String
+  materias  String[] // matérias selecionadas
+  formato   String   // prova | redacao | simulado | trabalho
+  resultado String?  // parecer do professor após avaliação
+  nota      String?  // nota ou conceito dado pelo professor
+  mensagens Json     // histórico da avaliação
+  createdAt DateTime @default(now())
+
+  @@index([clientId])
 }
 
 model ServiceReview {

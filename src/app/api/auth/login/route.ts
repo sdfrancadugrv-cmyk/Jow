@@ -21,48 +21,56 @@ function parseDeviceName(ua: string | null): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { phone, password } = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: "E-mail e senha são obrigatórios." }, { status: 400 });
+    if (!phone || !password) {
+      return NextResponse.json({ error: "WhatsApp e senha são obrigatórios." }, { status: 400 });
     }
 
-    const client = await prisma.client.findUnique({ where: { email } });
+    const cleanPhone = (phone as string).replace(/\D/g, "");
+    const client = await prisma.client.findUnique({ where: { phone: cleanPhone } });
     if (!client) {
-      return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
+      return NextResponse.json({ error: "Número não encontrado. Verifique ou assine um plano." }, { status: 401 });
     }
 
+    if (!client.password) {
+      return NextResponse.json({ error: "Nenhuma senha cadastrada. Acesse /assinar para criar sua conta." }, { status: 400 });
+    }
     const valid = await bcrypt.compare(password, client.password);
     if (!valid) {
-      return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
+      return NextResponse.json({ error: "Número ou senha incorretos." }, { status: 401 });
     }
 
-    if (client.status !== "active") {
+    if (!client.isAdmin && client.status !== "active") {
       return NextResponse.json({
         error: "Assinatura inativa. Verifique seu pagamento ou assine em JENNIFER.ai",
         code: "INACTIVE",
       }, { status: 403 });
     }
 
-    // ── Gerenciamento de dispositivos ──────────────────────────────
+    // ── Gerenciamento de dispositivos (admin não tem limite) ────────
     const existingDeviceToken = req.cookies.get("jow_device")?.value;
     let deviceToken: string;
 
-    if (existingDeviceToken) {
-      // Verifica se esse dispositivo já está registrado para este usuário
+    if (client.isAdmin) {
+      // Admin: registra dispositivo sem limite
+      deviceToken = existingDeviceToken || "";
+      if (!existingDeviceToken) {
+        const token = await registerNewDevice(req, client.id, true);
+        deviceToken = token || "";
+      }
+    } else if (existingDeviceToken) {
       const device = await prisma.device.findFirst({
         where: { token: existingDeviceToken, clientId: client.id },
       });
 
       if (device) {
-        // Dispositivo conhecido — atualiza lastSeen
         await prisma.device.update({
           where: { id: device.id },
           data: { lastSeen: new Date() },
         });
         deviceToken = existingDeviceToken;
       } else {
-        // Token não pertence a este usuário — trata como novo dispositivo
         deviceToken = await registerNewDevice(req, client.id);
         if (!deviceToken) {
           return NextResponse.json({
@@ -72,7 +80,6 @@ export async function POST(req: NextRequest) {
         }
       }
     } else {
-      // Novo dispositivo
       deviceToken = await registerNewDevice(req, client.id);
       if (!deviceToken) {
         return NextResponse.json({
@@ -85,12 +92,13 @@ export async function POST(req: NextRequest) {
     // ── Gera JWT ───────────────────────────────────────────────────
     const token = signToken({
       sub: client.id,
-      email: client.email,
+      email: client.email ?? client.phone ?? "",
       name: client.name,
-      status: client.status,
+      status: "active",
+      isAdmin: client.isAdmin ?? false,
     });
 
-    const res = NextResponse.json({ ok: true, name: client.name });
+    const res = NextResponse.json({ ok: true, name: client.name, isAdmin: client.isAdmin ?? false });
 
     // Cookie JWT (7 dias)
     res.cookies.set("jow_token", token, {
@@ -117,16 +125,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function registerNewDevice(req: NextRequest, clientId: string): Promise<string> {
-  // Remove dispositivos inativos (sem acesso há mais de 90 dias)
+async function registerNewDevice(req: NextRequest, clientId: string, skipLimit = false): Promise<string> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 90);
   await prisma.device.deleteMany({
     where: { clientId, lastSeen: { lt: cutoff } },
   });
 
-  const count = await prisma.device.count({ where: { clientId } });
-  if (count >= MAX_DEVICES) return "";
+  if (!skipLimit) {
+    const count = await prisma.device.count({ where: { clientId } });
+    if (count >= MAX_DEVICES) return "";
+  }
 
   const token = uuidv4();
   const name = parseDeviceName(req.headers.get("user-agent"));

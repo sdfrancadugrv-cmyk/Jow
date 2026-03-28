@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kadosh — Kadosh</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #FFE082;
+      overflow: hidden;
+    }
+
+    /* Partículas */
+    .particulas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    .particula {
+      position: absolute;
+      border-radius: 50%;
+      animation: piscar var(--d) ease-in-out var(--delay) infinite alternate;
+    }
+    @keyframes piscar {
+      from { opacity: 0.15; transform: scale(0.8); }
+      to   { opacity: 0.9;  transform: scale(1.3); }
+    }
+
+    /* Centro */
+    .centro {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0;
+    }
+
+    .titulo {
+      font-size: clamp(3rem, 10vw, 6rem);
+      font-weight: bold;
+      letter-spacing: 0.35em;
+      background: linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 24px rgba(212,160,23,0.7));
+      line-height: 1;
+    }
+
+    .subtitulo {
+      font-size: 0.7rem;
+      letter-spacing: 0.5em;
+      color: #7A6010;
+      text-transform: uppercase;
+      margin-bottom: 48px;
+    }
+
+    /* Orb */
+    .orb-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      cursor: pointer;
+    }
+
+    .anel {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(212,160,23,0.5);
+      animation: pulso var(--dur) ease-out var(--del) infinite;
+    }
+    @keyframes pulso {
+      0%   { transform: scale(1);    opacity: 1; }
+      70%  { transform: scale(1.15); opacity: 0.4; }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+
+    .orb {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #FFE57A, #D4A017 50%, #7A5A00 100%);
+      box-shadow: 0 0 40px rgba(212,160,23,0.8), 0 0 80px rgba(212,160,23,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.5s ease;
+      position: relative;
+      z-index: 5;
+    }
+
+    .orb.ouvindo {
+      background: radial-gradient(circle at 38% 35%, #FFFFFF, #FFD700 40%, #D4A017 100%);
+      box-shadow: 0 0 60px rgba(255,215,0,1), 0 0 100px rgba(255,215,0,0.5);
+    }
+    .orb.pensando {
+      background: radial-gradient(circle at 38% 35%, #FFE57A, #D97706 50%, #7A4A00 100%);
+      box-shadow: 0 0 40px rgba(217,119,6,0.9), 0 0 80px rgba(217,119,6,0.4);
+    }
+    .orb.falando {
+      background: radial-gradient(circle at 38% 35%, #FFE57A, #D4A017 50%, #7A5A00 100%);
+      box-shadow: 0 0 50px rgba(212,160,23,1), 0 0 90px rgba(212,160,23,0.5);
+    }
+
+    .orb svg { filter: drop-shadow(0 0 4px rgba(0,0,0,0.5)); }
+
+    /* Balão */
+    .balao {
+      max-width: 480px;
+      padding: 14px 20px;
+      background: rgba(212,160,23,0.08);
+      border: 1px solid rgba(212,160,23,0.25);
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #FFE082;
+      margin-bottom: 16px;
+      min-height: 52px;
+      transition: opacity 0.3s;
+    }
+
+    .status {
+      font-size: 0.65rem;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: #4A3A08;
+      margin-bottom: 20px;
+      transition: color 0.3s;
+    }
+    .status.ativo { color: #D4A017; }
+
+    /* Input de texto */
+    .form-texto {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 420px;
+      margin-bottom: 12px;
+    }
+    .input-texto {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(212,160,23,0.25);
+      background: transparent;
+      color: #FFE082;
+      font-size: 0.85rem;
+      outline: none;
+      font-family: Georgia, serif;
+    }
+    .input-texto::placeholder { color: #3A2C06; }
+    .input-texto:focus { border-color: rgba(212,160,23,0.6); }
+
+    .btn-enviar {
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(212,160,23,0.35);
+      background: rgba(212,160,23,0.08);
+      color: #D4A017;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: Georgia, serif;
+      transition: opacity 0.2s;
+    }
+    .btn-enviar:hover { opacity: 0.7; }
+    .btn-enviar:disabled { opacity: 0.25; cursor: default; }
+
+    /* Dica */
+    .dica {
+      font-size: 0.65rem;
+      color: #2A2208;
+      letter-spacing: 0.1em;
+    }
+
+    /* Loading dots */
+    .dots::after {
+      content: '';
+      animation: dots 1.4s infinite;
+    }
+    @keyframes dots {
+      0%   { content: '.'; }
+      33%  { content: '..'; }
+      66%  { content: '...'; }
+      100% { content: ''; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Partículas de fundo -->
+<div class="particulas" id="particulas"></div>
+
+<div class="centro">
+  <h1 class="titulo">KADOSH</h1>
+  <p class="subtitulo">— modo desenvolvedor —</p>
+
+  <!-- Orb com anéis -->
+  <div class="orb-wrap" id="orbWrap" onclick="clicarOrb()">
+    <div class="anel" style="width:110px;height:110px;--dur:2.4s;--del:0s"></div>
+    <div class="anel" style="width:140px;height:140px;--dur:2.65s;--del:0.3s"></div>
+    <div class="anel" style="width:170px;height:170px;--dur:2.9s;--del:0.6s"></div>
+    <div class="anel" style="width:200px;height:200px;--dur:3.15s;--del:0.9s"></div>
+
+    <div class="orb" id="orb">
+      <svg width="44" height="44" viewBox="0 0 52 52" fill="none">
+        <rect x="18" y="4" width="16" height="26" rx="8" fill="#0A0808"/>
+        <path d="M10 26c0 8.837 7.163 16 16 16s16-7.163 16-16" stroke="#0A0808" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <line x1="26" y1="42" x2="26" y2="48" stroke="#0A0808" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="18" y1="48" x2="34" y2="48" stroke="#0A0808" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Balão de resposta -->
+  <div class="balao" id="balao">Diga <strong>"hope"</strong> para me ativar, ou clique no orb.</div>
+
+  <!-- Status -->
+  <p class="status" id="status">aguardando wake word</p>
+
+  <!-- Campo de senha (aparece quando precisa autenticar) -->
+  <form id="formSenha" style="display:none; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:320px; margin-bottom:12px;" onsubmit="submeterSenha(event)">
+    <p style="font-size:0.75rem; color:#D4A017; letter-spacing:0.1em;">Digite a senha de acesso:</p>
+    <div style="display:flex; gap:8px; width:100%;">
+      <input
+        type="password"
+        id="inputSenha"
+        class="input-texto"
+        placeholder="senha..."
+        autocomplete="off"
+        style="border-color: rgba(212,160,23,0.6);"
+      />
+      <button type="submit" class="btn-enviar">entrar</button>
+    </div>
+  </form>
+
+  <!-- Campo de texto -->
+  <form class="form-texto" id="formTexto" onsubmit="enviarTexto(event)">
+    <input
+      type="text"
+      id="inputTexto"
+      class="input-texto"
+      placeholder="ou escreva aqui..."
+      autocomplete="off"
+    />
+    <button type="submit" class="btn-enviar" id="btnEnviar">enviar</button>
+  </form>
+
+  <p class="dica">diga "cessa kadosh" para pausar · "hope" para ativar</p>
+</div>
+
+<script>
+  // ─── PARTÍCULAS ──────────────────────────────────────────────────────────────
+  const wrap = document.getElementById('particulas');
+  for (let i = 0; i < 70; i++) {
+    const pr = n => { const x = Math.sin(n+1)*10000; return x - Math.floor(x); };
+    const el = document.createElement('div');
+    el.className = 'particula';
+    const s = 1 + pr(i*11.1)*2.5;
+    el.style.cssText = `
+      left:${pr(i*7.3)*100}%;top:${pr(i*3.7)*100}%;
+      width:${s}px;height:${s}px;
+      background:rgba(212,170,0,${0.25+pr(i*5.9)*0.65});
+      box-shadow:0 0 ${s*2}px rgba(212,170,0,0.5);
+      --d:${2+pr(i*2.3)*3}s;--delay:${pr(i*1.7)*4}s;
+    `;
+    wrap.appendChild(el);
+  }
+
+  // ─── ESTADO ──────────────────────────────────────────────────────────────────
+  let estado = 'idle'; // idle | ouvindo | pensando | falando
+  let ativo = false;
+  let reconhecimento = null;
+  let audioAtual = null;
+  let aguardandoInput = false;
+  let sessionToken = localStorage.getItem('kadosh_token') || null;
+
+  const orb      = document.getElementById('orb');
+  const balao    = document.getElementById('balao');
+  const statusEl = document.getElementById('status');
+
+  function setEstado(s, texto, statusTxt) {
+    estado = s;
+    orb.className = 'orb ' + (s !== 'idle' ? s : '');
+    if (texto !== undefined) balao.innerHTML = texto;
+    if (statusTxt !== undefined) {
+      statusEl.textContent = statusTxt;
+      statusEl.className = 'status' + (s !== 'idle' ? ' ativo' : '');
+    }
+  }
+
+  // ─── FALAR (TTS) ─────────────────────────────────────────────────────────
+  async function falar(texto, audio64) {
+    if (audioAtual) { audioAtual.pause(); audioAtual = null; }
+    setEstado('falando', texto, 'respondendo...');
+
+    // Tenta primeiro com o áudio OpenAI (melhor qualidade)
+    const tocouOpenAI = await new Promise(resolve => {
+      try {
+        const bytes = Uint8Array.from(atob(audio64), c => c.charCodeAt(0));
+        const blob  = new Blob([bytes], { type: 'audio/mpeg' });
+        const url   = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioAtual  = audio;
+        audio.onended = () => { URL.revokeObjectURL(url); audioAtual = null; resolve(true); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+        // Só usa fallback se o play() for rejeitado — sem timeout
+        audio.play().catch(() => resolve(false));
+      } catch { resolve(false); }
+    });
+
+    // Fallback: voz nativa do navegador (só entra se OpenAI falhou)
+    if (!tocouOpenAI) {
+      await new Promise(resolve => {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(texto);
+        utter.lang = 'pt-BR';
+        utter.rate = 0.95;
+        utter.pitch = 0.85;
+
+        // Escolhe voz masculina se disponível
+        const vozes = window.speechSynthesis.getVoices();
+        const voz = vozes.find(v => v.lang.startsWith('pt') && v.name.toLowerCase().includes('male'))
+                 || vozes.find(v => v.lang.startsWith('pt'))
+                 || vozes[0];
+        if (voz) utter.voice = voz;
+
+        utter.onend = resolve;
+        utter.onerror = resolve;
+        window.speechSynthesis.speak(utter);
+      });
+    }
+  }
+
+  // ─── LOGIN COM SENHA ──────────────────────────────────────────────────────
+  async function fazerLogin(senha) {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senha })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      sessionToken = data.token;
+      localStorage.setItem('kadosh_token', sessionToken);
+      return true;
+    }
+    return false;
+  }
+
+  async function verificarSessao() {
+    if (!sessionToken) return false;
+    // Testa o token enviando uma requisição simples
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': sessionToken },
+      body: JSON.stringify({ mensagem: '__ping__' })
+    });
+    if (res.status === 401) {
+      sessionToken = null;
+      localStorage.removeItem('kadosh_token');
+      return false;
+    }
+    return true;
+  }
+
+  // ─── ENVIAR MENSAGEM AO SERVIDOR ─────────────────────────────────────────
+  async function enviarMensagem(mensagem) {
+    if (!mensagem.trim()) return;
+
+    setEstado('pensando', `<em>processando: "${mensagem}"</em>`, 'pensando...');
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': sessionToken },
+        body: JSON.stringify({ mensagem })
+      });
+
+      if (res.status === 401) {
+        sessionToken = null;
+        localStorage.removeItem('kadosh_token');
+        pedirSenha();
+        return;
+      }
+
+      const { texto, audio } = await res.json();
+
+      await falar(texto, audio);
+
+      if (ativo) {
+        setEstado('ouvindo', balao.innerHTML, 'ouvindo...');
+        ouvirUmaVez();
+      } else {
+        setEstado('idle', texto, 'aguardando wake word');
+      }
+    } catch (e) {
+      setEstado('idle', 'Erro de conexão. Verifique se o servidor está rodando.', 'erro');
+    }
+  }
+
+  // ─── RECONHECIMENTO DE VOZ ────────────────────────────────────────────────
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function ouvirWakeWord() {
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = 'en-US'; // "hope" é inglês — melhor reconhecimento em en-US
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 5;
+
+    rec.onresult = e => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        for (let j = 0; j < e.results[i].length; j++) {
+          const t = e.results[i][j].transcript.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          // Aceita variações de como "hope" pode ser transcrito
+          const ehWake = t.includes('hope') || t.includes('ope') || t.includes('hop') || t === 'op';
+          if (ehWake && !ativo) {
+            rec.stop();
+            ativar();
+            return;
+          }
+        }
+      }
+    };
+    rec.onerror = e => { if (e.error !== 'not-allowed') setTimeout(ouvirWakeWord, 600); };
+    rec.onend   = () => { if (!ativo) setTimeout(ouvirWakeWord, 400); };
+    try { rec.start(); } catch {}
+  }
+
+  function ouvirUmaVez() {
+    if (!SR || !ativo) return;
+    const rec = new SR();
+    rec.lang = 'pt-BR';
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 3;
+
+    let melhor = '';
+    let ultimaAtividade = Date.now();
+    let concluido = false;
+
+    const timer = setInterval(() => {
+      if (Date.now() - ultimaAtividade >= 4000) {
+        concluir(melhor);
+      }
+    }, 300);
+
+    function concluir(texto) {
+      if (concluido) return;
+      concluido = true;
+      clearInterval(timer);
+      try { rec.stop(); } catch {}
+
+      const norm = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if (norm.includes('cessa kadosh') || norm.includes('sessa kadosh')) {
+        desativar();
+        return;
+      }
+      if (norm.includes('hope') && !texto.trim()) {
+        ouvirUmaVez();
+        return;
+      }
+      if (texto.trim()) {
+        enviarMensagem(texto.trim());
+      } else if (ativo) {
+        setEstado('ouvindo', balao.innerHTML, 'ouvindo...');
+        ouvirUmaVez();
+      }
+    }
+
+    rec.onresult = e => {
+      ultimaAtividade = Date.now();
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) { concluir(e.results[i][0].transcript); return; }
+        melhor = e.results[i][0].transcript;
+      }
+    };
+    rec.onerror = () => concluir(melhor);
+    rec.onend   = () => concluir(melhor);
+    try { rec.start(); } catch {}
+  }
+
+  // ─── PEDIR SENHA ─────────────────────────────────────────────────────────
+  function pedirSenha() {
+    setEstado('idle', 'Identifique-se. Digite ou fale a senha de acesso.', 'aguardando senha...');
+    document.getElementById('formSenha').style.display = 'flex';
+    document.getElementById('formTexto').style.display = 'none';
+    document.getElementById('inputSenha').focus();
+
+    // Aguarda TTS terminar antes de ouvir pelo microfone
+    const utter = new SpeechSynthesisUtterance('Identifique-se. Digite ou fale a senha de acesso.');
+    utter.lang = 'pt-BR';
+    utter.rate = 0.95;
+    utter.onend = () => {
+      if (!SR) return;
+      const rec = new SR();
+      rec.lang = 'pt-BR';
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onresult = async e => {
+        const senha = e.results[0][0].transcript.trim();
+        await processarSenha(senha);
+      };
+      try { rec.start(); } catch {}
+    };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+  }
+
+  async function processarSenha(senha) {
+    const ok = await fazerLogin(senha);
+    if (ok) {
+      document.getElementById('formSenha').style.display = 'none';
+      document.getElementById('formTexto').style.display = 'flex';
+      falarTexto('Acesso liberado. Bem-vindo, senhor Alessandro.');
+      setTimeout(() => { ativo = false; ouvirWakeWord(); }, 1500);
+    } else {
+      setEstado('idle', 'Senha incorreta. Tente novamente.', 'acesso negado');
+      falarTexto('Senha incorreta. Tente novamente.');
+      document.getElementById('inputSenha').value = '';
+      document.getElementById('inputSenha').focus();
+    }
+  }
+
+  async function submeterSenha(e) {
+    e.preventDefault();
+    const senha = document.getElementById('inputSenha').value.trim();
+    if (!senha) return;
+    await processarSenha(senha);
+  }
+
+  function falarTexto(texto) {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(texto);
+    utter.lang = 'pt-BR';
+    utter.rate = 0.95;
+    utter.pitch = 0.85;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // ─── ATIVAR / DESATIVAR ───────────────────────────────────────────────────
+  async function ativar() {
+    // Verifica se já tem sessão válida
+    const sessaoOk = await verificarSessao();
+    if (!sessaoOk) {
+      pedirSenha();
+      return;
+    }
+
+    ativo = true;
+    setEstado('ouvindo', 'Modo desenvolvedor ativo. Como posso ajudar?', 'ouvindo...');
+
+    // Saudação por voz
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagem: 'SYSTEM_ATIVAR' })
+      });
+      const { texto, audio } = await res.json();
+      await falar(texto, audio);
+    } catch {}
+
+    if (ativo) {
+      setEstado('ouvindo', balao.innerHTML, 'ouvindo...');
+      ouvirUmaVez();
+    }
+  }
+
+  function desativar() {
+    ativo = false;
+    if (audioAtual) { audioAtual.pause(); audioAtual = null; }
+    setEstado('idle', 'Pausado. Diga <strong>"hope"</strong> para me ativar novamente.', 'aguardando wake word');
+    ouvirWakeWord();
+  }
+
+  function clicarOrb() {
+    if (ativo) {
+      desativar();
+    } else {
+      ativar();
+    }
+  }
+
+  // ─── INPUT DE TEXTO ───────────────────────────────────────────────────────
+  async function enviarTexto(e) {
+    e.preventDefault();
+    const input = document.getElementById('inputTexto');
+    const texto = input.value.trim();
+    if (!texto) return;
+    input.value = '';
+    if (!ativo) ativo = true;
+    enviarMensagem(texto);
+  }
+
+  // ─── INICIAR ──────────────────────────────────────────────────────────────
+  window.onload = () => {
+    // Destrava audio com clique
+    document.body.addEventListener('click', () => {
+      const s = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      s.volume = 0.001;
+      s.play().catch(()=>{});
+    }, { once: true });
+
+    if (SR) {
+      ouvirWakeWord();
+    } else {
+      setEstado('idle', 'Seu navegador não suporta reconhecimento de voz. Use o campo de texto.', 'use o campo de texto');
+    }
+  };
+</script>
+</body>
+</html>
