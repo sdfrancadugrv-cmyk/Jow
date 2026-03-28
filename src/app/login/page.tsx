@@ -1,125 +1,144 @@
-﻿"use client";
+"use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 
 function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
   const params = useSearchParams();
 
   useEffect(() => {
     if (params.get("payment") === "success") {
-      setMessage("Pagamento confirmado! Faça login para acessar o JENNIFER.");
+      setMessage("Pagamento confirmado! Faça login para acessar o Jennifer.");
     }
     if (params.get("expired") === "true") {
       setMessage("Sua assinatura expirou. Renove para continuar.");
     }
   }, [params]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
+  const handleLogin = useCallback(async () => {
+    const clean = phone.replace(/\D/g, "");
+    if (clean.length < 10) { setError("Digite um número de WhatsApp válido"); return; }
+    if (!password) { setError("Digite sua senha"); return; }
+    setLoading(true); setError("");
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ phone: clean, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === "DEVICE_LIMIT") {
-          setError("Limite de 2 dispositivos atingido. Entre em contato para gerenciar seus dispositivos.");
-        } else {
-          setError(data.error || "Erro ao fazer login.");
-        }
-        return;
-      }
-
-      router.push("/app");
+      if (!res.ok) { setError(data.error || "Erro ao fazer login"); setLoading(false); return; }
+      router.push(data.isAdmin ? "/admin" : "/app");
     } catch {
-      setError("Erro de conexão. Tente novamente.");
-    } finally {
-      setLoading(false);
+      setError("Erro de conexão"); setLoading(false);
     }
-  }
+  }, [phone, password, router]);
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center"
-      style={{ background: "radial-gradient(ellipse at center, #100810 0%, #060608 60%, #080810 100%)" }}
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
+      style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
     >
-      <div className="w-full max-w-sm px-6">
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold tracking-[0.5em]"
-            style={{ color: "#E0D4D0", textShadow: "0 0 30px rgba(139,26,46,0.5)" }}>
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: `
+          radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%),
+          radial-gradient(ellipse 55% 45% at 90% 45%, rgba(18,28,70,0.35) 0%, transparent 65%)
+        `,
+      }} />
+
+      <div className="relative z-10 w-full max-w-sm px-6">
+
+        <div className="text-center mb-10">
+          <h1 className="font-bold tracking-[0.35em] leading-none mb-2" style={{
+            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontSize: "clamp(2.5rem, 10vw, 4rem)",
+            background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+            filter: "drop-shadow(0 0 20px rgba(212,160,23,0.6))",
+          }}>
             JENNIFER
           </h1>
-          <p className="text-xs tracking-widest mt-2 uppercase" style={{ color: "#7A4040" }}>Assistente de IA Pessoal</p>
+          <p className="text-xs tracking-[0.4em] uppercase" style={{ color: "#7A6010" }}>
+            — AI ORCHESTRATOR —
+          </p>
         </div>
 
         {message && (
-          <div className="mb-4 px-4 py-3 rounded-lg text-sm text-center" style={{ background: "rgba(139,26,46,0.15)", border: "1px solid rgba(139,26,46,0.4)", color: "#E0D4D0" }}>
+          <div className="mb-6 px-4 py-3 rounded-xl text-sm text-center" style={{
+            background: "rgba(212,160,23,0.1)",
+            border: "1px solid rgba(212,160,23,0.3)",
+            color: "#FFE082",
+          }}>
             {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <input
-              type="email"
-              placeholder="Seu e-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-[#5A3030] outline-none focus:ring-1 focus:ring-[#8B1A2E]"
-              style={{ background: "rgba(139,26,46,0.1)", border: "1px solid rgba(139,26,46,0.3)" }}
-            />
-          </div>
-          <div>
-            <input
-              type="password"
-              placeholder="Sua senha"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-lg text-sm text-white placeholder-[#5A3030] outline-none focus:ring-1 focus:ring-[#8B1A2E]"
-              style={{ background: "rgba(139,26,46,0.1)", border: "1px solid rgba(139,26,46,0.3)" }}
-            />
-          </div>
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-center" style={{ color: "#C8CDD8" }}>
+            Entre com seu WhatsApp e senha
+          </p>
 
-          {error && (
-            <p className="text-red-400 text-xs text-center">{error}</p>
-          )}
+          <input
+            type="tel"
+            placeholder="55 11 99999-9999"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full px-4 py-3 rounded-full text-sm text-center outline-none"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(212,160,23,0.35)",
+              color: "#FFE082",
+            }}
+          />
+
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            className="w-full px-4 py-3 rounded-full text-sm text-center outline-none"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(212,160,23,0.35)",
+              color: "#FFE082",
+            }}
+          />
+
+          {error && <p className="text-center text-sm" style={{ color: "#F97316" }}>{error}</p>}
 
           <button
-            type="submit"
+            onClick={handleLogin}
             disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold text-white text-sm tracking-wider uppercase transition-all disabled:opacity-50"
+            className="w-full py-3 rounded-full font-bold text-sm tracking-wider transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
             style={{
-              background: "linear-gradient(135deg, #6B1520, #8B1A2E)",
-              boxShadow: "0 0 20px rgba(139,26,46,0.4)",
+              background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
+              color: "#0A0808",
+              boxShadow: "0 0 24px rgba(218,165,32,0.5)",
             }}
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
-        </form>
 
-        <p className="text-center text-xs mt-6" style={{ color: "#5A3030" }}>
-          Não tem conta?{" "}
-          <Link href="/register" className="underline" style={{ color: "#C4A8A4" }}>
-            Assinar o JENNIFER
-          </Link>
-        </p>
+          <p className="text-center text-xs mt-2" style={{ color: "#4A3A08" }}>
+            Não tem conta?{" "}
+            <a href="/" style={{ color: "#7A6010", textDecoration: "underline" }}>
+              Conheça o Jennifer
+            </a>
+          </p>
+
+          <p className="text-center text-xs">
+            <a href="/" style={{ color: "#3A2C06" }}>← Voltar ao início</a>
+          </p>
+        </div>
       </div>
     </main>
   );
