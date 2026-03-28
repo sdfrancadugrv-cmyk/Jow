@@ -236,8 +236,8 @@ function ProdutoShopContent() {
   if (!produto) return <main style={{ minHeight: "100vh", background: BG, display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: CINZA }}>Produto não encontrado.</p></main>;
 
   const todasMidias = [
-    ...produto.fotos.map((f: string) => ({ tipo: "foto", url: f })),
     ...produto.videos.map((v: string) => ({ tipo: "video", url: v })),
+    ...produto.fotos.map((f: string) => ({ tipo: "foto", url: f })),
   ];
 
   return (
