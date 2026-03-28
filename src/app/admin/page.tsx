@@ -29,15 +29,6 @@ const MODULOS = [
     ],
   },
   {
-    categoria: "Jennifer Shop — Dropshipping",
-    cor: "#3483FA",
-    itens: [
-      { nome: "Produtos da Loja",  rota: "/admin/shop",      icone: "🛒", desc: "Cadastrar e gerenciar produtos" },
-      { nome: "Ser Revendedora",   rota: "/revendedor",      icone: "🤝", desc: "Página de cadastro de afiliadas" },
-      { nome: "Ver Loja",          rota: "/shop",            icone: "🏪", desc: "Ver loja pública" },
-    ],
-  },
-  {
     categoria: "Kadosh App (Orchestrator)",
     cor: "#4A90D9",
     itens: [
@@ -88,6 +79,30 @@ export default function AdminPage() {
             SAIR
           </button>
         </div>
+
+        {/* Jennifer Dropship — botão destaque */}
+        <button
+          onClick={() => router.push("/admin/shop")}
+          style={{
+            width: "100%", marginBottom: 32, padding: "20px 24px", borderRadius: 16,
+            border: "2px solid #3483FA",
+            background: "linear-gradient(135deg, rgba(52,131,250,0.15), rgba(52,131,250,0.05))",
+            cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 16,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(52,131,250,0.25), rgba(52,131,250,0.1))")}
+          onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(52,131,250,0.15), rgba(52,131,250,0.05))")}
+        >
+          <span style={{ fontSize: 36 }}>🛒</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: "#3483FA", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>
+              JENNIFER DROPSHIP
+            </p>
+            <p style={{ color: MUTED, fontSize: 12 }}>
+              Produtos · Revendedoras · Comissões automáticas
+            </p>
+          </div>
+          <span style={{ color: "#3483FA", fontSize: 20 }}>›</span>
+        </button>
 
         {/* Módulos */}
         {MODULOS.map((cat) => (
