@@ -259,6 +259,88 @@ model PedidoInstalacao {
   @@index([status])
 }
 
+// ─── JENNIFER SHOP — DROPSHIPPING + AFILIADOS ────────────────────────────────
+
+model ProdutoShop {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  nome          String
+  descricao     String   // descrição longa do produto
+  promptVendas  String   // como a Jennifer deve vender este produto
+  fotos         String[] // URLs das fotos
+  videos        String[] // URLs YouTube
+  linkFonte     String   // link ML, Shopee, etc.
+  custoCompra   Float    // quanto paga para comprar
+  prazoEntrega  String   // ex: "5 a 10 dias úteis"
+  precoVenda    Float    // preço que cobra do cliente
+  comissaoPorc  Float    @default(10) // % comissão do afiliado
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  vendas        VendaShop[]
+  cliques       CliqueShop[]
+
+  @@index([ativo])
+}
+
+model AfiliadoShop {
+  id        String   @id @default(cuid())
+  nome      String
+  whatsapp  String
+  email     String?
+  codigo    String   @unique
+  saldo     Float    @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vendas    VendaShop[]
+  saques    SaqueShop[]
+  cliques   CliqueShop[]
+}
+
+model VendaShop {
+  id               String        @id @default(cuid())
+  produtoId        String
+  afiliadoId       String?
+  nomeCliente      String
+  whatsappCliente  String
+  valorPago        Float
+  comissaoValor    Float         @default(0)
+  paymentId        String?
+  status           String        @default("pendente") // pendente | pago | cancelado
+  createdAt        DateTime      @default(now())
+  produto          ProdutoShop   @relation(fields: [produtoId], references: [id])
+  afiliado         AfiliadoShop? @relation(fields: [afiliadoId], references: [id])
+
+  @@index([afiliadoId])
+  @@index([produtoId])
+}
+
+model SaqueShop {
+  id         String       @id @default(cuid())
+  afiliadoId String
+  valor      Float
+  pixKey     String
+  status     String       @default("pendente") // pendente | pago
+  createdAt  DateTime     @default(now())
+  afiliado   AfiliadoShop @relation(fields: [afiliadoId], references: [id])
+
+  @@index([afiliadoId])
+}
+
+model CliqueShop {
+  id         String       @id @default(cuid())
+  afiliadoId String
+  produtoId  String
+  ip         String?
+  createdAt  DateTime     @default(now())
+  afiliado   AfiliadoShop @relation(fields: [afiliadoId], references: [id])
+  produto    ProdutoShop  @relation(fields: [produtoId], references: [id])
+
+  @@index([afiliadoId])
+  @@index([produtoId])
+}
+
 // ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────
 
 model ConfigProfessor {

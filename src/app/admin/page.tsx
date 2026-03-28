@@ -29,6 +29,15 @@ const MODULOS = [
     ],
   },
   {
+    categoria: "Jennifer Shop — Dropshipping",
+    cor: "#3483FA",
+    itens: [
+      { nome: "Produtos da Loja",  rota: "/admin/shop",      icone: "🛒", desc: "Cadastrar e gerenciar produtos" },
+      { nome: "Ser Revendedora",   rota: "/revendedor",      icone: "🤝", desc: "Página de cadastro de afiliadas" },
+      { nome: "Ver Loja",          rota: "/shop",            icone: "🏪", desc: "Ver loja pública" },
+    ],
+  },
+  {
     categoria: "Kadosh App (Orchestrator)",
     cor: "#4A90D9",
     itens: [
