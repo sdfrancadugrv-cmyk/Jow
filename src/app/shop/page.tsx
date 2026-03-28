@@ -2,6 +2,8 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 const AZUL = "#3483FA"; const BG = "#F5F5F5"; const BORDA = "#e5e5e5"; const CINZA = "#666";
 
 function ShopContent() {
