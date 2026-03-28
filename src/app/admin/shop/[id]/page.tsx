@@ -18,7 +18,7 @@ export default function EditarProdutoShopPage() {
   const [salvando, setSalvando] = useState(false);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<any>({
-    nome: "", descricao: "", promptVendas: "", fotos: "", videos: "",
+    nome: "", descricao: "", promptVendas: "", fotos: "", videos: "", fotosResultados: "",
     linkFonte: "", custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10",
   });
 
@@ -30,6 +30,7 @@ export default function EditarProdutoShopPage() {
         if (p) setForm({
           nome: p.nome, descricao: p.descricao, promptVendas: p.promptVendas,
           fotos: (p.fotos || []).join("\n"), videos: (p.videos || []).join("\n"),
+          fotosResultados: (p.fotosResultados || []).join("\n"),
           linkFonte: p.linkFonte, custoCompra: p.custoCompra, prazoEntrega: p.prazoEntrega,
           precoVenda: p.precoVenda, comissaoPorc: p.comissaoPorc,
         });
@@ -49,6 +50,7 @@ export default function EditarProdutoShopPage() {
           ...form,
           fotos: form.fotos.split("\n").map((s: string) => s.trim()).filter(Boolean),
           videos: form.videos.split("\n").map((s: string) => s.trim()).filter(Boolean),
+          fotosResultados: form.fotosResultados.split("\n").map((s: string) => s.trim()).filter(Boolean),
         }),
       });
       const data = await res.json();
@@ -80,6 +82,7 @@ export default function EditarProdutoShopPage() {
           <div><label style={labelStyle}>LINK FONTE</label><input style={inputStyle} value={form.linkFonte} onChange={e => set("linkFonte", e.target.value)} /></div>
           <div><label style={labelStyle}>FOTOS (um por linha)</label><textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={form.fotos} onChange={e => set("fotos", e.target.value)} /></div>
           <div><label style={labelStyle}>VÍDEOS (um por linha)</label><textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={form.videos} onChange={e => set("videos", e.target.value)} /></div>
+          <div><label style={labelStyle}>FOTOS DE RESULTADOS <span style={{ color: MUTED }}>(provas sociais — um por linha)</span></label><textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={form.fotosResultados} onChange={e => set("fotosResultados", e.target.value)} /></div>
           <button onClick={salvar} disabled={salvando} style={{
             width: "100%", padding: "16px", borderRadius: 14, border: "none",
             background: salvando ? "rgba(212,160,23,0.3)" : `linear-gradient(135deg, #A07010, ${GOLD})`,

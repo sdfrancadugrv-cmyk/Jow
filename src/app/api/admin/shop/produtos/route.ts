@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (!user?.isAdmin) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { nome, descricao, promptVendas, fotos, videos, linkFonte, custoCompra, prazoEntrega, precoVenda, comissaoPorc } = body;
+  const { nome, descricao, promptVendas, fotos, videos, fotosResultados, linkFonte, custoCompra, prazoEntrega, precoVenda, comissaoPorc } = body;
 
   if (!nome || !descricao || !promptVendas || !precoVenda) {
     return NextResponse.json({ erro: "Campos obrigatórios: nome, descrição, prompt de vendas, preço." }, { status: 400 });
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       promptVendas,
       fotos: fotos || [],
       videos: videos || [],
+      fotosResultados: fotosResultados || [],
       linkFonte: linkFonte || "",
       custoCompra: parseFloat(custoCompra) || 0,
       prazoEntrega: prazoEntrega || "",

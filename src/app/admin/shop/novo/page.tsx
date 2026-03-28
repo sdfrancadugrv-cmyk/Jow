@@ -17,7 +17,7 @@ export default function NovoProdutoShopPage() {
   const [salvando, setSalvando] = useState(false);
   const [form, setForm] = useState({
     nome: "", descricao: "", promptVendas: "",
-    fotos: "", videos: "", linkFonte: "",
+    fotos: "", videos: "", fotosResultados: "", linkFonte: "",
     custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10",
   });
 
@@ -36,6 +36,7 @@ export default function NovoProdutoShopPage() {
           ...form,
           fotos: form.fotos.split("\n").map(s => s.trim()).filter(Boolean),
           videos: form.videos.split("\n").map(s => s.trim()).filter(Boolean),
+          fotosResultados: form.fotosResultados.split("\n").map(s => s.trim()).filter(Boolean),
         }),
       });
       const data = await res.json();
@@ -101,6 +102,11 @@ export default function NovoProdutoShopPage() {
           <div>
             <label style={labelStyle}>LINKS DOS VÍDEOS <span style={{ color: MUTED }}>(YouTube — um por linha)</span></label>
             <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={form.videos} onChange={e => set("videos", e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+          </div>
+
+          <div>
+            <label style={labelStyle}>FOTOS DE RESULTADOS <span style={{ color: MUTED }}>(provas sociais — um link por linha, Google Drive ou Imgur)</span></label>
+            <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={form.fotosResultados} onChange={e => set("fotosResultados", e.target.value)} placeholder="https://drive.google.com/file/d/..." />
           </div>
 
           <button onClick={salvar} disabled={salvando} style={{

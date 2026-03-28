@@ -299,6 +299,24 @@ function ProdutoShopContent() {
                 </div>
               )}
             </div>
+
+            {/* Resultados / Provas sociais */}
+            {produto.fotosResultados?.length > 0 && (
+              <div style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}`, marginTop: 12 }}>
+                <h2 style={{ color: "#333", fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>Resultados</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
+                  {produto.fotosResultados.map((url: string, i: number) => (
+                    <a key={i} href={convertDriveUrl(url)} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={convertDriveUrl(url)}
+                        alt={`Resultado ${i + 1}`}
+                        style={{ width: "100%", aspectRatio: "1/1", objectFit: "cover", borderRadius: 8, cursor: "pointer", border: `1px solid ${BORDA}` }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Coluna direita */}

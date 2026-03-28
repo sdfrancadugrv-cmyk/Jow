@@ -8,7 +8,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!user?.isAdmin) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
   const body = await req.json();
-  const { nome, descricao, promptVendas, fotos, videos, linkFonte, custoCompra, prazoEntrega, precoVenda, comissaoPorc, ativo } = body;
+  const { nome, descricao, promptVendas, fotos, videos, fotosResultados, linkFonte, custoCompra, prazoEntrega, precoVenda, comissaoPorc, ativo } = body;
 
   const produto = await prisma.produtoShop.update({
     where: { id: params.id },
@@ -18,6 +18,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       promptVendas,
       fotos: fotos || [],
       videos: videos || [],
+      fotosResultados: fotosResultados || [],
       linkFonte: linkFonte || "",
       custoCompra: parseFloat(custoCompra) || 0,
       prazoEntrega: prazoEntrega || "",
