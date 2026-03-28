@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -66,11 +66,8 @@ export default function LandingPage() {
   const textModeRef       = useRef(false);
   const textResolveRef    = useRef<((v: string) => void) | null>(null);
   const cancelListenRef   = useRef(false);
-  const justActivatedRef  = useRef(false);
-  const greetRef          = useRef<() => void>(() => {});
   const router = useRouter();
 
-  // Desbloqueia autoplay no gesto do usuário (deve ser síncrono)
   const ensureAudioUnlocked = useCallback(() => {
     if (audioUnlockedRef.current) return;
     audioUnlockedRef.current = true;
@@ -84,6 +81,7 @@ export default function LandingPage() {
   // ── TTS via OpenAI — retorna texto interrompido ou "" ────────────
   const speak = useCallback(async (text: string): Promise<string> => {
     if (abortRef.current) return "";
+    if (textModeRef.current) return "";
     try {
       const res = await fetch("/api/landing-speak", {
         method: "POST",
@@ -102,7 +100,6 @@ export default function LandingPage() {
           audioRef.current = null;
           resolve("");
         };
-
         audio.onended = cleanup;
         audio.onerror = cleanup;
         audio.play().catch(cleanup);
@@ -135,7 +132,6 @@ export default function LandingPage() {
         resolve(text);
       };
 
-      // Verifica 4s de silêncio a cada 300ms
       const silenceTimer = setInterval(() => {
         if (abortRef.current || cancelListenRef.current) { cancelListenRef.current = false; finish(""); return; }
         if (Date.now() - lastActivity >= 4000) finish(bestTranscript);
@@ -182,22 +178,6 @@ export default function LandingPage() {
     }
   }, [textInput]);
 
-  // ── Alternar modo voz / texto ─────────────────────────────────────
-  const toggleTextMode = useCallback(() => {
-    const next = !textModeRef.current;
-    textModeRef.current = next;
-    setTextMode(next);
-    if (next && voiceState === "listening") {
-      // aborta microfone atual para entrar no waitForText
-      cancelListenRef.current = true;
-    }
-    if (!next && textResolveRef.current) {
-      // volta pra voz: cancela espera de texto pendente
-      textResolveRef.current("");
-      textResolveRef.current = null;
-    }
-  }, [voiceState]);
-
   // ── Encerrar conversa ────────────────────────────────────────────
   const stopConversation = useCallback(() => {
     abortRef.current  = true;
@@ -215,11 +195,10 @@ export default function LandingPage() {
   const processMessage = useCallback(async (userText: string) => {
     if (abortRef.current) return;
 
-    // Silêncio: continua ouvindo
     if (!userText.trim()) {
       if (!abortRef.current && activeRef.current) {
         setVoiceState("listening");
-        setStatusText("ouvindo...");
+        setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
         const next = await getInput();
         await processMessage(next);
       } else {
@@ -253,15 +232,31 @@ export default function LandingPage() {
 
       if (abortRef.current) return;
       setBubble(text);
-      setVoiceState("speaking");
-      setStatusText("respondendo...");
-      const interrupted = await speak(text);
+
+      let interrupted = "";
+      if (!textModeRef.current) {
+        setVoiceState("speaking");
+        setStatusText("respondendo...");
+        interrupted = await speak(text);
+      } else {
+        setVoiceState("listening");
+        setStatusText("aguardando mensagem...");
+      }
 
       if (abortRef.current) return;
 
+      if (action && action.startsWith("goto_assinar_")) {
+        const slug = action.replace("goto_assinar_", "");
+        router.push(`/assinar/${slug}${!textModeRef.current ? "?voice=1" : ""}`);
+        return;
+      }
       if (action === "goto_register")   { router.push("/register"); return; }
       if (action === "goto_login")       { router.push("/login"); return; }
-      if (action === "goto_services")    { router.push("/services/new"); return; }
+      if (action && action.startsWith("goto_services_")) {
+        const s = action.replace("goto_services_", "");
+        router.push(`/services/new${s ? `?s=${encodeURIComponent(s)}` : ""}`);
+        return;
+      }
       if (action === "goto_provider")    { router.push("/provider/register"); return; }
       if (action === "close") {
         setBubble("");
@@ -272,7 +267,6 @@ export default function LandingPage() {
         return;
       }
 
-      // Se usuário interrompeu: processa o que ele disse imediatamente
       if (interrupted) {
         setBubble("");
         setVoiceState("thinking");
@@ -280,10 +274,9 @@ export default function LandingPage() {
         return;
       }
 
-      // Continua ouvindo no loop
       if (!abortRef.current) {
         setVoiceState("listening");
-        setStatusText("ouvindo...");
+        setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
         const next = await getInput();
         await processMessage(next);
       }
@@ -297,23 +290,7 @@ export default function LandingPage() {
     }
   }, [speak, getInput, router]);
 
-  // ── Iniciar conversa ─────────────────────────────────────────────
-  const startConversation = useCallback(async () => {
-    if (activeRef.current) return;
-    abortRef.current  = false;
-    activeRef.current = true;
-    setConversationActive(true);
-    setVoiceState("listening");
-    setStatusText("ouvindo...");
-    setBubble("");
-    const text = await getInput();
-    await processMessage(text);
-  }, [getInput, processMessage]);
-
-  // ── Saudação ao ativar ───────────────────────────────────────────
-  // (removido auto-start: Jennifer só fala após "oi Jennifer" ou clique no botão)
-
-  // ── Saudação automática: chamada pela wake word ou pelo botão ────
+  // ── Saudação + entra no loop ─────────────────────────────────────
   const greetAndListen = useCallback(async () => {
     if (activeRef.current) return;
     abortRef.current  = false;
@@ -332,11 +309,24 @@ export default function LandingPage() {
       const { text, action } = await res.json();
       if (abortRef.current) return;
       setBubble(text);
-      setVoiceState("speaking");
-      setStatusText("respondendo...");
       historyRef.current = [{ role: "assistant", content: text }];
-      const interrupted = await speak(text);
+
+      let interrupted = "";
+      if (!textModeRef.current) {
+        setVoiceState("speaking");
+        setStatusText("respondendo...");
+        interrupted = await speak(text);
+      } else {
+        setVoiceState("listening");
+        setStatusText("aguardando mensagem...");
+      }
+
       if (abortRef.current) return;
+      if (action && action.startsWith("goto_assinar_")) {
+        const slug = action.replace("goto_assinar_", "");
+        router.push(`/assinar/${slug}${!textModeRef.current ? "?voice=1" : ""}`);
+        return;
+      }
       if (action === "goto_register") { router.push("/register"); return; }
       if (action === "goto_login")    { router.push("/login"); return; }
       if (interrupted) {
@@ -346,7 +336,7 @@ export default function LandingPage() {
         return;
       }
       setVoiceState("listening");
-      setStatusText("ouvindo...");
+      setStatusText(textModeRef.current ? "aguardando mensagem..." : "ouvindo...");
       const next = await getInput();
       await processMessage(next);
     } catch {
@@ -357,12 +347,25 @@ export default function LandingPage() {
     }
   }, [speak, getInput, processMessage, router]);
 
-  // Mantém ref atualizada para o wake word usar sem criar dependência no useEffect
-  greetRef.current = greetAndListen;
+  // ── Iniciar por voz ──────────────────────────────────────────────
+  const startVoiceConversation = useCallback(async () => {
+    textModeRef.current = false;
+    setTextMode(false);
+    ensureAudioUnlocked();
+    await greetAndListen();
+  }, [greetAndListen, ensureAudioUnlocked]);
+
+  // ── Iniciar por texto ────────────────────────────────────────────
+  const startTextConversation = useCallback(async () => {
+    textModeRef.current = true;
+    setTextMode(true);
+    ensureAudioUnlocked();
+    await greetAndListen();
+  }, [greetAndListen, ensureAudioUnlocked]);
 
   // ── Wake word em background ──────────────────────────────────────
   useEffect(() => {
-    if (!activated || conversationActive) return;
+    if (!activated) return;
     if (typeof window === "undefined") return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
@@ -383,7 +386,7 @@ export default function LandingPage() {
           for (let j = 0; j < e.results[i].length; j++) {
             if (matchWake(e.results[i][j].transcript)) {
               rec.stop();
-              if (!activeRef.current) greetRef.current();
+              if (!activeRef.current) greetAndListen();
               return;
             }
           }
@@ -396,18 +399,17 @@ export default function LandingPage() {
 
     startWake();
     return () => { stopped = true; try { rec?.stop(); } catch {} };
-  }, [activated, conversationActive]);
+  }, [activated, greetAndListen]);
 
-  // ── Ativar com um clique ─────────────────────────────────────────
+  // ── Ativar com um clique (tela inicial) ─────────────────────────
   const handleActivate = useCallback(() => {
     ensureAudioUnlocked();
-    justActivatedRef.current = true;
-    setTimeout(() => { justActivatedRef.current = false; }, 800);
     setActivated(true);
   }, [ensureAudioUnlocked]);
 
   const ringDur = getRingDur(voiceState);
 
+  // ── Tela inicial (antes de ativar) ───────────────────────────────
   if (!activated) {
     return (
       <main
@@ -466,12 +468,12 @@ export default function LandingPage() {
     );
   }
 
+  // ── Tela ativa ───────────────────────────────────────────────────
   return (
     <main
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
       style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
     >
-      {/* Névoa */}
       <div className="absolute inset-0 pointer-events-none" style={{
         background: `
           radial-gradient(ellipse 70% 55% at 10% 50%, rgba(28,45,90,0.45) 0%, transparent 65%),
@@ -480,7 +482,6 @@ export default function LandingPage() {
         `,
       }} />
 
-      {/* Partículas */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
         {PARTICLES.map((p, i) => (
           <span key={i} className="absolute rounded-full" style={{
@@ -493,17 +494,14 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* Login discreto */}
       <a href="/login"
         className="absolute top-5 right-6 z-20 text-[11px] tracking-widest uppercase transition-opacity hover:opacity-80"
         style={{ color: "#C8A850", letterSpacing: "0.2em", fontWeight: 600 }}>
         Já tenho acesso
       </a>
 
-      {/* Conteúdo central */}
       <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
 
-        {/* Título */}
         <h1 className="font-bold tracking-[0.35em] leading-none mb-2" style={{
           fontFamily: "Georgia, 'Times New Roman', serif",
           fontSize: "clamp(3.5rem, 12vw, 7rem)",
@@ -519,9 +517,8 @@ export default function LandingPage() {
           — AI ORCHESTRATOR —
         </p>
 
-        {/* Microfone com anéis */}
         <button
-          onClick={() => { if (justActivatedRef.current) return; conversationActive ? stopConversation() : greetAndListen(); }}
+          onClick={conversationActive ? stopConversation : startVoiceConversation}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
           aria-label={conversationActive ? "Encerrar conversa" : "Falar com Jennifer"}
@@ -535,12 +532,10 @@ export default function LandingPage() {
               animation: `ringPulse ${ringDur + i * 0.25}s ease-out ${i * 0.3}s infinite`,
             }} />
           ))}
-
           <div className="absolute rounded-full transition-all duration-500" style={{
             width: 100, height: 100,
             ...getMicStyle(voiceState),
           }} />
-
           <svg className="relative z-10" width="52" height="52" viewBox="0 0 52 52" fill="none">
             <rect x="18" y="4" width="16" height="26" rx="8" fill="url(#micGrad)" />
             <path d="M10 26c0 8.837 7.163 16 16 16s16-7.163 16-16" stroke="url(#micGrad)" strokeWidth="2.5" strokeLinecap="round" fill="none" />
@@ -556,7 +551,6 @@ export default function LandingPage() {
           </svg>
         </button>
 
-        {/* Balão do JENNIFER */}
         {bubble ? (
           <div className="mb-6 px-5 py-3 rounded-2xl max-w-xs text-sm leading-relaxed"
             style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.3)", color: "#FFE082" }}>
@@ -564,81 +558,86 @@ export default function LandingPage() {
           </div>
         ) : (
           <p className="mb-6 text-base max-w-sm leading-relaxed" style={{ color: "#C8CDD8" }}>
-            Ordene seus 300 agentes de IA e conquiste sua missão.
+            {conversationActive
+              ? "Ordene seus 300 agentes de IA e conquiste sua missão."
+              : 'Diga "oi Jennifer" para conversar'}
           </p>
         )}
 
-        {/* Status */}
         <p className="text-[11px] tracking-widest uppercase mb-3 transition-all duration-300"
           style={{ color: voiceState === "idle" ? "#4A3A08" : "#D4A017" }}>
           {srReady ? statusText : "clique no microfone para falar"}
         </p>
 
-        {/* Toggle voz / texto */}
-        <button
-          onClick={toggleTextMode}
-          title={textMode ? "Voltar para conversa por voz" : "Conversar por texto"}
-          className="mb-4 px-3 py-1 rounded-full text-[9px] tracking-widest uppercase transition-all duration-300 hover:opacity-80 focus:outline-none"
-          style={{
-            border: "1px solid rgba(212,160,23,0.3)",
-            color: textMode ? "#D4A017" : "#3A2C06",
-            background: textMode ? "rgba(212,160,23,0.08)" : "transparent",
-          }}
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleTextSubmit(); }}
+          className="flex gap-2 w-full max-w-xs mb-4"
         >
-          {textMode ? "usar voz" : "usar texto"}
-        </button>
-
-        {/* Campo de texto (visível só em modo texto com conversa ativa) */}
-        {textMode && conversationActive && (
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleTextSubmit(); }}
-            className="flex gap-2 w-full max-w-xs mb-4"
+          <input
+            type="text"
+            value={textInput}
+            onChange={(e) => {
+              setTextInput(e.target.value);
+              if (!textModeRef.current && conversationActive && e.target.value.length > 0) {
+                textModeRef.current = true;
+                setTextMode(true);
+                cancelListenRef.current = true;
+              }
+            }}
+            placeholder={conversationActive ? "escreva aqui..." : "ou escreva para iniciar..."}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !conversationActive && textInput.trim()) {
+                e.preventDefault();
+                startTextConversation();
+              }
+            }}
+            className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-jennifer"
+            style={{
+              border: `1px solid rgba(212,160,23,${textMode ? 0.6 : 0.25})`,
+              color: "#FFE082",
+              transition: "border-color 0.3s",
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!textInput.trim()}
+            onClick={!conversationActive && textInput.trim() ? () => startTextConversation() : undefined}
+            className="px-4 py-2 rounded-full text-[10px] tracking-widest uppercase font-bold transition-all hover:opacity-80 disabled:opacity-30 focus:outline-none"
+            style={{
+              border: "1px solid rgba(212,160,23,0.35)",
+              color: "#D4A017",
+              background: "rgba(212,160,23,0.08)",
+            }}
           >
-            <input
-              type="text"
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder="escreva aqui..."
-              autoFocus
-              className="flex-1 px-4 py-2 rounded-full text-sm bg-transparent outline-none text-input-JENNIFER"
-              style={{
-                border: "1px solid rgba(212,160,23,0.35)",
-                color: "#FFE082",
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!textInput.trim()}
-              className="px-4 py-2 rounded-full text-[10px] tracking-widest uppercase font-bold transition-all hover:opacity-80 disabled:opacity-30 focus:outline-none"
-              style={{
-                border: "1px solid rgba(212,160,23,0.35)",
-                color: "#D4A017",
-                background: "rgba(212,160,23,0.08)",
-              }}
-            >
-              enviar
-            </button>
-          </form>
-        )}
+            enviar
+          </button>
+        </form>
 
-        {/* Botão CTA — alterna entre dourado e laranja */}
-        <button
-          onClick={() => { if (justActivatedRef.current) return; conversationActive ? stopConversation() : greetAndListen(); }}
-          className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
-          style={conversationActive ? {
-            background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
-            color: "#fff",
-            boxShadow: "0 0 30px rgba(249,115,22,0.7), 0 4px 20px rgba(0,0,0,0.4)",
-          } : {
-            background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
-            color: "#0A0808",
-            boxShadow: "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
-          }}
-        >
-          {conversationActive
-            ? "aperte para encerrar o diálogo"
-            : 'diga "oi Jennifer" ou aperte aqui e faça uma pergunta'}
-        </button>
+        {conversationActive ? (
+          <button
+            onClick={stopConversation}
+            className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
+              color: "#fff",
+              boxShadow: "0 0 30px rgba(249,115,22,0.7), 0 4px 20px rgba(0,0,0,0.4)",
+            }}
+          >
+            aperte para encerrar o diálogo
+          </button>
+        ) : (
+          <button
+            onClick={startVoiceConversation}
+            className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #C8900A, #E8B020, #C8900A)",
+              color: "#0A0808",
+              boxShadow: "0 0 30px rgba(218,165,32,0.65), 0 4px 20px rgba(0,0,0,0.4)",
+            }}
+          >
+            diga &quot;oi Jennifer&quot; ou aperte aqui e faça uma pergunta
+          </button>
+        )}
 
         <p className="text-xs mt-4" style={{ color: "#2A2208" }}>
           R$97/mês · cancele quando quiser
@@ -655,7 +654,7 @@ export default function LandingPage() {
           70%  { transform: scale(1.15); opacity: 0.4; }
           100% { transform: scale(1);    opacity: 1; }
         }
-        .text-input-JENNIFER::placeholder { color: #3A2C06; }
+        .text-input-jennifer::placeholder { color: #3A2C06; }
       `}</style>
     </main>
   );
