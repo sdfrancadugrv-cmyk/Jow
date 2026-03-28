@@ -272,8 +272,8 @@ export default function ProfessorChatPage() {
     };
 
     const abertura = formatoAvaliacao && materiasAvaliacao.length > 0
-      ? `O aluno quer ser avaliado. Formato da avaliação: ${nomesFormatos[formatoAvaliacao] || formatoAvaliacao}. Matérias selecionadas: ${materiasAvaliacao.join(", ")}. Apresente-se como Kadosh Professor, confirme o que será avaliado e inicie a avaliação imediatamente com postura técnica e exigente. Avalie com rigor, dê notas ou conceitos, e ao final dê um parecer completo do desempenho do aluno.`
-      : "O aluno acabou de entrar na aula. Apresente-se brevemente como Kadosh Professor e faça exatamente estas duas perguntas: primeiro, o que ele quer aprender hoje. Segundo, se ele tem algum PDF, apostila, cronograma ou material disponível para que você ensine com base nesse conteúdo. Caso tenha, peça para enviar usando o botão de PDF na tela. Se não tiver material, você mesmo criará o roteiro.";
+      ? `O aluno quer ser avaliado. Formato da avaliação: ${nomesFormatos[formatoAvaliacao] || formatoAvaliacao}. Matérias selecionadas: ${materiasAvaliacao.join(", ")}. Apresente-se como Professora Jennifer, confirme o que será avaliado e inicie a avaliação imediatamente com postura técnica e exigente. Avalie com rigor, dê notas ou conceitos, e ao final dê um parecer completo do desempenho do aluno.`
+      : "O aluno acabou de entrar na aula. Apresente-se brevemente como Professora Jennifer e faça exatamente estas duas perguntas: primeiro, o que ele quer aprender hoje. Segundo, se ele tem algum PDF, apostila, cronograma ou material disponível para que você ensine com base nesse conteúdo. Caso tenha, peça para enviar usando o botão de PDF na tela. Se não tiver material, você mesmo criará o roteiro.";
 
     let streamCompleto = "";
     let buffer = "";
@@ -420,7 +420,7 @@ export default function ProfessorChatPage() {
     // Cabeçalho
     doc.setFontSize(22);
     doc.setTextColor(180, 130, 10);
-    doc.text("KADOSH PROFESSOR", W / 2, y, { align: "center" });
+    doc.text("JENNIFER PROFESSOR", W / 2, y, { align: "center" });
     y += 8;
     doc.setFontSize(11);
     doc.setTextColor(120, 90, 20);
@@ -465,7 +465,7 @@ export default function ProfessorChatPage() {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(150, 120, 40);
-      doc.text(`Gerado por Kadosh Professor — kadosh.app`, margem, 290);
+      doc.text(`Gerado por Jennifer Professor — jennifer-ai.vercel.app`, margem, 290);
       doc.text(`${i} / ${paginas}`, W - margem, 290, { align: "right" });
     }
 
@@ -477,7 +477,7 @@ export default function ProfessorChatPage() {
   const labels: Record<Estado, string> = {
     aguardando:  "toque ▶ para começar",
     processando: "processando...",
-    falando:     "kadosh está falando",
+    falando:     "jennifer está falando",
     ouvindo:     "ouvindo você...",
   };
   const cores: Record<Estado, string> = {
@@ -508,7 +508,7 @@ export default function ProfessorChatPage() {
             fontFamily: "Georgia, serif", fontSize: "0.95rem", letterSpacing: "0.2em",
             background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`,
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text",
-          }}>KADOSH PROFESSOR</p>
+          }}>JENNIFER PROFESSOR</p>
           {pdfNome && <p style={{ color: MUTED, fontSize: 10, marginTop: 2 }}>📄 {pdfNome}</p>}
         </div>
 
