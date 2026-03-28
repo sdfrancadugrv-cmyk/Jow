@@ -49,6 +49,7 @@ function getMicStyle(s: VoiceState) {
 
 export default function LandingPage() {
   const [activated, setActivated] = useState(false);
+  const [justActivated, setJustActivated] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [conversationActive, setConversationActive] = useState(false);
   const [statusText, setStatusText] = useState('diga "oi Jennifer"');
@@ -397,6 +398,8 @@ export default function LandingPage() {
   const handleActivate = useCallback(() => {
     ensureAudioUnlocked();
     setActivated(true);
+    setJustActivated(true);
+    setTimeout(() => setJustActivated(false), 600);
   }, [ensureAudioUnlocked]);
 
   const ringDur = getRingDur(voiceState);
@@ -514,7 +517,7 @@ export default function LandingPage() {
 
         {/* Microfone com anéis */}
         <button
-          onClick={conversationActive ? stopConversation : greetAndListen}
+          onClick={justActivated ? undefined : (conversationActive ? stopConversation : greetAndListen)}
           className="relative flex items-center justify-center mb-6 cursor-pointer focus:outline-none"
           style={{ width: 220, height: 220 }}
           aria-label={conversationActive ? "Encerrar conversa" : "Falar com Jennifer"}
@@ -616,7 +619,7 @@ export default function LandingPage() {
 
         {/* Botão CTA — alterna entre dourado e laranja */}
         <button
-          onClick={conversationActive ? stopConversation : greetAndListen}
+          onClick={justActivated ? undefined : (conversationActive ? stopConversation : greetAndListen)}
           className="px-10 py-4 rounded-full font-bold text-sm transition-all duration-300 hover:scale-105 active:scale-95"
           style={conversationActive ? {
             background: "linear-gradient(135deg, #C85000, #F97316, #C85000)",
