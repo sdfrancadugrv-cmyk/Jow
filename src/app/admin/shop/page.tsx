@@ -67,6 +67,10 @@ export default function AdminShopPage() {
                     <p style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>/shop/{p.slug}</p>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => window.open(`/shop/${p.slug}`, "_blank")}
+                      style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(37,211,102,0.4)`, background: "rgba(37,211,102,0.08)", color: GREEN, fontSize: 11, cursor: "pointer" }}>
+                      VER PÁGINA
+                    </button>
                     <button onClick={() => router.push(`/admin/shop/${p.id}`)}
                       style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(212,160,23,0.3)`, background: "transparent", color: LABEL, fontSize: 11, cursor: "pointer" }}>
                       EDITAR
