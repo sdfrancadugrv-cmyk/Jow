@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
+import pdfParse from "pdf-parse";
 
 export const maxDuration = 30;
 
@@ -28,10 +29,6 @@ export async function POST(req: NextRequest) {
     let paginas = 0;
 
     try {
-      // Importa direto da lib para evitar o bug do isDebugMode do pdf-parse
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mod = await import("pdf-parse/lib/pdf-parse.js" as any);
-      const pdfParse = mod.default ?? mod;
       const parsed = await pdfParse(buffer);
       texto = parsed.text?.trim() ?? "";
       paginas = parsed.numpages ?? 0;
