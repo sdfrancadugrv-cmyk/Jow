@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const AZUL = "#3483FA"; const VERDE = "#00A650"; const BG = "#F5F5F5";
 const CINZA = "#666"; const BORDA = "#e5e5e5";
 
-export default function PainelRevendedorPage() {
+function PainelRevendedorContent() {
   const searchParams = useSearchParams();
   const codigo = searchParams?.get("codigo") || "";
   const [afiliado, setAfiliado] = useState<any>(null);
@@ -147,5 +147,13 @@ export default function PainelRevendedorPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PainelRevendedorPage() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#666" }}>Carregando...</p></main>}>
+      <PainelRevendedorContent />
+    </Suspense>
   );
 }

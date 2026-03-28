@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const AZUL = "#3483FA"; const BG = "#F5F5F5"; const BORDA = "#e5e5e5"; const CINZA = "#666";
 
-export default function ShopPage() {
+function ShopContent() {
   const searchParams = useSearchParams();
   const ref = searchParams?.get("ref") || "";
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -56,5 +56,13 @@ export default function ShopPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#666" }}>Carregando...</p></main>}>
+      <ShopContent />
+    </Suspense>
   );
 }

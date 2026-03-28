@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
 const BG = "#F5F5F5"; const AZUL = "#3483FA"; const AZUL_ESC = "#2968C8";
@@ -10,7 +10,7 @@ function getYouTubeId(url: string) {
   return m ? m[1] : null;
 }
 
-export default function ProdutoShopPage() {
+function ProdutoShopContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const ref = searchParams?.get("ref") || "";
@@ -388,5 +388,13 @@ export default function ProdutoShopPage() {
       </main>
       <style>{`@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
     </>
+  );
+}
+
+export default function ProdutoShopPage() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: "100vh", background: "#F5F5F5", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#666" }}>Carregando...</p></main>}>
+      <ProdutoShopContent />
+    </Suspense>
   );
 }
