@@ -41,7 +41,6 @@ export async function POST(req: NextRequest) {
               text: "Extraia TODO o texto deste PDF e retorne apenas o texto extraído, sem comentários, sem introdução, sem formatação extra. Apenas o conteúdo bruto do documento.",
             },
             {
-              // @ts-expect-error: file type supported pelo gpt-4o mas sem tipagem oficial
               type: "file",
               file: { file_id: uploadedFile.id },
             },
