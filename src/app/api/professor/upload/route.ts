@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
-import pdfParse from "pdf-parse";
+import { createRequire } from "module";
 
 export const maxDuration = 30;
+
+const require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pdfParse: (buf: Buffer) => Promise<{ text: string; numpages: number }> = require("pdf-parse");
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,13 +39,13 @@ export async function POST(req: NextRequest) {
     } catch (parseErr: any) {
       console.error("[PROFESSOR/UPLOAD] pdf-parse falhou:", parseErr.message);
       return NextResponse.json({
-        erro: "Não foi possível extrair o texto do PDF. Certifique-se de que o PDF contém texto (não é uma imagem escaneada).",
+        erro: "Não foi possível extrair o texto do PDF. Certifique-se de que o PDF contém texto selecionável.",
       }, { status: 422 });
     }
 
     if (!texto || texto.length < 50) {
       return NextResponse.json({
-        erro: "O PDF parece estar vazio ou é composto apenas por imagens. Envie um PDF com texto selecionável.",
+        erro: "O PDF parece estar vazio ou contém apenas imagens. Envie um PDF com texto selecionável.",
       }, { status: 422 });
     }
 
