@@ -8,7 +8,10 @@ const BG = "#F5F5F5"; const AZUL = "#3483FA"; const AZUL_ESC = "#2968C8";
 const VERDE = "#00A650"; const CINZA = "#666"; const BORDA = "#e5e5e5";
 
 function getVideoEmbedUrl(url: string): string | null {
-  // YouTube
+  // YouTube Shorts
+  const shorts = url.match(/\/shorts\/([^&?/]+)/);
+  if (shorts) return `https://www.youtube.com/embed/${shorts[1]}`;
+  // YouTube normal
   const yt = url.match(/(?:v=|\/embed\/|youtu\.be\/)([^&?/]+)/);
   if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
   // Google Drive: /file/d/FILE_ID/
