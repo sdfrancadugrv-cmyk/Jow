@@ -82,11 +82,11 @@ export default function RevendedorPage() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Seu nome completo *"
-              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14 }} />
+              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14, color: "#333", background: "#fff" }} />
             <input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))} placeholder="WhatsApp com DDD *"
-              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14 }} />
+              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14, color: "#333", background: "#fff" }} />
             <input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="E-mail (opcional)"
-              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14 }} />
+              style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #ddd", fontSize: 14, color: "#333", background: "#fff" }} />
             {erro && <p style={{ color: "#c0392b", fontSize: 13 }}>{erro}</p>}
             <button onClick={cadastrar} disabled={salvando} style={{
               padding: "14px", borderRadius: 8, border: "none", background: salvando ? "#ccc" : AZUL,
