@@ -8,6 +8,17 @@ const BG = "#F5F5F5"; const AZUL = "#3483FA"; const AZUL_ESC = "#2968C8";
 const VERDE = "#00A650"; const VERDE_ESC = "#008f45"; const CINZA = "#666"; const BORDA = "#E0E0E0";
 const AMARELO = "#FFE600";
 
+function gerarVendasFake(seed: string): number {
+  // Hash simples do slug para gerar número determinístico
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  // Base entre 357 e 1847, com "quebrado" garantido (nunca termina em 0 ou 5)
+  const base = 357 + (h % 1491);
+  const ultimo = base % 10;
+  // Se termina em 0 ou 5, soma 3
+  return (ultimo === 0 || ultimo === 5) ? base + 3 : base;
+}
+
 function getVideoEmbedUrl(url: string): string | null {
   // YouTube Shorts
   const shorts = url.match(/\/shorts\/([^&?/]+)/);
@@ -407,6 +418,7 @@ function ProdutoShopContent() {
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: `1px solid ${BORDA}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
               <h1 style={{ color: "#333", fontSize: "1.1rem", fontWeight: 400, lineHeight: 1.4, marginBottom: 12 }}>{produto.nome}</h1>
               <p style={{ color: CINZA, fontSize: 12, marginBottom: 6 }}>💸 Economize comprando agora</p>
+              <p style={{ color: "#e67e00", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>🔥 {gerarVendasFake(produto.slug)} vendidos</p>
               <div style={{ fontSize: "2rem", fontWeight: 700, color: VERDE, marginBottom: 12 }}>
                 R$ {produto.precoVenda.toFixed(2).replace(".", ",")}
               </div>

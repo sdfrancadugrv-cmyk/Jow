@@ -6,6 +6,14 @@ export const dynamic = "force-dynamic";
 
 const AZUL = "#3483FA"; const BG = "#F5F5F5"; const BORDA = "#e5e5e5"; const CINZA = "#666";
 
+function gerarVendasFake(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const base = 357 + (h % 1491);
+  const ultimo = base % 10;
+  return (ultimo === 0 || ultimo === 5) ? base + 3 : base;
+}
+
 function convertDriveUrl(url: string): string {
   if (!url) return url;
   let m = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -59,6 +67,7 @@ function ShopContent() {
                     <p style={{ color: "#333", fontSize: 13, lineHeight: 1.4, marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.nome}</p>
                     <p style={{ color: "#333", fontWeight: 700, fontSize: "1rem" }}>R$ {p.precoVenda?.toFixed(2).replace(".", ",")}</p>
                     <p style={{ color: "#00A650", fontSize: 12, marginTop: 4 }}>✓ {p.comissaoPorc}% de comissão</p>
+                    <p style={{ color: "#e67e00", fontSize: 11, marginTop: 2 }}>🔥 {gerarVendasFake(p.slug)} vendidos</p>
                   </div>
                 </div>
               </a>
