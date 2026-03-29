@@ -6,7 +6,11 @@ const mp = new MercadoPago({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN!
 
 export async function POST(req: NextRequest) {
   try {
-    const { produtoSlug, nomeCliente, whatsappCliente, refAfiliado } = await req.json();
+    const { produtoSlug, nomeCliente, telefoneCliente, enderecoCliente, refAfiliado } = await req.json();
+
+    if (!nomeCliente || !telefoneCliente || !enderecoCliente) {
+      return NextResponse.json({ erro: "Preencha nome, telefone e endereço." }, { status: 400 });
+    }
 
     const produto = await prisma.produtoShop.findUnique({ where: { slug: produtoSlug, ativo: true } });
     if (!produto) return NextResponse.json({ erro: "Produto não encontrado" }, { status: 404 });
@@ -21,7 +25,9 @@ export async function POST(req: NextRequest) {
         produtoId: produto.id,
         afiliadoId: afiliado?.id || null,
         nomeCliente,
-        whatsappCliente,
+        telefoneCliente,
+        enderecoCliente,
+        whatsappCliente: telefoneCliente,
         valorPago: produto.precoVenda,
         comissaoValor: afiliado ? (produto.precoVenda * produto.comissaoPorc) / 100 : 0,
         status: "pendente",
@@ -30,26 +36,30 @@ export async function POST(req: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jennifer-ai.vercel.app";
 
-    const preference = await (mp as any).preferences.create({
+    // Gera PIX direto via Mercado Pago
+    const emailPagador = `${telefoneCliente.replace(/\D/g, "")}@compradores.jennifer.shop`;
+    const payment = await (mp as any).payment.create({
       body: {
-        items: [{
-          title: produto.nome,
-          quantity: 1,
-          currency_id: "BRL",
-          unit_price: produto.precoVenda,
-        }],
+        transaction_amount: produto.precoVenda,
+        description: produto.nome,
+        payment_method_id: "pix",
+        payer: {
+          email: emailPagador,
+          first_name: nomeCliente.split(" ")[0],
+          last_name: nomeCliente.split(" ").slice(1).join(" ") || nomeCliente.split(" ")[0],
+        },
         external_reference: `shop|${venda.id}`,
         notification_url: `${appUrl}/api/shop/webhook`,
-        back_urls: {
-          success: `${appUrl}/shop/${produtoSlug}?status=sucesso`,
-          failure: `${appUrl}/shop/${produtoSlug}?status=falha`,
-        },
       },
     });
 
+    const txData = payment?.point_of_interaction?.transaction_data;
+
     return NextResponse.json({
-      preferenceId: preference.id,
       vendaId: venda.id,
+      pixQrCode: txData?.qr_code || null,
+      pixQrCodeBase64: txData?.qr_code_base64 || null,
+      valor: produto.precoVenda,
     });
   } catch (e: any) {
     console.error("[SHOP/CHECKOUT]", e.message);

@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Avisa o dono do app via WhatsApp
     if (process.env.OWNER_PHONE) {
-      const msg = `🛍️ *Nova venda Jennifer Shop!*\n\nProduto: ${venda.produto.nome}\nCliente: ${venda.nomeCliente}\nWhatsApp: ${venda.whatsappCliente}\nValor: R$ ${venda.valorPago.toFixed(2).replace(".", ",")}\nAfiliado: ${venda.afiliado?.nome || "Direto"}\n\nCompre no link: ${venda.produto.linkFonte}`;
+      const msg = `🛍️ *Nova venda Jennifer Shop!*\n\nProduto: ${venda.produto.nome}\nCliente: ${venda.nomeCliente}\nTelefone: ${venda.telefoneCliente}\nEndereço: ${venda.enderecoCliente}\nValor: R$ ${venda.valorPago.toFixed(2).replace(".", ",")}\nAfiliado: ${venda.afiliado?.nome || "Direto"}\n\nLink do produto: ${venda.produto.linkFonte}`;
       await fetch(`https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_TOKEN}/send-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Client-Token": process.env.ZAPI_CLIENT_TOKEN! },

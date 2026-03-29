@@ -54,6 +54,14 @@ function ProdutoShopContent() {
   const [mostraForm, setMostraForm] = useState(false);
   const [comprando, setComprando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  // Checkout direto
+  const [mostraCheckout, setMostraCheckout] = useState(false);
+  const [checkoutNome, setCheckoutNome] = useState("");
+  const [checkoutTelefone, setCheckoutTelefone] = useState("");
+  const [checkoutEndereco, setCheckoutEndereco] = useState("");
+  const [gerandoPix, setGerandoPix] = useState(false);
+  const [pix, setPix] = useState<{ qrCode: string; qrBase64: string; valor: number } | null>(null);
+  const [pixCopiado, setPixCopiado] = useState(false);
 
   const audioQueue = useRef<string[]>([]);
   const tocandoRef = useRef(false);
@@ -230,6 +238,36 @@ function ProdutoShopContent() {
     };
   }, [produto, iniciado, enfileirarTTS, ouvirCliente, enviarMensagem]);
 
+  async function gerarPix() {
+    if (!checkoutNome.trim() || !checkoutTelefone.trim() || !checkoutEndereco.trim()) {
+      alert("Preencha todos os campos."); return;
+    }
+    setGerandoPix(true);
+    try {
+      const res = await fetch("/api/shop/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          produtoSlug: slug,
+          nomeCliente: checkoutNome,
+          telefoneCliente: checkoutTelefone,
+          enderecoCliente: checkoutEndereco,
+          refAfiliado: ref,
+        }),
+      });
+      const data = await res.json();
+      if (data.erro) { alert(data.erro); return; }
+      setPix({ qrCode: data.pixQrCode, qrBase64: data.pixQrCodeBase64, valor: data.valor });
+    } finally { setGerandoPix(false); }
+  }
+
+  function copiarPix() {
+    if (!pix?.qrCode) return;
+    navigator.clipboard.writeText(pix.qrCode);
+    setPixCopiado(true);
+    setTimeout(() => setPixCopiado(false), 3000);
+  }
+
   async function finalizarCompra() {
     if (!nomeCliente.trim() || !whatsCliente.trim()) { alert("Preencha nome e WhatsApp."); return; }
     setComprando(true);
@@ -351,26 +389,49 @@ function ProdutoShopContent() {
                 <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Pagamento na hora</p>
               </div>
 
-              {sucesso ? (
-                <div style={{ padding: 16, background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, textAlign: "center" }}>
-                  <p style={{ color: VERDE, fontWeight: 700 }}>✅ Pedido registrado!</p>
-                  <p style={{ color: CINZA, fontSize: 13, marginTop: 4 }}>Entraremos em contato pelo WhatsApp em breve.</p>
+              {/* PIX gerado */}
+              {pix ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                  <div style={{ padding: "12px 16px", background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, width: "100%", textAlign: "center" }}>
+                    <p style={{ color: VERDE, fontWeight: 700, fontSize: 15 }}>✅ PIX gerado com sucesso!</p>
+                    <p style={{ color: CINZA, fontSize: 12, marginTop: 4 }}>Valor: <strong style={{ color: "#333" }}>R$ {pix.valor.toFixed(2).replace(".", ",")}</strong></p>
+                  </div>
+                  {pix.qrBase64 && (
+                    <img src={`data:image/png;base64,${pix.qrBase64}`} alt="QR Code PIX" style={{ width: 180, height: 180, borderRadius: 8, border: `1px solid ${BORDA}` }} />
+                  )}
+                  <button onClick={copiarPix} style={{
+                    width: "100%", padding: "14px", borderRadius: 8, border: "none",
+                    background: pixCopiado ? VERDE_ESC : VERDE, color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                  }}>
+                    {pixCopiado ? "✅ Código copiado!" : "📋 Copiar código PIX"}
+                  </button>
+                  <p style={{ color: CINZA, fontSize: 11, textAlign: "center" }}>Abra seu banco, escolha Pix → Colar código e confirme o pagamento</p>
                 </div>
-              ) : mostraForm ? (
+
+              ) : mostraCheckout ? (
+                /* Form de cadastro para checkout */
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <p style={{ color: "#333", fontSize: 13, fontWeight: 600 }}>Confirme seus dados para finalizar:</p>
-                  <input value={nomeCliente} onChange={e => setNomeCliente(e.target.value)} placeholder="Seu nome completo"
-                    style={{ padding: "10px 12px", borderRadius: 6, border: `1px solid ${BORDA}`, fontSize: 13 }} />
-                  <input value={whatsCliente} onChange={e => setWhatsCliente(e.target.value)} placeholder="WhatsApp (com DDD)"
-                    style={{ padding: "10px 12px", borderRadius: 6, border: `1px solid ${BORDA}`, fontSize: 13 }} />
-                  <button onClick={finalizarCompra} disabled={comprando} style={{
-                    padding: "14px", borderRadius: 6, border: "none", background: VERDE, color: "#fff",
-                    fontWeight: 700, fontSize: "0.95rem", cursor: comprando ? "default" : "pointer",
-                  }}>{comprando ? "Aguarde..." : "FINALIZAR COMPRA"}</button>
+                  <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
+                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo"
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD (ex: 11999999999)"
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                  <input value={checkoutEndereco} onChange={e => setCheckoutEndereco(e.target.value)} placeholder="Endereço completo com CEP"
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                  <button onClick={gerarPix} disabled={gerandoPix}
+                    onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
+                    onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
+                    style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: gerandoPix ? "default" : "pointer", transition: "background 0.2s" }}>
+                    {gerandoPix ? "Gerando PIX..." : "Gerar PIX e pagar"}
+                  </button>
+                  <button onClick={() => setMostraCheckout(false)} style={{ background: "none", border: "none", color: CINZA, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                    Cancelar
+                  </button>
                 </div>
+
               ) : (
                 <button
-                  onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); enviarMensagem("Quero comprar!"); }}
+                  onClick={() => setMostraCheckout(true)}
                   onMouseEnter={e => (e.currentTarget.style.background = VERDE_ESC)}
                   onMouseLeave={e => (e.currentTarget.style.background = VERDE)}
                   style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
@@ -378,7 +439,7 @@ function ProdutoShopContent() {
                 </button>
               )}
 
-              {!mostraForm && !sucesso && (
+              {!mostraCheckout && !pix && (
                 <button onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); }}
                   style={{ width: "100%", padding: "14px", borderRadius: 8, border: `1px solid ${AZUL}`, background: "#E7F0FF", color: AZUL, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
                   💬 Tirar dúvidas com a Jennifer

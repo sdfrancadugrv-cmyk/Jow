@@ -304,7 +304,9 @@ model VendaShop {
   produtoId        String
   afiliadoId       String?
   nomeCliente      String
-  whatsappCliente  String
+  telefoneCliente  String   @default("")
+  enderecoCliente  String   @default("")
+  whatsappCliente  String   @default("")
   valorPago        Float
   comissaoValor    Float         @default(0)
   paymentId        String?
