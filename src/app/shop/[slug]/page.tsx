@@ -493,6 +493,18 @@ function ProdutoShopContent() {
               )}
             </div>
 
+            {/* Botão afiliado */}
+            <a href="/revendedor" style={{ textDecoration: "none" }}>
+              <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${AMARELO}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                <span style={{ fontSize: 26 }}>💰</span>
+                <div>
+                  <p style={{ color: "#333", fontWeight: 700, fontSize: 13 }}>Revenda e ganhe {produto.comissaoPorc}% de comissão</p>
+                  <p style={{ color: CINZA, fontSize: 11, marginTop: 2 }}>Seja revendedora e lucre em cada venda</p>
+                </div>
+                <span style={{ marginLeft: "auto", color: AZUL, fontSize: 18 }}>›</span>
+              </div>
+            </a>
+
             {/* Chat da Jennifer */}
             {chatAberto && (
               <div style={{ background: "#fff", borderRadius: 8, border: `1px solid ${BORDA}`, overflow: "hidden" }}>
