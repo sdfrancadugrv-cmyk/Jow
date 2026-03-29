@@ -5,7 +5,8 @@ import { useParams, useSearchParams } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 const BG = "#F5F5F5"; const AZUL = "#3483FA"; const AZUL_ESC = "#2968C8";
-const VERDE = "#00A650"; const CINZA = "#666"; const BORDA = "#e5e5e5";
+const VERDE = "#00A650"; const VERDE_ESC = "#008f45"; const CINZA = "#666"; const BORDA = "#E0E0E0";
+const AMARELO = "#FFE600";
 
 function getVideoEmbedUrl(url: string): string | null {
   // YouTube Shorts
@@ -266,10 +267,10 @@ function ProdutoShopContent() {
 
       <main style={{ minHeight: "100vh", background: BG, fontFamily: "Arial, sans-serif" }}>
         {/* Header estilo ML */}
-        <div style={{ background: AZUL, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: "1.2rem", letterSpacing: 1 }}>Jennifer Shop</div>
+        <div style={{ background: AMARELO, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ color: "#333", fontWeight: 700, fontSize: "1.2rem", letterSpacing: 1 }}>Jennifer Shop</div>
           <div style={{ flex: 1 }} />
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12 }}>Compra 100% segura</div>
+          <div style={{ color: "#333", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>🔒 Compra 100% segura</div>
         </div>
 
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
@@ -338,12 +339,17 @@ function ProdutoShopContent() {
           {/* Coluna direita */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {/* Card do produto */}
-            <div style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}` }}>
-              <h1 style={{ color: "#333", fontSize: "1.1rem", fontWeight: 400, lineHeight: 1.4, marginBottom: 16 }}>{produto.nome}</h1>
-              <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#333", marginBottom: 4 }}>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: `1px solid ${BORDA}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+              <h1 style={{ color: "#333", fontSize: "1.1rem", fontWeight: 400, lineHeight: 1.4, marginBottom: 12 }}>{produto.nome}</h1>
+              <p style={{ color: CINZA, fontSize: 12, marginBottom: 6 }}>💸 Economize comprando agora</p>
+              <div style={{ fontSize: "2rem", fontWeight: 700, color: VERDE, marginBottom: 12 }}>
                 R$ {produto.precoVenda.toFixed(2).replace(".", ",")}
               </div>
-              <p style={{ color: VERDE, fontSize: 13, marginBottom: 16 }}>✓ Em estoque</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
+                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Em estoque</p>
+                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Entrega rápida</p>
+                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Pagamento na hora</p>
+              </div>
 
               {sucesso ? (
                 <div style={{ padding: 16, background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, textAlign: "center" }}>
@@ -363,15 +369,18 @@ function ProdutoShopContent() {
                   }}>{comprando ? "Aguarde..." : "FINALIZAR COMPRA"}</button>
                 </div>
               ) : (
-                <button onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); enviarMensagem("Quero comprar!"); }}
-                  style={{ width: "100%", padding: "14px", borderRadius: 6, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", marginBottom: 8 }}>
-                  Comprar agora
+                <button
+                  onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); enviarMensagem("Quero comprar!"); }}
+                  onMouseEnter={e => (e.currentTarget.style.background = VERDE_ESC)}
+                  onMouseLeave={e => (e.currentTarget.style.background = VERDE)}
+                  style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
+                  Comprar agora e economizar
                 </button>
               )}
 
               {!mostraForm && !sucesso && (
                 <button onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); }}
-                  style={{ width: "100%", padding: "14px", borderRadius: 6, border: `2px solid ${AZUL}`, background: "transparent", color: AZUL, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
+                  style={{ width: "100%", padding: "14px", borderRadius: 8, border: `1px solid ${AZUL}`, background: "#E7F0FF", color: AZUL, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
                   💬 Tirar dúvidas com a Jennifer
                 </button>
               )}
