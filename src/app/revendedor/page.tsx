@@ -25,6 +25,7 @@ export default function RevendedorPage() {
   const mensagensRef = useRef<{ role: string; content: string }[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textoAtualRef = useRef("");
+  const ouvirClienteRef = useRef<() => void>(() => {});
 
   useEffect(() => { mensagensRef.current = mensagens; }, [mensagens]);
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function RevendedorPage() {
       audioAtual.current = null; tocandoRef.current = false;
       if (interrompido.current) return;
       if (audioQueue.current.length > 0) tocarFila();
-      else if (ttsPendentes.current === 0) { setEstado("aguardando"); }
+      else if (ttsPendentes.current === 0) { setEstado("aguardando"); ouvirClienteRef.current(); }
     };
     audio.onerror = () => { tocandoRef.current = false; tocarFila(); };
     audio.play()
@@ -78,7 +79,10 @@ export default function RevendedorPage() {
       if (data.audio && !interrompido.current) { audioQueue.current.push(data.audio); tocarFila(); }
     } catch {} finally {
       ttsPendentes.current--;
-      if (ttsPendentes.current === 0 && audioQueue.current.length === 0 && !tocandoRef.current) setEstado("aguardando");
+      if (ttsPendentes.current === 0 && audioQueue.current.length === 0 && !tocandoRef.current) {
+        setEstado("aguardando");
+        ouvirClienteRef.current();
+      }
     }
   }, [tocarFila]);
 
@@ -88,10 +92,13 @@ export default function RevendedorPage() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) { setEstado("aguardando"); return; }
     const rec = new SR(); rec.lang = "pt-BR"; rec.interimResults = false;
-    rec.onresult = (e: any) => { const t = e.results[0][0].transcript.trim(); if (t) enviarMensagem(t); else ouvirCliente(); };
+    rec.onresult = (e: any) => { const t = e.results[0][0].transcript.trim(); if (t) enviarMensagem(t); else ouvirClienteRef.current(); };
     rec.onerror = () => setEstado("aguardando");
     rec.start();
   }, []);
+
+  // Mantém a ref sempre atualizada
+  ouvirClienteRef.current = ouvirCliente;
 
   const enviarMensagem = useCallback(async (texto: string) => {
     pararAudio(); interrompido.current = false; setEstado("processando");
