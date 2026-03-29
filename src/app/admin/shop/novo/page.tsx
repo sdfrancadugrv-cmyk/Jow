@@ -18,7 +18,7 @@ export default function NovoProdutoShopPage() {
   const [form, setForm] = useState({
     nome: "", descricao: "", promptVendas: "",
     fotos: "", videos: "", fotosResultados: "", linkFonte: "",
-    custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10",
+    custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10", tipoVenda: "pix",
   });
 
   function set(key: string, value: string) { setForm(prev => ({ ...prev, [key]: value })); }
@@ -76,6 +76,14 @@ export default function NovoProdutoShopPage() {
               <label style={labelStyle}>COMISSÃO DO AFILIADO (%)</label>
               <input style={inputStyle} type="number" value={form.comissaoPorc} onChange={e => set("comissaoPorc", e.target.value)} placeholder="10" />
             </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>TIPO DE VENDA</label>
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={form.tipoVenda} onChange={e => set("tipoVenda", e.target.value)}>
+              <option value="pix">🛒 Compra com PIX (produto físico/digital)</option>
+              <option value="instalacao">🔧 Solicitar Instalação (serviço presencial)</option>
+            </select>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

@@ -79,6 +79,19 @@ function ProdutoShopContent() {
   const [gerandoPix, setGerandoPix] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrBase64: string; valor: number } | null>(null);
   const [pixCopiado, setPixCopiado] = useState(false);
+  // Instalação
+  const [mostraInstalacao, setMostraInstalacao] = useState(false);
+  const [instNome, setInstNome] = useState("");
+  const [instTelefone, setInstTelefone] = useState("");
+  const [instCep, setInstCep] = useState("");
+  const [instRua, setInstRua] = useState("");
+  const [instNumero, setInstNumero] = useState("");
+  const [instBairro, setInstBairro] = useState("");
+  const [instCidade, setInstCidade] = useState("");
+  const [instEstado, setInstEstado] = useState("");
+  const [instEnviando, setInstEnviando] = useState(false);
+  const [instSucesso, setInstSucesso] = useState(false);
+  const [instErro, setInstErro] = useState("");
 
   const audioQueue = useRef<string[]>([]);
   const tocandoRef = useRef(false);
@@ -306,6 +319,38 @@ function ProdutoShopContent() {
     setTimeout(() => setPixCopiado(false), 3000);
   }
 
+  async function buscarCepInst(cep: string) {
+    const c = cep.replace(/\D/g, "");
+    if (c.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+      const d = await res.json();
+      if (!d.erro) {
+        setInstRua(d.logradouro || "");
+        setInstBairro(d.bairro || "");
+        setInstCidade(d.localidade || "");
+        setInstEstado(d.uf || "");
+      }
+    } catch {}
+  }
+
+  async function enviarInstalacao() {
+    if (!instNome.trim() || !instTelefone.trim() || !instCidade.trim() || !instEstado.trim()) {
+      setInstErro("Preencha nome, telefone e CEP."); return;
+    }
+    setInstEnviando(true); setInstErro("");
+    const endereco = `${instRua}${instNumero ? `, ${instNumero}` : ""}${instBairro ? ` — ${instBairro}` : ""}`;
+    try {
+      const res = await fetch("/api/shop/instalacao", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produtoSlug: slug, nome: instNome, telefone: instTelefone, cep: instCep, cidade: instCidade, estado: instEstado, endereco }),
+      });
+      const data = await res.json();
+      if (data.erro) { setInstErro(data.erro); return; }
+      setInstSucesso(true);
+    } finally { setInstEnviando(false); }
+  }
+
   async function finalizarCompra() {
     if (!nomeCliente.trim() || !whatsCliente.trim()) { alert("Preencha nome e WhatsApp."); return; }
     setComprando(true);
@@ -428,61 +473,106 @@ function ProdutoShopContent() {
                 <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Pagamento na hora</p>
               </div>
 
-              {/* PIX gerado */}
-              {pix ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                  <div style={{ padding: "12px 16px", background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, width: "100%", textAlign: "center" }}>
-                    <p style={{ color: VERDE, fontWeight: 700, fontSize: 15 }}>✅ PIX gerado com sucesso!</p>
-                    <p style={{ color: CINZA, fontSize: 12, marginTop: 4 }}>Valor: <strong style={{ color: "#333" }}>R$ {pix.valor.toFixed(2).replace(".", ",")}</strong></p>
+              {/* INSTALAÇÃO */}
+              {produto.tipoVenda === "instalacao" ? (
+                instSucesso ? (
+                  <div style={{ padding: "16px", background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, textAlign: "center" }}>
+                    <p style={{ color: VERDE, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>✅ Solicitação enviada!</p>
+                    <p style={{ color: CINZA, fontSize: 13 }}>Entraremos em contato pelo WhatsApp para agendar a instalação.</p>
                   </div>
-                  {pix.qrBase64 && (
-                    <img src={`data:image/png;base64,${pix.qrBase64}`} alt="QR Code PIX" style={{ width: 180, height: 180, borderRadius: 8, border: `1px solid ${BORDA}` }} />
-                  )}
-                  <button onClick={copiarPix} style={{
-                    width: "100%", padding: "14px", borderRadius: 8, border: "none",
-                    background: pixCopiado ? VERDE_ESC : VERDE, color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
-                  }}>
-                    {pixCopiado ? "✅ Código copiado!" : "📋 Copiar código PIX"}
-                  </button>
-                  <p style={{ color: CINZA, fontSize: 11, textAlign: "center" }}>Abra seu banco, escolha Pix → Colar código e confirme o pagamento</p>
-                </div>
-
-              ) : mostraCheckout ? (
-                /* Form de cadastro para checkout */
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
-                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo *" className="shop-input" />
-                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD * (ex: 11999999999)" className="shop-input" />
-                  <input value={checkoutCep} onChange={e => { setCheckoutCep(e.target.value); buscarCep(e.target.value); }} placeholder="CEP *" className="shop-input" maxLength={9} />
-                  <input value={checkoutRua} onChange={e => setCheckoutRua(e.target.value)} placeholder="Rua / Avenida *" className="shop-input" />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <input value={checkoutNumero} onChange={e => setCheckoutNumero(e.target.value)} placeholder="Número *" className="shop-input" />
-                    <input value={checkoutComplemento} onChange={e => setCheckoutComplemento(e.target.value)} placeholder="Complemento" className="shop-input" />
+                ) : mostraInstalacao ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 2 }}>📍 Informe seus dados:</p>
+                    <p style={{ color: CINZA, fontSize: 11, marginBottom: 4 }}>Atendemos Pelotas e região (RS)</p>
+                    <input value={instNome} onChange={e => setInstNome(e.target.value)} placeholder="Nome completo *" className="shop-input" />
+                    <input value={instTelefone} onChange={e => setInstTelefone(e.target.value)} placeholder="WhatsApp com DDD *" className="shop-input" />
+                    <input value={instCep} onChange={e => { setInstCep(e.target.value); buscarCepInst(e.target.value); }} placeholder="CEP *" className="shop-input" maxLength={9} />
+                    <input value={instRua} onChange={e => setInstRua(e.target.value)} placeholder="Rua / Avenida" className="shop-input" />
+                    <input value={instNumero} onChange={e => setInstNumero(e.target.value)} placeholder="Número" className="shop-input" />
+                    <input value={instBairro} onChange={e => setInstBairro(e.target.value)} placeholder="Bairro" className="shop-input" />
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 8 }}>
+                      <input value={instCidade} onChange={e => setInstCidade(e.target.value)} placeholder="Cidade *" className="shop-input" />
+                      <input value={instEstado} onChange={e => setInstEstado(e.target.value)} placeholder="UF *" className="shop-input" maxLength={2} />
+                    </div>
+                    {instErro && (
+                      <div style={{ padding: "10px 12px", background: "#fff0f0", borderRadius: 6, border: "1px solid #c0392b" }}>
+                        <p style={{ color: "#c0392b", fontSize: 12 }}>{instErro}</p>
+                      </div>
+                    )}
+                    <button onClick={enviarInstalacao} disabled={instEnviando}
+                      style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: instEnviando ? "#ccc" : AZUL, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: instEnviando ? "default" : "pointer" }}>
+                      {instEnviando ? "Enviando..." : "Confirmar Solicitação"}
+                    </button>
+                    <button onClick={() => { setMostraInstalacao(false); setInstErro(""); }} style={{ background: "none", border: "none", color: CINZA, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                      Cancelar
+                    </button>
                   </div>
-                  <input value={checkoutBairro} onChange={e => setCheckoutBairro(e.target.value)} placeholder="Bairro *" className="shop-input" />
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 8 }}>
-                    <input value={checkoutCidade} onChange={e => setCheckoutCidade(e.target.value)} placeholder="Cidade *" className="shop-input" />
-                    <input value={checkoutEstado} onChange={e => setCheckoutEstado(e.target.value)} placeholder="UF *" className="shop-input" maxLength={2} />
-                  </div>
-                  <button onClick={gerarPix} disabled={gerandoPix}
-                    onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
-                    onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
-                    style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: gerandoPix ? "default" : "pointer", transition: "background 0.2s" }}>
-                    {gerandoPix ? "Gerando PIX..." : "Gerar PIX e pagar"}
+                ) : (
+                  <button
+                    onClick={() => setMostraInstalacao(true)}
+                    onMouseEnter={e => (e.currentTarget.style.background = AZUL_ESC)}
+                    onMouseLeave={e => (e.currentTarget.style.background = AZUL)}
+                    style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: AZUL, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
+                    🔧 Solicitar Instalação
                   </button>
-                  <button onClick={() => setMostraCheckout(false)} style={{ background: "none", border: "none", color: CINZA, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-                    Cancelar
-                  </button>
-                </div>
+                )
 
               ) : (
-                <button
-                  onClick={() => setMostraCheckout(true)}
-                  onMouseEnter={e => (e.currentTarget.style.background = VERDE_ESC)}
-                  onMouseLeave={e => (e.currentTarget.style.background = VERDE)}
-                  style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
-                  Comprar agora e economizar
-                </button>
+                /* PIX / Compra normal */
+                <>
+                  {pix ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                      <div style={{ padding: "12px 16px", background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, width: "100%", textAlign: "center" }}>
+                        <p style={{ color: VERDE, fontWeight: 700, fontSize: 15 }}>✅ PIX gerado com sucesso!</p>
+                        <p style={{ color: CINZA, fontSize: 12, marginTop: 4 }}>Valor: <strong style={{ color: "#333" }}>R$ {pix.valor.toFixed(2).replace(".", ",")}</strong></p>
+                      </div>
+                      {pix.qrBase64 && (
+                        <img src={`data:image/png;base64,${pix.qrBase64}`} alt="QR Code PIX" style={{ width: 180, height: 180, borderRadius: 8, border: `1px solid ${BORDA}` }} />
+                      )}
+                      <button onClick={copiarPix} style={{
+                        width: "100%", padding: "14px", borderRadius: 8, border: "none",
+                        background: pixCopiado ? VERDE_ESC : VERDE, color: "#fff", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer",
+                      }}>
+                        {pixCopiado ? "✅ Código copiado!" : "📋 Copiar código PIX"}
+                      </button>
+                      <p style={{ color: CINZA, fontSize: 11, textAlign: "center" }}>Abra seu banco, escolha Pix → Colar código e confirme o pagamento</p>
+                    </div>
+                  ) : mostraCheckout ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
+                      <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo *" className="shop-input" />
+                      <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD * (ex: 11999999999)" className="shop-input" />
+                      <input value={checkoutCep} onChange={e => { setCheckoutCep(e.target.value); buscarCep(e.target.value); }} placeholder="CEP *" className="shop-input" maxLength={9} />
+                      <input value={checkoutRua} onChange={e => setCheckoutRua(e.target.value)} placeholder="Rua / Avenida *" className="shop-input" />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <input value={checkoutNumero} onChange={e => setCheckoutNumero(e.target.value)} placeholder="Número *" className="shop-input" />
+                        <input value={checkoutComplemento} onChange={e => setCheckoutComplemento(e.target.value)} placeholder="Complemento" className="shop-input" />
+                      </div>
+                      <input value={checkoutBairro} onChange={e => setCheckoutBairro(e.target.value)} placeholder="Bairro *" className="shop-input" />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 8 }}>
+                        <input value={checkoutCidade} onChange={e => setCheckoutCidade(e.target.value)} placeholder="Cidade *" className="shop-input" />
+                        <input value={checkoutEstado} onChange={e => setCheckoutEstado(e.target.value)} placeholder="UF *" className="shop-input" maxLength={2} />
+                      </div>
+                      <button onClick={gerarPix} disabled={gerandoPix}
+                        onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
+                        onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
+                        style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: gerandoPix ? "default" : "pointer", transition: "background 0.2s" }}>
+                        {gerandoPix ? "Gerando PIX..." : "Gerar PIX e pagar"}
+                      </button>
+                      <button onClick={() => setMostraCheckout(false)} style={{ background: "none", border: "none", color: CINZA, fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setMostraCheckout(true)}
+                      onMouseEnter={e => (e.currentTarget.style.background = VERDE_ESC)}
+                      onMouseLeave={e => (e.currentTarget.style.background = VERDE)}
+                      style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: VERDE, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
+                      Comprar agora e economizar
+                    </button>
+                  )}
+                </>
               )}
 
 

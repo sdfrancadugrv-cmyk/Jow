@@ -275,13 +275,31 @@ model ProdutoShop {
   prazoEntrega  String   // ex: "5 a 10 dias úteis"
   precoVenda    Float    // preço que cobra do cliente
   comissaoPorc  Float    @default(10) // % comissão do afiliado
+  tipoVenda     String   @default("pix") // "pix" | "instalacao"
   ativo         Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   vendas        VendaShop[]
   cliques       CliqueShop[]
+  solicitacoes  SolicitacaoInstalacao[]
 
   @@index([ativo])
+}
+
+model SolicitacaoInstalacao {
+  id        String   @id @default(cuid())
+  produtoId String
+  nome      String
+  telefone  String
+  cep       String
+  cidade    String
+  estado    String
+  endereco  String
+  status    String   @default("pendente") // pendente | confirmado | cancelado
+  createdAt DateTime @default(now())
+  produto   ProdutoShop @relation(fields: [produtoId], references: [id])
+
+  @@index([produtoId])
 }
 
 model AfiliadoShop {

@@ -19,7 +19,7 @@ export default function EditarProdutoShopPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<any>({
     nome: "", descricao: "", promptVendas: "", fotos: "", videos: "", fotosResultados: "",
-    linkFonte: "", custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10",
+    linkFonte: "", custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10", tipoVenda: "pix",
   });
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function EditarProdutoShopPage() {
           fotos: (p.fotos || []).join("\n"), videos: (p.videos || []).join("\n"),
           fotosResultados: (p.fotosResultados || []).join("\n"),
           linkFonte: p.linkFonte, custoCompra: p.custoCompra, prazoEntrega: p.prazoEntrega,
-          precoVenda: p.precoVenda, comissaoPorc: p.comissaoPorc,
+          precoVenda: p.precoVenda, comissaoPorc: p.comissaoPorc, tipoVenda: p.tipoVenda || "pix",
         });
       })
       .finally(() => setLoading(false));
@@ -74,6 +74,13 @@ export default function EditarProdutoShopPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={labelStyle}>PREÇO (R$) *</label><input style={inputStyle} type="number" value={form.precoVenda} onChange={e => set("precoVenda", e.target.value)} /></div>
             <div><label style={labelStyle}>COMISSÃO (%)</label><input style={inputStyle} type="number" value={form.comissaoPorc} onChange={e => set("comissaoPorc", e.target.value)} /></div>
+          </div>
+          <div>
+            <label style={labelStyle}>TIPO DE VENDA</label>
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={form.tipoVenda} onChange={e => set("tipoVenda", e.target.value)}>
+              <option value="pix">🛒 Compra com PIX (produto físico/digital)</option>
+              <option value="instalacao">🔧 Solicitar Instalação (serviço presencial)</option>
+            </select>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={labelStyle}>CUSTO (R$)</label><input style={inputStyle} type="number" value={form.custoCompra} onChange={e => set("custoCompra", e.target.value)} /></div>
