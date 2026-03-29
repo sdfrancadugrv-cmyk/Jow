@@ -268,7 +268,7 @@ function ProdutoShopContent() {
       <main style={{ minHeight: "100vh", background: BG, fontFamily: "Arial, sans-serif" }}>
         {/* Header estilo ML */}
         <div style={{ background: AMARELO, padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/logo-jennifer-shop.png" alt="Jennifer Shop" style={{ height: 48, mixBlendMode: "multiply" }} />
+          <img src="/logo-jennifer-shop.png" alt="Jennifer Shop" style={{ height: 72, mixBlendMode: "multiply" }} />
           <div style={{ flex: 1 }} />
           <div style={{ color: "#333", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>🔒 Compra 100% segura</div>
         </div>
