@@ -418,11 +418,11 @@ function ProdutoShopContent() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
                   <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
                   <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD (ex: 11999999999)"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
                   <input value={checkoutEndereco} onChange={e => setCheckoutEndereco(e.target.value)} placeholder="Endereço completo com CEP"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none" }} />
+                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
                   <button onClick={gerarPix} disabled={gerandoPix}
                     onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
                     onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
