@@ -471,6 +471,12 @@ function ProdutoShopContent() {
           </button>
         </div>
 
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "10px 16px 0" }}>
+          <a href={`/shop${ref ? `?ref=${ref}` : ""}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: AZUL, fontSize: 13, textDecoration: "none", fontWeight: 600 }}>
+            ← Ver todos os produtos
+          </a>
+        </div>
+
         <div className="shop-main-grid" style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
 
           {/* Coluna esquerda */}
