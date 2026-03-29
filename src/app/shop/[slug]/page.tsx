@@ -417,12 +417,9 @@ function ProdutoShopContent() {
                 /* Form de cadastro para checkout */
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
-                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
-                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD (ex: 11999999999)"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
-                  <input value={checkoutEndereco} onChange={e => setCheckoutEndereco(e.target.value)} placeholder="Endereço completo com CEP"
-                    style={{ padding: "11px 12px", borderRadius: 8, border: `1px solid ${BORDA}`, fontSize: 13, outline: "none", color: "#333", background: "#fff" }} />
+                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo" className="shop-input" />
+                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD (ex: 11999999999)" className="shop-input" />
+                  <input value={checkoutEndereco} onChange={e => setCheckoutEndereco(e.target.value)} placeholder="Endereço completo com CEP" className="shop-input" />
                   <button onClick={gerarPix} disabled={gerandoPix}
                     onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
                     onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
@@ -519,7 +516,11 @@ function ProdutoShopContent() {
           </div>
         </div>
       </main>
-      <style>{`@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}`}</style>
+      <style>{`
+  @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
+  .shop-input::placeholder{color:#999;}
+`}</style>
     </>
   );
 }
