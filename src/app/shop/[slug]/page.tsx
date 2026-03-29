@@ -124,7 +124,7 @@ function ProdutoShopContent() {
   const tocarFila = useCallback(() => {
     if (interrompido.current || tocandoRef.current || audioQueue.current.length === 0) return;
     tocandoRef.current = true;
-    const b64 = audioQueue.current.shift()!;
+    const b64 = audioQueue.current[0]; // peek — não remove antes de confirmar play
     const audio = new Audio(`data:audio/mp3;base64,${b64}`);
     audioAtual.current = audio;
     audio.onended = () => {
@@ -134,7 +134,19 @@ function ProdutoShopContent() {
       else if (ttsPendentes.current === 0 && onFimAudio.current) { onFimAudio.current(); onFimAudio.current = null; }
     };
     audio.onerror = () => { tocandoRef.current = false; tocarFila(); };
-    audio.play().catch(() => { tocandoRef.current = false; tocarFila(); });
+    audio.play()
+      .then(() => { audioQueue.current.shift(); }) // remove só após play aceito
+      .catch(() => {
+        tocandoRef.current = false;
+        // Browser bloqueou autoplay — aguarda 1ª interação do usuário e tenta de novo
+        const retry = () => {
+          document.removeEventListener("click", retry);
+          document.removeEventListener("touchstart", retry);
+          tocarFila();
+        };
+        document.addEventListener("click", retry, { once: true });
+        document.addEventListener("touchstart", retry, { once: true });
+      });
   }, []);
 
   function pararAudio() {
@@ -263,6 +275,7 @@ function ProdutoShopContent() {
   useEffect(() => {
     if (!produto || iniciado) return;
     setIniciado(true);
+    interrompido.current = false;
     setEstado("falando");
     const intro = "Oiêê... eu sou a vendedora Jennifer e tô aqui pra tirar tuas dúvidas e te ajudar a finalizar a compra. Você pode conversar comigo como se estivesse falando com uma pessoa. Eu sou capaz de ouvir, compreender, responder perguntas e te apresentar todos os detalhes sobre esse produto. Qualquer coisa é só chamar!";
     enfileirarTTS(intro);
