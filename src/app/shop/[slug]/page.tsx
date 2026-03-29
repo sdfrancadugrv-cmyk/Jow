@@ -264,7 +264,7 @@ function ProdutoShopContent() {
     if (!produto || iniciado) return;
     setIniciado(true);
     setEstado("falando");
-    const intro = "Oiê! Sou a Jennifer, sua assistente de vendas virtual. Estou aqui pra tirar todas as suas dúvidas sobre esse produto. Pode falar comigo normalmente, como se estivesse conversando com uma pessoa — eu ouço, entendo e te ajudo no processo de compra!";
+    const intro = "Oiêê... eu sou a vendedora Jennifer e tô aqui pra tirar tuas dúvidas e te ajudar a finalizar a compra. Você pode conversar comigo como se estivesse falando com uma pessoa. Eu sou capaz de ouvir, compreender, responder perguntas e te apresentar todos os detalhes sobre esse produto. Qualquer coisa é só chamar!";
     enfileirarTTS(intro);
     onFimAudio.current = () => {
       const msgs = [{ role: "assistant", content: intro }];
