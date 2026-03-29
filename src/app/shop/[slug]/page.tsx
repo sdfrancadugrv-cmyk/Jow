@@ -80,6 +80,8 @@ function ProdutoShopContent() {
   const [checkoutEstado, setCheckoutEstado] = useState("");
   const [gerandoPix, setGerandoPix] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrBase64: string; valor: number } | null>(null);
+  // Seleção de modalidade (quando produto tem precoComInstalacao)
+  const [modalidade, setModalidade] = useState<"" | "semInstalacao" | "comInstalacao">("");
   const [pixCopiado, setPixCopiado] = useState(false);
   // Instalação
   const [mostraInstalacao, setMostraInstalacao] = useState(false);
@@ -552,19 +554,74 @@ function ProdutoShopContent() {
             {/* Card do produto */}
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: `1px solid ${BORDA}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
               <h1 style={{ color: "#333", fontSize: "1.1rem", fontWeight: 400, lineHeight: 1.4, marginBottom: 12 }}>{produto.nome}</h1>
-              <p style={{ color: CINZA, fontSize: 12, marginBottom: 6 }}>💸 Economize comprando agora</p>
-              <p style={{ color: "#e67e00", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>🔥 {gerarVendasFake(produto.slug)} vendidos</p>
-              <div style={{ fontSize: "2rem", fontWeight: 700, color: VERDE, marginBottom: 12 }}>
-                R$ {produto.precoVenda.toFixed(2).replace(".", ",")}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
-                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Em estoque</p>
-                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Entrega rápida</p>
-                <p style={{ color: CINZA, fontSize: 13 }}><span style={{ color: VERDE, fontWeight: 700 }}>✔</span> Pagamento na hora</p>
-              </div>
+              <p style={{ color: "#e67e00", fontSize: 12, fontWeight: 600, marginBottom: 10 }}>🔥 {gerarVendasFake(produto.slug)} vendidos</p>
 
-              {/* INSTALAÇÃO */}
-              {produto.tipoVenda === "instalacao" ? (
+              {/* Seleção de modalidade quando há preço com instalação */}
+              {produto.precoComInstalacao ? (
+                modalidade === "" ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 4 }}>
+                    <p style={{ color: "#333", fontSize: 13, fontWeight: 600 }}>Escolha uma opção:</p>
+                    {/* Com instalação */}
+                    <div onClick={() => setModalidade("comInstalacao")} style={{
+                      border: `2px solid ${AZUL}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer",
+                      background: "rgba(52,131,250,0.04)", display: "flex", alignItems: "center", gap: 12,
+                    }}>
+                      <span style={{ fontSize: 28 }}>🔧</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: AZUL, fontWeight: 700, fontSize: 14 }}>Com instalação</p>
+                        <p style={{ color: CINZA, fontSize: 11, marginTop: 2 }}>Pelotas e região (RS)</p>
+                      </div>
+                      <p style={{ color: AZUL, fontWeight: 700, fontSize: "1.2rem" }}>
+                        R$ {produto.precoComInstalacao.toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+                    {/* Sem instalação */}
+                    <div onClick={() => setModalidade("semInstalacao")} style={{
+                      border: `2px solid ${VERDE}`, borderRadius: 10, padding: "14px 16px", cursor: "pointer",
+                      background: "rgba(0,166,80,0.04)", display: "flex", alignItems: "center", gap: 12,
+                    }}>
+                      <span style={{ fontSize: 28 }}>📦</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: VERDE, fontWeight: 700, fontSize: 14 }}>Sem instalação</p>
+                        <p style={{ color: CINZA, fontSize: 11, marginTop: 2 }}>Envio pelos Correios</p>
+                      </div>
+                      <p style={{ color: VERDE, fontWeight: 700, fontSize: "1.2rem" }}>
+                        R$ {produto.precoVenda.toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{
+                      border: `2px solid ${modalidade === "comInstalacao" ? AZUL : VERDE}`,
+                      borderRadius: 10, padding: "10px 14px",
+                      display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
+                      background: modalidade === "comInstalacao" ? "rgba(52,131,250,0.06)" : "rgba(0,166,80,0.06)",
+                    }}>
+                      <span style={{ fontSize: 22 }}>{modalidade === "comInstalacao" ? "🔧" : "📦"}</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ color: modalidade === "comInstalacao" ? AZUL : VERDE, fontWeight: 700, fontSize: 13 }}>
+                          {modalidade === "comInstalacao" ? "Com instalação — Pelotas e região" : "Sem instalação — Envio pelos Correios"}
+                        </p>
+                      </div>
+                      <p style={{ color: modalidade === "comInstalacao" ? AZUL : VERDE, fontWeight: 700, fontSize: "1.1rem" }}>
+                        R$ {(modalidade === "comInstalacao" ? produto.precoComInstalacao : produto.precoVenda).toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+                    <button onClick={() => { setModalidade(""); setMostraCheckout(false); setMostraInstalacao(false); setPix(null); }}
+                      style={{ background: "none", border: "none", color: CINZA, fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>
+                      ← Trocar opção
+                    </button>
+                  </div>
+                )
+              ) : (
+                <div style={{ fontSize: "2rem", fontWeight: 700, color: VERDE, marginBottom: 12 }}>
+                  R$ {produto.precoVenda.toFixed(2).replace(".", ",")}
+                </div>
+              )}
+
+              {/* INSTALAÇÃO — quando produto só tem instalação OU modalidade comInstalacao selecionada */}
+              {(produto.tipoVenda === "instalacao" || modalidade === "comInstalacao") && modalidade !== "semInstalacao" ? (
                 instSucesso ? (
                   <div style={{ padding: "16px", background: "#f0fff4", borderRadius: 8, border: `1px solid ${VERDE}`, textAlign: "center" }}>
                     <p style={{ color: VERDE, fontWeight: 700, fontSize: 15, marginBottom: 4 }}>✅ Solicitação enviada!</p>
@@ -607,7 +664,7 @@ function ProdutoShopContent() {
                   </button>
                 )
 
-              ) : (
+              ) : produto.precoComInstalacao && modalidade === "" ? null : (
                 /* PIX / Compra normal */
                 <>
                   {pix ? (

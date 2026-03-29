@@ -273,7 +273,8 @@ model ProdutoShop {
   linkFonte     String   // link ML, Shopee, etc.
   custoCompra   Float    // quanto paga para comprar
   prazoEntrega  String   // ex: "5 a 10 dias úteis"
-  precoVenda    Float    // preço que cobra do cliente
+  precoVenda          Float    // preço que cobra do cliente (sem instalação)
+  precoComInstalacao  Float?   // se preenchido, mostra opção "com instalação" neste valor
   comissaoPorc  Float    @default(10) // % comissão do afiliado
   tipoVenda     String   @default("pix") // "pix" | "instalacao"
   ativo         Boolean  @default(true)

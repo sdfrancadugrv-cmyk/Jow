@@ -19,7 +19,7 @@ export default function EditarProdutoShopPage() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<any>({
     nome: "", descricao: "", promptVendas: "", fotos: "", videos: "", fotosResultados: "",
-    linkFonte: "", custoCompra: "", prazoEntrega: "", precoVenda: "", comissaoPorc: "10", tipoVenda: "pix",
+    linkFonte: "", custoCompra: "", prazoEntrega: "", precoVenda: "", precoComInstalacao: "", comissaoPorc: "10", tipoVenda: "pix",
   });
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function EditarProdutoShopPage() {
           fotos: (p.fotos || []).join("\n"), videos: (p.videos || []).join("\n"),
           fotosResultados: (p.fotosResultados || []).join("\n"),
           linkFonte: p.linkFonte, custoCompra: p.custoCompra, prazoEntrega: p.prazoEntrega,
-          precoVenda: p.precoVenda, comissaoPorc: p.comissaoPorc, tipoVenda: p.tipoVenda || "pix",
+          precoVenda: p.precoVenda, precoComInstalacao: p.precoComInstalacao ?? "", comissaoPorc: p.comissaoPorc, tipoVenda: p.tipoVenda || "pix",
         });
       })
       .finally(() => setLoading(false));
@@ -72,7 +72,10 @@ export default function EditarProdutoShopPage() {
           <div><label style={labelStyle}>DESCRIÇÃO *</label><textarea style={{ ...inputStyle, minHeight: 120, resize: "vertical" }} value={form.descricao} onChange={e => set("descricao", e.target.value)} /></div>
           <div><label style={labelStyle}>COMO JENNIFER DEVE VENDER *</label><textarea style={{ ...inputStyle, minHeight: 100, resize: "vertical" }} value={form.promptVendas} onChange={e => set("promptVendas", e.target.value)} /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={labelStyle}>PREÇO (R$) *</label><input style={inputStyle} type="number" value={form.precoVenda} onChange={e => set("precoVenda", e.target.value)} /></div>
+            <div><label style={labelStyle}>PREÇO SEM INSTALAÇÃO (R$) *</label><input style={inputStyle} type="number" value={form.precoVenda} onChange={e => set("precoVenda", e.target.value)} /></div>
+            <div><label style={labelStyle}>PREÇO COM INSTALAÇÃO (R$) <span style={{ color: MUTED }}>(opcional)</span></label><input style={inputStyle} type="number" value={form.precoComInstalacao} onChange={e => set("precoComInstalacao", e.target.value)} placeholder="ex: 147.00" /></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={labelStyle}>COMISSÃO (%)</label><input style={inputStyle} type="number" value={form.comissaoPorc} onChange={e => set("comissaoPorc", e.target.value)} /></div>
           </div>
           <div>
