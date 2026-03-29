@@ -394,12 +394,12 @@ function ProdutoShopContent() {
           <div style={{ color: "#333", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>🔒 Compra 100% segura</div>
         </div>
 
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
+        <div className="shop-main-grid" style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
 
           {/* Coluna esquerda */}
-          <div>
+          <div className="shop-col-left">
             {/* Galeria */}
-            <div style={{ background: "#fff", borderRadius: 8, padding: 16, border: `1px solid ${BORDA}` }}>
+            <div className="shop-gallery" style={{ background: "#fff", borderRadius: 8, padding: 16, border: `1px solid ${BORDA}` }}>
               {/* Mídia principal */}
               <div style={{ aspectRatio: "1/1", background: "#f5f5f5", borderRadius: 8, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                 {todasMidias.length === 0 ? (
@@ -427,7 +427,7 @@ function ProdutoShopContent() {
             </div>
 
             {/* Descrição */}
-            <div style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}`, marginTop: 12 }}>
+            <div className="shop-details" style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}`, marginTop: 12 }}>
               <h2 style={{ color: "#333", fontSize: "1rem", fontWeight: 700, marginBottom: 12 }}>Descrição do produto</h2>
               <p style={{ color: CINZA, fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{produto.descricao}</p>
               {produto.prazoEntrega && (
@@ -458,7 +458,7 @@ function ProdutoShopContent() {
           </div>
 
           {/* Coluna direita */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="shop-sidebar" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {/* Card do produto */}
             <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: `1px solid ${BORDA}`, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
               <h1 style={{ color: "#333", fontSize: "1.1rem", fontWeight: 400, lineHeight: 1.4, marginBottom: 12 }}>{produto.nome}</h1>
@@ -662,6 +662,22 @@ function ProdutoShopContent() {
   @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
   .shop-input::placeholder{color:#999;}
+
+  /* Mobile: galeria → botão comprar → descrição */
+  @media (max-width: 768px) {
+    .shop-main-grid {
+      display: flex !important;
+      flex-direction: column;
+      padding: 8px !important;
+      gap: 10px !important;
+    }
+    .shop-col-left {
+      display: contents !important;
+    }
+    .shop-gallery { order: 1; }
+    .shop-sidebar { order: 2; }
+    .shop-details { order: 3; }
+  }
 `}</style>
     </>
   );
