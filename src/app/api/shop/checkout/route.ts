@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import MercadoPago from "mercadopago";
+import { MercadoPagoConfig, Payment } from "mercadopago";
 
-const mp = new MercadoPago({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! });
+const mpConfig = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! });
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
 
     // Gera PIX direto via Mercado Pago
     const emailPagador = `${telefoneCliente.replace(/\D/g, "")}@compradores.jennifer.shop`;
-    const payment = await (mp as any).payment.create({
+    const paymentClient = new Payment(mpConfig);
+    const paymentResult = await paymentClient.create({
       body: {
         transaction_amount: produto.precoVenda,
         description: produto.nome,
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const txData = payment?.point_of_interaction?.transaction_data;
+    const txData = (paymentResult as any)?.point_of_interaction?.transaction_data;
 
     return NextResponse.json({
       vendaId: venda.id,

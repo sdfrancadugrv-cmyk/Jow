@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import MercadoPago from "mercadopago";
+import { MercadoPagoConfig, Payment } from "mercadopago";
 
-const mp = new MercadoPago({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! });
+const mpConfig = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN! });
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,8 @@ export async function POST(req: NextRequest) {
     const paymentId = body?.data?.id;
     if (!paymentId) return NextResponse.json({ ok: true });
 
-    const payment = await (mp as any).payment.get({ id: paymentId });
+    const paymentClient = new Payment(mpConfig);
+    const payment = await paymentClient.get({ id: paymentId });
     if (payment?.status !== "approved") return NextResponse.json({ ok: true });
 
     const ref = payment.external_reference as string;
