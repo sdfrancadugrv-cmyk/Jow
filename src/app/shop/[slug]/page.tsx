@@ -759,7 +759,7 @@ function ProdutoShopContent() {
                     <p style={{ color: "#FFE600", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
                       E o melhor: é de graça. Você não paga pra usar a Jennifer.
                     </p>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFE600", borderRadius: 20, padding: "9px 18px" }}>
+                    <div className="btn-afiliado-pulse" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFE600", borderRadius: 20, padding: "9px 18px" }}>
                       <span style={{ color: "#111", fontWeight: 700, fontSize: 13 }}>Minha Jennifer agora →</span>
                     </div>
                   </div>
@@ -842,6 +842,8 @@ function ProdutoShopContent() {
   .jennifer-pulse{animation:jennifer-glow 0.8s ease-in-out infinite;}
   @keyframes azul-pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,131,250,0.55)}60%{box-shadow:0 0 0 10px rgba(52,131,250,0)}}
   .btn-azul-pulse{animation:azul-pulse 2.2s ease-in-out infinite;}
+  @keyframes afiliado-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,230,0,0.7)}60%{box-shadow:0 0 0 10px rgba(255,230,0,0)}}
+  .btn-afiliado-pulse{animation:afiliado-pulse 2s ease-in-out infinite;}
   @keyframes legenda-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
   .jennifer-legenda{animation:legenda-in 0.3s ease;}
   .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
