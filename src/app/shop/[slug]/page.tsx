@@ -758,7 +758,6 @@ function ProdutoShopContent() {
                   </div>
                 </div>
               </div>
-              </div>
             </a>
 
           </div>
