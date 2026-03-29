@@ -74,6 +74,22 @@ function ProdutoShopContent() {
       .finally(() => setLoading(false));
   }, [slug, ref]);
 
+  // ── AUTO-APRESENTAÇÃO ao carregar o produto ───────────────────────────────────
+  useEffect(() => {
+    if (!produto || iniciado) return;
+    setIniciado(true);
+    setChatAberto(true);
+    setEstado("falando");
+    const intro = "Oiê! Sou a Jennifer, sua assistente de vendas virtual. Estou aqui pra tirar todas as suas dúvidas sobre esse produto. Pode falar comigo normalmente, como se estivesse conversando com uma pessoa — eu ouço, entendo e te ajudo no processo de compra!";
+    enfileirarTTS(intro);
+    onFimAudio.current = () => {
+      const msgs = [{ role: "assistant", content: intro }];
+      setMensagens(msgs); mensagensRef.current = msgs;
+      setEstado("aguardando");
+      setTimeout(() => { if (!interrompido.current) ouvirCliente(t => enviarMensagem(t)); }, 500);
+    };
+  }, [produto, iniciado, enfileirarTTS, ouvirCliente, enviarMensagem]);
+
   // ── TTS ──────────────────────────────────────────────────────────────────────
   const tocarFila = useCallback(() => {
     if (interrompido.current || tocandoRef.current || audioQueue.current.length === 0) return;
