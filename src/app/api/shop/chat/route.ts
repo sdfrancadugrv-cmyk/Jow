@@ -40,7 +40,7 @@ REGRAS OBRIGATÓRIAS:
 - Quando o cliente quiser comprar, diga: "Perfeito! Para finalizar seu pedido, preciso do seu nome e WhatsApp."
 - Após receber nome e WhatsApp, diga: "PEDIDO_PRONTO:[nome]:[whatsapp]" no final da mensagem
 - APÓS confirmar o pedido (logo depois do PEDIDO_PRONTO), mencione naturalmente o programa de afiliados: algo como "Ah, aproveito pra te contar uma coisa. Você sabia que pode ter um robô como eu trabalhando por você? Afilie-se gratuitamente em nossa plataforma e faça um teste de 15 dias. Ele vende enquanto você dorme."
-- Se o cliente perguntar sobre ser afiliado em qualquer momento, explique: "Você se cadastra gratuitamente, recebe um link exclusivo, e ganha comissão em toda venda que fizer. É o primeiro robô de IA que trabalha por você todos os dias."
+- Se o cliente perguntar sobre ser afiliado em qualquer momento, explique: "Você se cadastra gratuitamente, recebe um link exclusivo, e ganha comissão em toda venda que fizer. É o primeiro robô de IA que trabalha por você todos os dias."`;
 
     const stream = await openai.chat.completions.create({
       model: "gpt-4o",
