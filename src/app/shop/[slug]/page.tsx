@@ -55,7 +55,9 @@ function ProdutoShopContent() {
   const [produto, setProduto] = useState<any>(null);
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [chatAberto, setChatAberto] = useState(true);
+  const [chatAberto, setChatAberto] = useState(false);
+  const [videoTocando, setVideoTocando] = useState(false);
+  const videoJaPerguntouRef = useRef(false);
   const [mensagens, setMensagens] = useState<{ role: string; content: string }[]>([]);
   const [textoAtual, setTextoAtual] = useState("");
   const [estado, setEstado] = useState<"aguardando" | "falando" | "ouvindo" | "processando">("aguardando");
@@ -261,7 +263,6 @@ function ProdutoShopContent() {
   useEffect(() => {
     if (!produto || iniciado) return;
     setIniciado(true);
-    setChatAberto(true);
     setEstado("falando");
     const intro = "Oiê! Sou a Jennifer, sua assistente de vendas virtual. Estou aqui pra tirar todas as suas dúvidas sobre esse produto. Pode falar comigo normalmente, como se estivesse conversando com uma pessoa — eu ouço, entendo e te ajudo no processo de compra!";
     enfileirarTTS(intro);
@@ -272,6 +273,31 @@ function ProdutoShopContent() {
       setTimeout(() => { if (!interrompido.current) ouvirCliente(t => enviarMensagem(t)); }, 500);
     };
   }, [produto, iniciado, enfileirarTTS, ouvirCliente, enviarMensagem]);
+
+  // ── DETECÇÃO DE VÍDEO YOUTUBE (postMessage API) ───────────────────────────────
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      try {
+        const data = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+        if (data?.event === "onStateChange") {
+          if (data.info === 1) {
+            // playing → para Jennifer
+            pararAudio(); setVideoTocando(true); videoJaPerguntouRef.current = false;
+          } else if ((data.info === 2 || data.info === 0) && !videoJaPerguntouRef.current) {
+            // paused ou ended → Jennifer pergunta
+            videoJaPerguntouRef.current = true;
+            setVideoTocando(false);
+            setTimeout(() => {
+              interrompido.current = false;
+              enviarMensagem("O cliente acabou de assistir ao vídeo do produto. Pergunte o que ele achou, se ficou alguma dúvida que você possa esclarecer. Seja breve e natural.");
+            }, 1200);
+          }
+        }
+      } catch {}
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [pararAudio, enviarMensagem]);
 
   async function buscarCep(cep: string) {
     const c = cep.replace(/\D/g, "");
@@ -388,23 +414,45 @@ function ProdutoShopContent() {
 
       <main style={{ minHeight: "100vh", background: BG, fontFamily: "Arial, sans-serif" }}>
         {/* Header estilo ML */}
-        <div style={{ background: AMARELO, padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ background: AMARELO, padding: "8px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Logo piscando */}
           <img
             src="/logo-jennifer-shop.png"
             alt="Jennifer Shop"
             className={estado === "falando" || estado === "ouvindo" ? "jennifer-pulse" : ""}
-            style={{ height: 72, mixBlendMode: "multiply" }}
+            style={{ height: 64, mixBlendMode: "multiply", flexShrink: 0 }}
           />
-          <div style={{ flex: 1 }} />
+
+          {/* Legenda rolando */}
+          <div style={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
+            {(textoAtual || estado === "falando" || estado === "ouvindo" || estado === "processando") ? (
+              <div style={{ overflow: "hidden", whiteSpace: "nowrap" }}>
+                <span
+                  key={textoAtual.slice(-30)}
+                  className="jennifer-legenda"
+                  style={{ display: "inline-block", color: "#333", fontSize: 12, fontStyle: "italic" }}
+                >
+                  {estado === "processando" && !textoAtual ? "💭 pensando..." : textoAtual || "..."}
+                </span>
+              </div>
+            ) : (
+              <span style={{ color: "#555", fontSize: 11 }}>🟢 Jennifer online</span>
+            )}
+          </div>
+
+          {/* Botão chat pequeno */}
           <button
             onClick={() => { interrompido.current = false; setChatAberto(v => !v); if (!iniciado) iniciarChat(); }}
             style={{
-              padding: "9px 16px", borderRadius: 20, border: "none",
-              background: chatAberto ? "rgba(0,0,0,0.15)" : AZUL,
-              color: chatAberto ? "#333" : "#fff",
-              fontWeight: 700, fontSize: 13, cursor: "pointer",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+              padding: "6px 10px", borderRadius: 10, border: "none",
+              background: chatAberto ? "rgba(0,0,0,0.12)" : "rgba(52,131,250,0.15)",
+              cursor: "pointer", flexShrink: 0,
             }}>
-            {chatAberto ? "✕ Fechar" : "💬 Abrir chat"}
+            <span style={{ fontSize: 20 }}>💬</span>
+            <span style={{ fontSize: 9, color: "#333", fontWeight: 700, letterSpacing: "0.03em" }}>
+              {chatAberto ? "fechar" : "chat"}
+            </span>
           </button>
         </div>
 
@@ -415,14 +463,29 @@ function ProdutoShopContent() {
             {/* Galeria */}
             <div className="shop-gallery" style={{ background: "#fff", borderRadius: 8, padding: 16, border: `1px solid ${BORDA}` }}>
               {/* Mídia principal */}
-              <div style={{ aspectRatio: "1/1", background: "#f5f5f5", borderRadius: 8, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+              <div style={{ aspectRatio: "1/1", background: "#f5f5f5", borderRadius: 8, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, position: "relative" }}>
                 {todasMidias.length === 0 ? (
                   <span style={{ fontSize: 48 }}>🛍️</span>
                 ) : todasMidias[fotoAtiva]?.tipo === "foto" ? (
                   <img src={convertDriveUrl(todasMidias[fotoAtiva].url)} alt={produto.nome} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                ) : (
-                  <iframe width="100%" height="100%" src={getVideoEmbedUrl(todasMidias[fotoAtiva].url) || ""} frameBorder={0} allowFullScreen allow="autoplay" />
-                )}
+                ) : (() => {
+                  const rawUrl = getVideoEmbedUrl(todasMidias[fotoAtiva].url) || "";
+                  const embedUrl = rawUrl.includes("youtube.com")
+                    ? rawUrl + (rawUrl.includes("?") ? "&" : "?") + "enablejsapi=1"
+                    : rawUrl;
+                  return (
+                    <>
+                      <iframe width="100%" height="100%" src={embedUrl} frameBorder={0} allowFullScreen allow="autoplay" />
+                      {/* Overlay: captura primeiro clique e para Jennifer */}
+                      {!videoTocando && (
+                        <div
+                          onClick={() => { pararAudio(); setVideoTocando(true); videoJaPerguntouRef.current = false; }}
+                          style={{ position: "absolute", inset: 0, cursor: "pointer", zIndex: 2 }}
+                        />
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {/* Thumbnails */}
               {todasMidias.length > 1 && (
@@ -682,6 +745,8 @@ function ProdutoShopContent() {
   @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   @keyframes jennifer-glow{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0px #FFE600)}50%{transform:scale(1.12);filter:drop-shadow(0 0 10px #FFE600)}}
   .jennifer-pulse{animation:jennifer-glow 0.8s ease-in-out infinite;}
+  @keyframes legenda-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .jennifer-legenda{animation:legenda-in 0.3s ease;}
   .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
   .shop-input::placeholder{color:#999;}
 
