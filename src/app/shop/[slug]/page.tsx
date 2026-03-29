@@ -595,71 +595,126 @@ function ProdutoShopContent() {
               </div>
             </a>
 
-            {/* Chat da Jennifer */}
-            {chatAberto && (
-              <div style={{ background: "#fff", borderRadius: 8, border: `1px solid ${BORDA}`, overflow: "hidden" }}>
-                <div style={{ background: AZUL, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🤖</div>
-                  <div>
-                    <p style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Jennifer</p>
-                    <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 11 }}>
-                      {estado === "ouvindo" ? "ouvindo..." : estado === "falando" ? "falando..." : estado === "processando" ? "pensando..." : "online"}
-                    </p>
-                  </div>
-                  <button onClick={() => { pararAudio(); interrompido.current = true; setChatAberto(false); }} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>
-                    Encerrar conversa
-                  </button>
-                </div>
-
-                <div style={{ height: 220, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-                  {mensagens.map((m, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-                      <div style={{
-                        maxWidth: "80%", padding: "8px 12px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                        background: m.role === "user" ? AZUL : "#f0f0f0", color: m.role === "user" ? "#fff" : "#333", fontSize: 13, lineHeight: 1.5,
-                      }}>{m.content.replace(/PEDIDO_PRONTO:[^\s]*/g, "").trim()}</div>
-                    </div>
-                  ))}
-                  {textoAtual && (
-                    <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                      <div style={{ maxWidth: "80%", padding: "8px 12px", borderRadius: "12px 12px 12px 2px", background: "#f0f0f0", color: "#333", fontSize: 13, lineHeight: 1.5 }}>
-                        {textoAtual}<span style={{ opacity: 0.4 }}>|</span>
-                      </div>
-                    </div>
-                  )}
-                  {estado === "processando" && !textoAtual && (
-                    <div style={{ display: "flex", gap: 4, padding: "8px 12px" }}>
-                      {[0,1,2].map(n => <div key={n} style={{ width: 6, height: 6, borderRadius: "50%", background: CINZA, animation: `pulse 1.2s ${n*0.2}s infinite` }} />)}
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-
-                <div style={{ borderTop: `1px solid ${BORDA}`, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                    background: estado === "ouvindo" ? AZUL : "#f0f0f0", cursor: "pointer", fontSize: 16,
-                  }} onClick={() => { pararAudio(); setTimeout(() => ouvirCliente(t => enviarMensagem(t)), 300); }}>
-                    🎙️
-                  </div>
-                  <p style={{ color: CINZA, fontSize: 11, flex: 1 }}>
-                    {estado === "ouvindo" ? "Ouvindo... fale agora" : estado === "falando" ? "Jennifer está falando" : "Toque no mic ou escreva"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {!chatAberto && (
-              <button onClick={() => { interrompido.current = false; setChatAberto(true); if (!iniciado) iniciarChat(); else setTimeout(() => ouvirCliente(t => enviarMensagem(t)), 300); }}
-                style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${BORDA}`, background: "#fff", color: CINZA, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-                🤖 <span>Retomar conversa com a Jennifer</span>
-              </button>
-            )}
           </div>
         </div>
+
+        {/* Barra flutuante da Jennifer */}
+        <div style={{
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
+          background: "#fff", borderTop: `2px solid ${AMARELO}`,
+          padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
+          boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
+        }}>
+          {/* Logo piscando */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <img
+              src="/logo-jennifer-shop.png"
+              alt="Jennifer"
+              className={estado === "falando" || estado === "ouvindo" ? "jennifer-pulse" : ""}
+              style={{ width: 52, height: 52, objectFit: "contain", mixBlendMode: "multiply" }}
+            />
+            {/* Indicador de status */}
+            <div style={{
+              position: "absolute", bottom: 2, right: 2,
+              width: 10, height: 10, borderRadius: "50%", border: "2px solid #fff",
+              background: estado === "falando" ? "#e74c3c" : estado === "ouvindo" ? AZUL : estado === "processando" ? "#f39c12" : "#25D366",
+            }} />
+          </div>
+
+          {/* Status texto */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: "#333", fontWeight: 700, fontSize: 13, marginBottom: 1 }}>Jennifer</p>
+            <p style={{ color: CINZA, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {estado === "falando" ? "🔴 Falando agora..." : estado === "ouvindo" ? "🎙️ Ouvindo você..." : estado === "processando" ? "💭 Pensando..." : "🟢 Online — tire suas dúvidas"}
+            </p>
+          </div>
+
+          {/* Botão abrir chat */}
+          <button
+            onClick={() => { interrompido.current = false; setChatAberto(v => !v); if (!iniciado) iniciarChat(); }}
+            style={{
+              padding: "10px 18px", borderRadius: 20, border: "none",
+              background: chatAberto ? "#f0f0f0" : AZUL,
+              color: chatAberto ? CINZA : "#fff",
+              fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}>
+            {chatAberto ? "Fechar" : "💬 Abrir chat"}
+          </button>
+        </div>
+
+        {/* Chat modal flutuante */}
+        {chatAberto && (
+          <div style={{
+            position: "fixed", bottom: 76, right: 16, zIndex: 101,
+            width: "min(380px, calc(100vw - 32px))",
+            background: "#fff", borderRadius: 12, border: `1px solid ${BORDA}`,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{ background: AZUL, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+              <img src="/logo-jennifer-shop.png" alt="Jennifer" style={{ width: 32, height: 32, objectFit: "contain", mixBlendMode: "multiply", background: "rgba(255,255,255,0.9)", borderRadius: "50%" }} />
+              <div>
+                <p style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>Jennifer</p>
+                <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 11 }}>
+                  {estado === "ouvindo" ? "ouvindo..." : estado === "falando" ? "falando..." : estado === "processando" ? "pensando..." : "online"}
+                </p>
+              </div>
+              <button onClick={() => { pararAudio(); interrompido.current = true; setChatAberto(false); }}
+                style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>
+                Encerrar
+              </button>
+            </div>
+
+            {/* Mensagens */}
+            <div style={{ height: 260, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+              {mensagens.map((m, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
+                  <div style={{
+                    maxWidth: "80%", padding: "8px 12px",
+                    borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                    background: m.role === "user" ? AZUL : "#f0f0f0",
+                    color: m.role === "user" ? "#fff" : "#333", fontSize: 13, lineHeight: 1.5,
+                  }}>{m.content.replace(/PEDIDO_PRONTO:[^\s]*/g, "").trim()}</div>
+                </div>
+              ))}
+              {textoAtual && (
+                <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                  <div style={{ maxWidth: "80%", padding: "8px 12px", borderRadius: "12px 12px 12px 2px", background: "#f0f0f0", color: "#333", fontSize: 13, lineHeight: 1.5 }}>
+                    {textoAtual}<span style={{ opacity: 0.4 }}>|</span>
+                  </div>
+                </div>
+              )}
+              {estado === "processando" && !textoAtual && (
+                <div style={{ display: "flex", gap: 4, padding: "8px 12px" }}>
+                  {[0,1,2].map(n => <div key={n} style={{ width: 6, height: 6, borderRadius: "50%", background: CINZA, animation: `pulse 1.2s ${n*0.2}s infinite` }} />)}
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Rodapé mic */}
+            <div style={{ borderTop: `1px solid ${BORDA}`, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                background: estado === "ouvindo" ? AZUL : "#f0f0f0", cursor: "pointer", fontSize: 16, flexShrink: 0,
+              }} onClick={() => { pararAudio(); setTimeout(() => ouvirCliente(t => enviarMensagem(t)), 300); }}>
+                🎙️
+              </div>
+              <p style={{ color: CINZA, fontSize: 11 }}>
+                {estado === "ouvindo" ? "Ouvindo... fale agora" : estado === "falando" ? "Jennifer está falando" : "Toque no mic ou escreva"}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Espaço para a barra flutuante não cobrir conteúdo */}
+        <div style={{ height: 76 }} />
       </main>
       <style>{`
   @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+  @keyframes jennifer-glow{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0px #FFE600)}50%{transform:scale(1.12);filter:drop-shadow(0 0 10px #FFE600)}}
+  .jennifer-pulse{animation:jennifer-glow 0.8s ease-in-out infinite;}
   .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
   .shop-input::placeholder{color:#999;}
 
