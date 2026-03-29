@@ -33,6 +33,7 @@ export default function Dashboard() {
   const c = data?.cards || {};
   const recentes = data?.vendasRecentes || [];
   const ranking = data?.produtosRanking || [];
+  const afiliados = data?.rankingAfiliados || [];
 
   return (
     <main style={{ minHeight: "100vh", background: BG, padding: "24px 16px" }}>
@@ -77,7 +78,16 @@ export default function Dashboard() {
           <Card label="Revendedoras" valor={c.afiliadosAtivos} tipo="num" cor="#A855F7" />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+        {/* Afiliados */}
+        <p style={{ color: MUTED, fontSize: 10, letterSpacing: "0.2em", marginBottom: 10 }}>AFILIADOS — LINKS & CLIQUES</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 24 }}>
+          <Card label="Afiliados cadastrados" valor={c.afiliadosAtivos} tipo="num" cor="#A855F7" />
+          <Card label="Cliques hoje" valor={c.cliquesHoje} tipo="num" cor={BLUE} />
+          <Card label="Cliques este mês" valor={c.cliquesMes} tipo="num" cor={BLUE} />
+          <Card label="Cliques totais" valor={c.totalCliques} tipo="num" cor={GOLD_LIGHT} />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24, marginBottom: 32 }}>
 
           {/* Ranking de produtos */}
           <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20 }}>
@@ -96,6 +106,22 @@ export default function Dashboard() {
                   <p style={{ color: GREEN, fontSize: 13, fontWeight: 700 }}>{p.vendas}x</p>
                   <p style={{ color: MUTED, fontSize: 11 }}>{fmt(p.receita)}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Ranking afiliados */}
+          <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20 }}>
+            <p style={{ color: MUTED, fontSize: 10, letterSpacing: "0.2em", marginBottom: 16 }}>TOP AFILIADOS</p>
+            {afiliados.length === 0 ? (
+              <p style={{ color: MUTED, fontSize: 12 }}>Nenhum afiliado ainda.</p>
+            ) : afiliados.map((a: any, i: number) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <div style={{ flex: 1, marginRight: 8 }}>
+                  <p style={{ color: GOLD_LIGHT, fontSize: 12, fontWeight: 600 }}>{a.nome}</p>
+                  <p style={{ color: MUTED, fontSize: 11 }}>👆 {a.cliques} cliques · 🛍️ {a.vendas} vendas</p>
+                </div>
+                <p style={{ color: GREEN, fontWeight: 700, fontSize: 12 }}>R$ {(a.comissao || 0).toFixed(2).replace(".", ",")}</p>
               </div>
             ))}
           </div>

@@ -20,6 +20,10 @@ export async function GET(req: NextRequest) {
     produtosRanking,
     afiliadosAtivos,
     saquesTotal,
+    totalCliques,
+    cliquesHoje,
+    cliquesMes,
+    rankingAfiliados,
   ] = await Promise.all([
     // vendas pagas hoje
     prisma.vendaShop.aggregate({
@@ -58,12 +62,28 @@ export async function GET(req: NextRequest) {
       orderBy: { _count: { id: "desc" } },
       take: 5,
     }),
-    // afiliados ativos (com pelo menos 1 venda)
+    // afiliados ativos
     prisma.afiliadoShop.count({ where: { ativo: true } }),
     // total pago em saques
     prisma.saqueShop.aggregate({
       where: { status: "pago" },
       _sum: { valor: true },
+    }),
+    // total de cliques em links de afiliado
+    prisma.cliqueShop.count(),
+    // cliques hoje
+    prisma.cliqueShop.count({ where: { createdAt: { gte: hoje } } }),
+    // cliques este mês
+    prisma.cliqueShop.count({ where: { createdAt: { gte: inicioMes } } }),
+    // top 5 afiliados por cliques e vendas
+    prisma.afiliadoShop.findMany({
+      where: { ativo: true },
+      include: {
+        _count: { select: { cliques: true, vendas: true } },
+        vendas: { where: { status: "pago" }, select: { comissaoValor: true } },
+      },
+      orderBy: { cliques: { _count: "desc" } },
+      take: 5,
     }),
   ]);
 
@@ -86,12 +106,21 @@ export async function GET(req: NextRequest) {
       comissoesTotal: vendasTotal._sum.comissaoValor || 0,
       afiliadosAtivos,
       saquesTotal: saquesTotal._sum.valor || 0,
+      totalCliques,
+      cliquesHoje,
+      cliquesMes,
     },
     vendasRecentes,
     produtosRanking: produtosRanking.map(p => ({
       nome: nomeMap[p.produtoId] || "Produto",
       vendas: p._count.id,
       receita: p._sum.valorPago || 0,
+    })),
+    rankingAfiliados: rankingAfiliados.map((a: any) => ({
+      nome: a.nome,
+      cliques: a._count.cliques,
+      vendas: a._count.vendas,
+      comissao: a.vendas.reduce((acc: number, v: any) => acc + v.comissaoValor, 0),
     })),
   });
 }
