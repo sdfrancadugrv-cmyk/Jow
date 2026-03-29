@@ -16,6 +16,8 @@ function PainelRevendedorContent() {
   const [pixKey, setPixKey] = useState("");
   const [valorSaque, setValorSaque] = useState("");
   const [sacando, setSacando] = useState(false);
+  const [produtos, setProdutos] = useState<any[]>([]);
+  const [copiado, setCopiado] = useState<string | null>(null);
 
   const appUrl = typeof window !== "undefined" ? window.location.origin : "https://jennifer-ai.vercel.app";
 
@@ -25,7 +27,17 @@ function PainelRevendedorContent() {
       .then(r => r.json())
       .then(d => { if (d.afiliado) setAfiliado(d.afiliado); })
       .finally(() => setLoading(false));
+    fetch("/api/shop/produtos")
+      .then(r => r.json())
+      .then(d => setProdutos(d.produtos || []));
   }, [codigo]);
+
+  function copiar(texto: string, id: string) {
+    navigator.clipboard.writeText(texto).then(() => {
+      setCopiado(id);
+      setTimeout(() => setCopiado(null), 2000);
+    });
+  }
 
   async function solicitarSaque() {
     if (!pixKey || !valorSaque) { alert("Preencha chave PIX e valor."); return; }
@@ -111,17 +123,48 @@ function PainelRevendedorContent() {
           )}
         </div>
 
-        {/* Link de afiliada */}
+        {/* Link geral da vitrine */}
         <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: `1px solid ${BORDA}` }}>
-          <p style={{ color: "#333", fontWeight: 700, marginBottom: 8 }}>Seu link de revendedora</p>
+          <p style={{ color: "#333", fontWeight: 700, marginBottom: 4 }}>🔗 Link geral da vitrine</p>
+          <p style={{ color: CINZA, fontSize: 12, marginBottom: 10 }}>Divulgue todos os produtos de uma vez</p>
           <div style={{ background: "#f0f7ff", borderRadius: 6, padding: "10px 14px", marginBottom: 10 }}>
             <p style={{ color: AZUL, fontSize: 13, wordBreak: "break-all" }}>{linkAfiliada}</p>
           </div>
-          <button onClick={() => navigator.clipboard.writeText(linkAfiliada).then(() => alert("Copiado!"))}
-            style={{ width: "100%", padding: "12px", borderRadius: 8, border: `2px solid ${AZUL}`, background: "transparent", color: AZUL, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-            📋 Copiar link
+          <button onClick={() => copiar(linkAfiliada, "geral")}
+            style={{ width: "100%", padding: "12px", borderRadius: 8, border: `2px solid ${AZUL}`, background: copiado === "geral" ? AZUL : "transparent", color: copiado === "geral" ? "#fff" : AZUL, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>
+            {copiado === "geral" ? "✅ Copiado!" : "📋 Copiar link da vitrine"}
           </button>
         </div>
+
+        {/* Links por produto */}
+        {produtos.length > 0 && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: `1px solid ${BORDA}` }}>
+            <p style={{ color: "#333", fontWeight: 700, marginBottom: 4 }}>🛍️ Link por produto</p>
+            <p style={{ color: CINZA, fontSize: 12, marginBottom: 16 }}>Escolha um produto específico pra divulgar e copie o link</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {produtos.map((p: any) => {
+                const link = `${appUrl}/shop/${p.slug}?ref=${afiliado.codigo}`;
+                return (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, border: `1px solid ${BORDA}`, background: "#fafafa" }}>
+                    {p.fotos?.[0] ? (
+                      <img src={p.fotos[0]} alt={p.nome} style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 44, height: 44, borderRadius: 6, background: "#eee", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 20 }}>🛍️</div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nome}</p>
+                      <p style={{ color: VERDE, fontSize: 12 }}>{p.comissaoPorc}% de comissão · R$ {p.precoVenda?.toFixed(2).replace(".", ",")}</p>
+                    </div>
+                    <button onClick={() => copiar(link, p.id)}
+                      style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${AZUL}`, background: copiado === p.id ? AZUL : "transparent", color: copiado === p.id ? "#fff" : AZUL, fontWeight: 700, fontSize: 12, cursor: "pointer", flexShrink: 0, transition: "all 0.2s", whiteSpace: "nowrap" }}>
+                      {copiado === p.id ? "✅ Copiado!" : "📋 Copiar"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Histórico de vendas */}
         <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: `1px solid ${BORDA}` }}>
