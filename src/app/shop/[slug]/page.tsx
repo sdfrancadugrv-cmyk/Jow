@@ -389,9 +389,23 @@ function ProdutoShopContent() {
       <main style={{ minHeight: "100vh", background: BG, fontFamily: "Arial, sans-serif" }}>
         {/* Header estilo ML */}
         <div style={{ background: AMARELO, padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/logo-jennifer-shop.png" alt="Jennifer Shop" style={{ height: 72, mixBlendMode: "multiply" }} />
+          <img
+            src="/logo-jennifer-shop.png"
+            alt="Jennifer Shop"
+            className={estado === "falando" || estado === "ouvindo" ? "jennifer-pulse" : ""}
+            style={{ height: 72, mixBlendMode: "multiply" }}
+          />
           <div style={{ flex: 1 }} />
-          <div style={{ color: "#333", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>🔒 Compra 100% segura</div>
+          <button
+            onClick={() => { interrompido.current = false; setChatAberto(v => !v); if (!iniciado) iniciarChat(); }}
+            style={{
+              padding: "9px 16px", borderRadius: 20, border: "none",
+              background: chatAberto ? "rgba(0,0,0,0.15)" : AZUL,
+              color: chatAberto ? "#333" : "#fff",
+              fontWeight: 700, fontSize: 13, cursor: "pointer",
+            }}>
+            {chatAberto ? "✕ Fechar" : "💬 Abrir chat"}
+          </button>
         </div>
 
         <div className="shop-main-grid" style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px", display: "grid", gridTemplateColumns: "1fr 380px", gap: 24 }}>
@@ -598,55 +612,10 @@ function ProdutoShopContent() {
           </div>
         </div>
 
-        {/* Barra flutuante da Jennifer */}
-        <div style={{
-          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
-          background: "#fff", borderTop: `2px solid ${AMARELO}`,
-          padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
-          boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
-        }}>
-          {/* Logo piscando */}
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <img
-              src="/logo-jennifer-shop.png"
-              alt="Jennifer"
-              className={estado === "falando" || estado === "ouvindo" ? "jennifer-pulse" : ""}
-              style={{ width: 52, height: 52, objectFit: "contain", mixBlendMode: "multiply" }}
-            />
-            {/* Indicador de status */}
-            <div style={{
-              position: "absolute", bottom: 2, right: 2,
-              width: 10, height: 10, borderRadius: "50%", border: "2px solid #fff",
-              background: estado === "falando" ? "#e74c3c" : estado === "ouvindo" ? AZUL : estado === "processando" ? "#f39c12" : "#25D366",
-            }} />
-          </div>
-
-          {/* Status texto */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ color: "#333", fontWeight: 700, fontSize: 13, marginBottom: 1 }}>Jennifer</p>
-            <p style={{ color: CINZA, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {estado === "falando" ? "🔴 Falando agora..." : estado === "ouvindo" ? "🎙️ Ouvindo você..." : estado === "processando" ? "💭 Pensando..." : "🟢 Online — tire suas dúvidas"}
-            </p>
-          </div>
-
-          {/* Botão abrir chat */}
-          <button
-            onClick={() => { interrompido.current = false; setChatAberto(v => !v); if (!iniciado) iniciarChat(); }}
-            style={{
-              padding: "10px 18px", borderRadius: 20, border: "none",
-              background: chatAberto ? "#f0f0f0" : AZUL,
-              color: chatAberto ? CINZA : "#fff",
-              fontWeight: 700, fontSize: 13, cursor: "pointer", flexShrink: 0,
-              whiteSpace: "nowrap",
-            }}>
-            {chatAberto ? "Fechar" : "💬 Abrir chat"}
-          </button>
-        </div>
-
         {/* Chat modal flutuante */}
         {chatAberto && (
           <div style={{
-            position: "fixed", bottom: 76, right: 16, zIndex: 101,
+            position: "fixed", bottom: 16, right: 16, zIndex: 101,
             width: "min(380px, calc(100vw - 32px))",
             background: "#fff", borderRadius: 12, border: `1px solid ${BORDA}`,
             boxShadow: "0 8px 32px rgba(0,0,0,0.18)", overflow: "hidden",
@@ -708,8 +677,6 @@ function ProdutoShopContent() {
           </div>
         )}
 
-        {/* Espaço para a barra flutuante não cobrir conteúdo */}
-        <div style={{ height: 76 }} />
       </main>
       <style>{`
   @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
