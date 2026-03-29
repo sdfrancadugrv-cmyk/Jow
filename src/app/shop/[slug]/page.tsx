@@ -647,6 +647,7 @@ function ProdutoShopContent() {
                       </div>
                     )}
                     <button onClick={enviarInstalacao} disabled={instEnviando}
+                      className={instEnviando ? "" : "btn-azul-pulse"}
                       style={{ width: "100%", padding: "14px", borderRadius: 8, border: "none", background: instEnviando ? "#ccc" : AZUL, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: instEnviando ? "default" : "pointer" }}>
                       {instEnviando ? "Enviando..." : "Confirmar Solicitação"}
                     </button>
@@ -657,6 +658,7 @@ function ProdutoShopContent() {
                 ) : (
                   <button
                     onClick={() => setMostraInstalacao(true)}
+                    className="btn-azul-pulse"
                     onMouseEnter={e => (e.currentTarget.style.background = AZUL_ESC)}
                     onMouseLeave={e => (e.currentTarget.style.background = AZUL)}
                     style={{ width: "100%", padding: "16px", borderRadius: 8, border: "none", background: AZUL, color: "#fff", fontWeight: 700, fontSize: "1rem", cursor: "pointer", marginBottom: 10, transition: "background 0.2s" }}>
@@ -838,6 +840,8 @@ function ProdutoShopContent() {
   @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   @keyframes jennifer-glow{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0px #FFE600)}50%{transform:scale(1.12);filter:drop-shadow(0 0 10px #FFE600)}}
   .jennifer-pulse{animation:jennifer-glow 0.8s ease-in-out infinite;}
+  @keyframes azul-pulse{0%,100%{box-shadow:0 0 0 0 rgba(52,131,250,0.55)}60%{box-shadow:0 0 0 10px rgba(52,131,250,0)}}
+  .btn-azul-pulse{animation:azul-pulse 2.2s ease-in-out infinite;}
   @keyframes legenda-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
   .jennifer-legenda{animation:legenda-in 0.3s ease;}
   .shop-input{width:100%;padding:11px 12px;border-radius:8px;border:1px solid #E0E0E0;font-size:13px;outline:none;color:#333 !important;background:#fff !important;}
