@@ -35,10 +35,16 @@ export default function AdminShopPage() {
             <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.3rem", color: GOLD_LIGHT, letterSpacing: "0.2em", marginTop: 6 }}>JENNIFER SHOP</h1>
             <p style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>Produtos cadastrados</p>
           </div>
-          <button onClick={() => router.push("/admin/shop/novo")}
-            style={{ padding: "12px 20px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, #A07010, ${GOLD})`, color: "#0A0808", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}>
-            + NOVO PRODUTO
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => router.push("/admin/shop/vendas")}
+              style={{ padding: "12px 20px", borderRadius: 12, border: `1px solid ${GREEN}`, background: "rgba(37,211,102,0.08)", color: GREEN, fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}>
+              📊 VENDAS
+            </button>
+            <button onClick={() => router.push("/admin/shop/novo")}
+              style={{ padding: "12px 20px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, #A07010, ${GOLD})`, color: "#0A0808", fontWeight: 700, fontSize: "0.85rem", cursor: "pointer" }}>
+              + NOVO PRODUTO
+            </button>
+          </div>
         </div>
 
         {loading ? (
