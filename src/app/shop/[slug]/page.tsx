@@ -440,7 +440,7 @@ function ProdutoShopContent() {
 
             {/* Resultados / Provas sociais */}
             {produto.fotosResultados?.length > 0 && (
-              <div style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}`, marginTop: 12 }}>
+              <div className="shop-provas" style={{ background: "#fff", borderRadius: 8, padding: 20, border: `1px solid ${BORDA}`, marginTop: 12 }}>
                 <h2 style={{ color: "#333", fontSize: "1rem", fontWeight: 700, marginBottom: 16 }}>Resultados</h2>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
                   {produto.fotosResultados.map((url: string, i: number) => (
@@ -677,6 +677,7 @@ function ProdutoShopContent() {
     .shop-gallery { order: 1; }
     .shop-sidebar { order: 2; }
     .shop-details { order: 3; }
+    .shop-provas  { order: 4; }
   }
 `}</style>
     </>
