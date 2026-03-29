@@ -30,10 +30,10 @@ function ShopContent() {
 
   return (
     <main style={{ minHeight: "100vh", background: BG, fontFamily: "Arial, sans-serif" }}>
-      <div style={{ background: AZUL, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: "1.1rem" }}>Jennifer Shop</div>
+      <div style={{ background: "#FFE600", padding: "8px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+        <img src="/logo-jennifer-shop.png" alt="Jennifer Shop" style={{ height: 48, mixBlendMode: "multiply" }} />
         <div style={{ flex: 1 }} />
-        <a href="/revendedor" style={{ color: "#fff", fontSize: 13, textDecoration: "none", border: "1px solid rgba(255,255,255,0.4)", borderRadius: 6, padding: "6px 12px" }}>Seja revendedora</a>
+        <a href="/revendedor" style={{ color: "#333", fontSize: 13, textDecoration: "none", border: "1px solid rgba(0,0,0,0.2)", borderRadius: 6, padding: "6px 12px" }}>Seja revendedora</a>
       </div>
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
