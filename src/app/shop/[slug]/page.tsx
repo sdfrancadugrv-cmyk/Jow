@@ -55,7 +55,7 @@ function ProdutoShopContent() {
   const [produto, setProduto] = useState<any>(null);
   const [fotoAtiva, setFotoAtiva] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [chatAberto, setChatAberto] = useState(false);
+  const [chatAberto, setChatAberto] = useState(true);
   const [mensagens, setMensagens] = useState<{ role: string; content: string }[]>([]);
   const [textoAtual, setTextoAtual] = useState("");
   const [estado, setEstado] = useState<"aguardando" | "falando" | "ouvindo" | "processando">("aguardando");
@@ -485,12 +485,6 @@ function ProdutoShopContent() {
                 </button>
               )}
 
-              {!mostraCheckout && !pix && (
-                <button onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); }}
-                  style={{ width: "100%", padding: "14px", borderRadius: 8, border: `1px solid ${AZUL}`, background: "#E7F0FF", color: AZUL, fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
-                  💬 Tirar dúvidas com a Jennifer
-                </button>
-              )}
 
               {ref && (
                 <p style={{ color: CINZA, fontSize: 11, textAlign: "center", marginTop: 8 }}>
@@ -510,7 +504,9 @@ function ProdutoShopContent() {
                       {estado === "ouvindo" ? "ouvindo..." : estado === "falando" ? "falando..." : estado === "processando" ? "pensando..." : "online"}
                     </p>
                   </div>
-                  <button onClick={() => { pararAudio(); setChatAberto(false); }} style={{ marginLeft: "auto", background: "none", border: "none", color: "#fff", fontSize: 18, cursor: "pointer" }}>×</button>
+                  <button onClick={() => { pararAudio(); interrompido.current = true; setChatAberto(false); }} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 6, color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>
+                    Encerrar conversa
+                  </button>
                 </div>
 
                 <div style={{ height: 220, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -552,9 +548,9 @@ function ProdutoShopContent() {
             )}
 
             {!chatAberto && (
-              <button onClick={() => { setChatAberto(true); if (!iniciado) iniciarChat(); }}
-                style={{ padding: "12px", borderRadius: 8, border: `1px solid ${BORDA}`, background: "#fff", color: CINZA, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
-                🤖 <span>Converse com a Jennifer sobre este produto</span>
+              <button onClick={() => { interrompido.current = false; setChatAberto(true); if (!iniciado) iniciarChat(); else setTimeout(() => ouvirCliente(t => enviarMensagem(t)), 300); }}
+                style={{ padding: "10px 14px", borderRadius: 8, border: `1px solid ${BORDA}`, background: "#fff", color: CINZA, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                🤖 <span>Retomar conversa com a Jennifer</span>
               </button>
             )}
           </div>
