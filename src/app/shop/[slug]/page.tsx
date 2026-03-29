@@ -745,15 +745,18 @@ function ProdutoShopContent() {
                   <span style={{ fontSize: 32, flexShrink: 0 }}>🤖</span>
                   <div style={{ flex: 1 }}>
                     <p style={{ color: "#FFE600", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 6 }}>AFILIE-SE GRATUITAMENTE</p>
-                    <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1.4, marginBottom: 8 }}>
-                      Tenha o 1º robô de IA que trabalha por ti todos os dias
+                    <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1.4, marginBottom: 10 }}>
+                      Primeiro robô de IA especialista em fechar vendas.
                     </p>
-                    <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
-                      Faça um teste de 15 dias e comprove. Ele vende enquanto você dorme, descansa ou trabalha em outra coisa.
-                    </p>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFE600", borderRadius: 20, padding: "7px 16px" }}>
-                      <span style={{ color: "#111", fontWeight: 700, fontSize: 13 }}>Quero testar agora</span>
-                      <span style={{ color: "#111", fontSize: 14 }}>→</span>
+                    <ul style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, lineHeight: 1.8, marginBottom: 14, paddingLeft: 0, listStyle: "none" }}>
+                      <li>✦ Publica seu link de afiliado</li>
+                      <li>✦ Conversa por voz</li>
+                      <li>✦ Compreende o diálogo</li>
+                      <li>✦ Tira dúvidas</li>
+                      <li>✦ Vende sozinho</li>
+                    </ul>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFE600", borderRadius: 20, padding: "9px 18px" }}>
+                      <span style={{ color: "#111", fontWeight: 700, fontSize: 13 }}>Quero meu robô vendendo agora →</span>
                     </div>
                   </div>
                 </div>
