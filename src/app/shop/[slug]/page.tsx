@@ -58,7 +58,13 @@ function ProdutoShopContent() {
   const [mostraCheckout, setMostraCheckout] = useState(false);
   const [checkoutNome, setCheckoutNome] = useState("");
   const [checkoutTelefone, setCheckoutTelefone] = useState("");
-  const [checkoutEndereco, setCheckoutEndereco] = useState("");
+  const [checkoutCep, setCheckoutCep] = useState("");
+  const [checkoutRua, setCheckoutRua] = useState("");
+  const [checkoutNumero, setCheckoutNumero] = useState("");
+  const [checkoutComplemento, setCheckoutComplemento] = useState("");
+  const [checkoutBairro, setCheckoutBairro] = useState("");
+  const [checkoutCidade, setCheckoutCidade] = useState("");
+  const [checkoutEstado, setCheckoutEstado] = useState("");
   const [gerandoPix, setGerandoPix] = useState(false);
   const [pix, setPix] = useState<{ qrCode: string; qrBase64: string; valor: number } | null>(null);
   const [pixCopiado, setPixCopiado] = useState(false);
@@ -243,10 +249,26 @@ function ProdutoShopContent() {
     };
   }, [produto, iniciado, enfileirarTTS, ouvirCliente, enviarMensagem]);
 
+  async function buscarCep(cep: string) {
+    const c = cep.replace(/\D/g, "");
+    if (c.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+      const d = await res.json();
+      if (!d.erro) {
+        setCheckoutRua(d.logradouro || "");
+        setCheckoutBairro(d.bairro || "");
+        setCheckoutCidade(d.localidade || "");
+        setCheckoutEstado(d.uf || "");
+      }
+    } catch {}
+  }
+
   async function gerarPix() {
-    if (!checkoutNome.trim() || !checkoutTelefone.trim() || !checkoutEndereco.trim()) {
-      alert("Preencha todos os campos."); return;
+    if (!checkoutNome.trim() || !checkoutTelefone.trim() || !checkoutCep.trim() || !checkoutRua.trim() || !checkoutNumero.trim() || !checkoutCidade.trim() || !checkoutEstado.trim()) {
+      alert("Preencha todos os campos obrigatórios."); return;
     }
+    const enderecoCompleto = `${checkoutRua}, ${checkoutNumero}${checkoutComplemento ? ` ${checkoutComplemento}` : ""} — ${checkoutBairro} — ${checkoutCidade}/${checkoutEstado} — CEP ${checkoutCep}`;
     setGerandoPix(true);
     try {
       const res = await fetch("/api/shop/checkout", {
@@ -256,7 +278,7 @@ function ProdutoShopContent() {
           produtoSlug: slug,
           nomeCliente: checkoutNome,
           telefoneCliente: checkoutTelefone,
-          enderecoCliente: checkoutEndereco,
+          enderecoCliente: enderecoCompleto,
           refAfiliado: ref,
         }),
       });
@@ -417,9 +439,19 @@ function ProdutoShopContent() {
                 /* Form de cadastro para checkout */
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Preencha seus dados para comprar:</p>
-                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo" className="shop-input" />
-                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD (ex: 11999999999)" className="shop-input" />
-                  <input value={checkoutEndereco} onChange={e => setCheckoutEndereco(e.target.value)} placeholder="Endereço completo com CEP" className="shop-input" />
+                  <input value={checkoutNome} onChange={e => setCheckoutNome(e.target.value)} placeholder="Nome completo *" className="shop-input" />
+                  <input value={checkoutTelefone} onChange={e => setCheckoutTelefone(e.target.value)} placeholder="Telefone com DDD * (ex: 11999999999)" className="shop-input" />
+                  <input value={checkoutCep} onChange={e => { setCheckoutCep(e.target.value); buscarCep(e.target.value); }} placeholder="CEP *" className="shop-input" maxLength={9} />
+                  <input value={checkoutRua} onChange={e => setCheckoutRua(e.target.value)} placeholder="Rua / Avenida *" className="shop-input" />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <input value={checkoutNumero} onChange={e => setCheckoutNumero(e.target.value)} placeholder="Número *" className="shop-input" />
+                    <input value={checkoutComplemento} onChange={e => setCheckoutComplemento(e.target.value)} placeholder="Complemento" className="shop-input" />
+                  </div>
+                  <input value={checkoutBairro} onChange={e => setCheckoutBairro(e.target.value)} placeholder="Bairro *" className="shop-input" />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 80px", gap: 8 }}>
+                    <input value={checkoutCidade} onChange={e => setCheckoutCidade(e.target.value)} placeholder="Cidade *" className="shop-input" />
+                    <input value={checkoutEstado} onChange={e => setCheckoutEstado(e.target.value)} placeholder="UF *" className="shop-input" maxLength={2} />
+                  </div>
                   <button onClick={gerarPix} disabled={gerandoPix}
                     onMouseEnter={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE_ESC; }}
                     onMouseLeave={e => { if (!gerandoPix) e.currentTarget.style.background = VERDE; }}
