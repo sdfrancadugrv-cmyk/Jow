@@ -80,6 +80,30 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* Dashboard — botão destaque */}
+        <button
+          onClick={() => router.push("/admin/dashboard")}
+          style={{
+            width: "100%", marginBottom: 16, padding: "20px 24px", borderRadius: 16,
+            border: "2px solid #25D366",
+            background: "linear-gradient(135deg, rgba(37,211,102,0.15), rgba(37,211,102,0.05))",
+            cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 16,
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(37,211,102,0.25), rgba(37,211,102,0.1))")}
+          onMouseLeave={e => (e.currentTarget.style.background = "linear-gradient(135deg, rgba(37,211,102,0.15), rgba(37,211,102,0.05))")}
+        >
+          <span style={{ fontSize: 36 }}>📊</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ color: "#25D366", fontSize: "1rem", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>
+              DASHBOARD DE VENDAS
+            </p>
+            <p style={{ color: MUTED, fontSize: 12 }}>
+              Receita hoje · Este mês · Ranking de produtos · Últimas vendas
+            </p>
+          </div>
+          <span style={{ color: "#25D366", fontSize: 20 }}>›</span>
+        </button>
+
         {/* Jennifer Dropship — botão destaque */}
         <button
           onClick={() => router.push("/admin/shop")}
