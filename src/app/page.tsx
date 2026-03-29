@@ -428,9 +428,10 @@ export default function LandingPage() {
           `,
         }} />
         <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
-          <h1 className="font-bold tracking-[0.35em] leading-none mb-2" style={{
+          <h1 className="font-bold leading-none mb-2" style={{
             fontFamily: "Georgia, 'Times New Roman', serif",
-            fontSize: "clamp(3.5rem, 12vw, 7rem)",
+            fontSize: "clamp(2.6rem, 10vw, 7rem)",
+            letterSpacing: "clamp(0.05em, 1.5vw, 0.35em)",
             background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
@@ -479,9 +480,10 @@ export default function LandingPage() {
         className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
         style={{ background: "radial-gradient(ellipse at 50% 35%, #0C1526 0%, #070B18 45%, #020408 100%)" }}
       >
-        <h1 className="font-bold tracking-[0.35em]" style={{
+        <h1 className="font-bold leading-none" style={{
           fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: "clamp(3.5rem, 12vw, 7rem)",
+          fontSize: "clamp(2.6rem, 10vw, 7rem)",
+          letterSpacing: "clamp(0.05em, 1.5vw, 0.35em)",
           background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
@@ -523,9 +525,10 @@ export default function LandingPage() {
 
       <div className="relative z-10 flex flex-col items-center text-center px-6 select-none">
 
-        <h1 className="font-bold tracking-[0.35em] leading-none mb-2" style={{
+        <h1 className="font-bold leading-none mb-2" style={{
           fontFamily: "Georgia, 'Times New Roman', serif",
-          fontSize: "clamp(3.5rem, 12vw, 7rem)",
+          fontSize: "clamp(2.6rem, 10vw, 7rem)",
+          letterSpacing: "clamp(0.05em, 1.5vw, 0.35em)",
           background: "linear-gradient(180deg, #FFE082 0%, #D4A017 50%, #A07010 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
