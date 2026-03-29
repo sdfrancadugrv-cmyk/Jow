@@ -74,7 +74,12 @@ function ProdutoShopContent() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { mensagensRef.current = mensagens; }, [mensagens]);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [mensagens, textoAtual]);
+  useEffect(() => {
+    if (chatEndRef.current) {
+      const container = chatEndRef.current.parentElement;
+      if (container) container.scrollTop = container.scrollHeight;
+    }
+  }, [mensagens, textoAtual]);
 
   useEffect(() => {
     fetch(`/api/shop/produto/${slug}${ref ? `?ref=${ref}` : ""}`)
