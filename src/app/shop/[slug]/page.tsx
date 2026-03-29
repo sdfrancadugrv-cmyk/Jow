@@ -730,15 +730,34 @@ function ProdutoShopContent() {
               )}
             </div>
 
-            {/* Botão afiliado */}
+            {/* Card afiliado destaque */}
             <a href="/revendedor" style={{ textDecoration: "none" }}>
-              <div style={{ background: "#fff", borderRadius: 12, border: `1px solid ${AMARELO}`, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <span style={{ fontSize: 26 }}>💰</span>
-                <div>
-                  <p style={{ color: "#333", fontWeight: 700, fontSize: 13 }}>Revenda e ganhe {produto.comissaoPorc}% de comissão</p>
-                  <p style={{ color: CINZA, fontSize: 11, marginTop: 2 }}>Seja revendedora e lucre em cada venda</p>
+              <div style={{
+                borderRadius: 14, padding: "18px 20px", cursor: "pointer",
+                background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.18)", position: "relative", overflow: "hidden",
+              }}>
+                {/* Brilho decorativo */}
+                <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: "rgba(255,230,0,0.08)" }} />
+                <div style={{ position: "absolute", bottom: -15, left: 20, width: 60, height: 60, borderRadius: "50%", background: "rgba(52,131,250,0.1)" }} />
+
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, position: "relative" }}>
+                  <span style={{ fontSize: 32, flexShrink: 0 }}>🤖</span>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ color: "#FFE600", fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", marginBottom: 6 }}>AFILIE-SE GRATUITAMENTE</p>
+                    <p style={{ color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1.4, marginBottom: 8 }}>
+                      Tenha o 1º robô de IA que trabalha por ti todos os dias
+                    </p>
+                    <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, lineHeight: 1.5, marginBottom: 12 }}>
+                      Faça um teste de 15 dias e comprove. Ele vende enquanto você dorme, descansa ou trabalha em outra coisa.
+                    </p>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#FFE600", borderRadius: 20, padding: "7px 16px" }}>
+                      <span style={{ color: "#111", fontWeight: 700, fontSize: 13 }}>Quero testar agora</span>
+                      <span style={{ color: "#111", fontSize: 14 }}>→</span>
+                    </div>
+                  </div>
                 </div>
-                <span style={{ marginLeft: "auto", color: AZUL, fontSize: 18 }}>›</span>
+              </div>
               </div>
             </a>
 
