@@ -754,7 +754,7 @@ function ProdutoShopContent() {
             {/* Botão WhatsApp do afiliado */}
             {afiliadoWhatsapp && (
               <a
-                href={`https://wa.me/${afiliadoWhatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Olá! Vi o produto " + produto.nome + " e gostaria de mais informações.")}`}
+                href={`https://wa.me/${afiliadoWhatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Olá! Vi o produto " + produto.nome + " e a Jennifer disse que eu podia falar contigo.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ textDecoration: "none", display: "block" }}
@@ -863,7 +863,7 @@ function ProdutoShopContent() {
               {mostraLinkWhatsapp && afiliadoWhatsapp && (
                 <div style={{ display: "flex", justifyContent: "flex-start" }}>
                   <a
-                    href={`https://wa.me/${afiliadoWhatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Olá! Vim pelo site e quero mais informações sobre " + (produto?.nome || "o produto") + ".")}`}
+                    href={`https://wa.me/${afiliadoWhatsapp.replace(/\D/g, "")}?text=${encodeURIComponent("Olá! Vi o produto " + (produto?.nome || "o produto") + " e a Jennifer disse que eu podia falar contigo.")}`}
                     target="_blank" rel="noopener noreferrer"
                     style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8, background: "#25D366", borderRadius: 20, padding: "9px 14px", marginTop: 4 }}
                   >
