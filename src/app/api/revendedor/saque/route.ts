@@ -48,22 +48,21 @@ export async function POST(req: NextRequest) {
     if (valorNum > afiliado.saldo) return NextResponse.json({ erro: "Saldo insuficiente" }, { status: 400 });
     if (!pixKey) return NextResponse.json({ erro: "Informe a chave PIX" }, { status: 400 });
 
-    // Tenta enviar PIX automático via Asaas
-    const resultado = await enviarPixAsaas(
-      pixKey,
-      valorNum,
-      `Comissão Jennifer Shop — ${afiliado.nome}`
-    );
-
-    if (!resultado.ok) {
-      return NextResponse.json({ erro: `Falha ao enviar PIX: ${resultado.erro}` }, { status: 500 });
-    }
-
-    // Registra o saque e debita saldo
+    // Registra o saque como pendente e debita saldo
     await prisma.$transaction([
-      prisma.saqueShop.create({ data: { afiliadoId: afiliado.id, valor: valorNum, pixKey, status: "pago" } }),
+      prisma.saqueShop.create({ data: { afiliadoId: afiliado.id, valor: valorNum, pixKey, status: "pendente" } }),
       prisma.afiliadoShop.update({ where: { id: afiliado.id }, data: { saldo: { decrement: valorNum } } }),
     ]);
+
+    // Avisa o dono via WhatsApp
+    if (process.env.OWNER_PHONE) {
+      const msg = `💸 *Jennifer Shop — Saque Solicitado!*\n\nAfiliado: ${afiliado.nome}\nValor: R$ ${valorNum.toFixed(2).replace(".", ",")}\nChave PIX: ${pixKey}\n\nAcesse o painel admin para aprovar:\njennifer-ai.vercel.app/admin/shop/saques`;
+      await fetch(`https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_TOKEN}/send-text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Client-Token": process.env.ZAPI_CLIENT_TOKEN! },
+        body: JSON.stringify({ phone: process.env.OWNER_PHONE, message: msg }),
+      }).catch(() => {});
+    }
 
     // Avisa a revendedora por WhatsApp
     if (afiliado.whatsapp) {
