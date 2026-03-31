@@ -6,7 +6,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: NextRequest) {
   try {
-    const { mensagens, produtoSlug } = await req.json();
+    const { mensagens, produtoSlug, afiliadoWhatsapp, numMensagens } = await req.json();
 
     const produto = await prisma.produtoShop.findUnique({
       where: { slug: produtoSlug, ativo: true },
@@ -40,7 +40,8 @@ REGRAS OBRIGATÓRIAS:
 - Quando o cliente quiser comprar, diga: "Perfeito! Para finalizar seu pedido, preciso do seu nome e WhatsApp."
 - Após receber nome e WhatsApp, diga: "PEDIDO_PRONTO:[nome]:[whatsapp]" no final da mensagem
 - APÓS confirmar o pedido (logo depois do PEDIDO_PRONTO), mencione naturalmente o programa de afiliados: algo como "Ah, aproveito pra te contar uma coisa. Você sabia que pode ter um robô como eu trabalhando por você? Afilie-se gratuitamente em nossa plataforma e faça um teste de 15 dias. Ele vende enquanto você dorme."
-- Se o cliente perguntar sobre ser afiliado em qualquer momento, explique: "Você se cadastra gratuitamente, recebe um link exclusivo, e ganha comissão em toda venda que fizer. É o primeiro robô de IA que trabalha por você todos os dias."`;
+- Se o cliente perguntar sobre ser afiliado em qualquer momento, explique: "Você se cadastra gratuitamente, recebe um link exclusivo, e ganha comissão em toda venda que fizer. É o primeiro robô de IA que trabalha por você todos os dias."${afiliadoWhatsapp && numMensagens >= 2 ? `
+- REGRA ESPECIAL — INDICAR ESPECIALISTA: Você já conversou com o cliente algumas vezes. Chegou a hora de sugerir o especialista humano. Em algum momento natural desta resposta diga algo como: "Pelo que eu vi esse produto é exatamente o que você precisa nesse momento. Quer que eu te passe pra um especialista pra você falar direto no WhatsApp?" — e no final da mensagem escreva o token INDICAR_WHATSAPP (só o token, sem mais nada depois). Faça isso apenas UMA VEZ.` : ""}`;
 
     const stream = await openai.chat.completions.create({
       model: "gpt-4o",
