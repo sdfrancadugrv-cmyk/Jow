@@ -17,13 +17,10 @@ export default function AdminShopPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function toggleAtivo(id: string, ativo: boolean) {
-    await fetch(`/api/admin/shop/produtos/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ativo: !ativo }),
-    });
-    setProdutos(prev => prev.map(p => p.id === id ? { ...p, ativo: !ativo } : p));
+  async function excluirProduto(id: string, nome: string) {
+    if (!confirm(`Excluir "${nome}" permanentemente? Esta ação não pode ser desfeita.`)) return;
+    await fetch(`/api/admin/shop/produtos/${id}`, { method: "DELETE" });
+    setProdutos(prev => prev.filter(p => p.id !== id));
   }
 
   return (
@@ -64,8 +61,8 @@ export default function AdminShopPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {produtos.map((p: any) => (
               <div key={p.id} style={{
-                background: "rgba(212,160,23,0.05)", border: `1px solid rgba(212,160,23,${p.ativo ? "0.2" : "0.07"})`,
-                borderRadius: 14, padding: "16px 20px", opacity: p.ativo ? 1 : 0.5,
+                background: "rgba(212,160,23,0.05)", border: `1px solid rgba(212,160,23,0.2)`,
+                borderRadius: 14, padding: "16px 20px",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                   <div style={{ flex: 1 }}>
@@ -85,9 +82,9 @@ export default function AdminShopPage() {
                       style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(212,160,23,0.3)`, background: "transparent", color: LABEL, fontSize: 11, cursor: "pointer" }}>
                       EDITAR
                     </button>
-                    <button onClick={() => toggleAtivo(p.id, p.ativo)}
-                      style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: p.ativo ? "rgba(192,57,43,0.15)" : "rgba(37,211,102,0.15)", color: p.ativo ? "#c0392b" : GREEN, fontSize: 11, cursor: "pointer" }}>
-                      {p.ativo ? "PAUSAR" : "ATIVAR"}
+                    <button onClick={() => excluirProduto(p.id, p.nome)}
+                      style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "rgba(192,57,43,0.15)", color: "#c0392b", fontSize: 11, cursor: "pointer" }}>
+                      EXCLUIR
                     </button>
                   </div>
                 </div>

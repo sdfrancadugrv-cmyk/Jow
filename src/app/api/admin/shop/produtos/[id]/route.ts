@@ -33,11 +33,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   return NextResponse.json({ produto });
 }
 
-// DELETE — desativar produto
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+// DELETE — excluir produto permanentemente
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthUser();
   if (!user?.isAdmin) return NextResponse.json({ erro: "não autorizado" }, { status: 401 });
 
-  await prisma.produtoShop.update({ where: { id: params.id }, data: { ativo: false } });
+  await prisma.cliqueShop.deleteMany({ where: { produtoId: params.id } });
+  await prisma.vendaShop.deleteMany({ where: { produtoId: params.id } });
+  await prisma.produtoShop.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }
