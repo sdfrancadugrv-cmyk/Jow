@@ -189,6 +189,34 @@ function PainelRevendedorContent() {
             </div>
           )}
         </div>
+
+        {/* Histórico de saques */}
+        {(afiliado.saques || []).length > 0 && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: 20, border: `1px solid ${BORDA}` }}>
+            <p style={{ color: "#333", fontWeight: 700, marginBottom: 16 }}>Histórico de saques</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {afiliado.saques.map((s: any) => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", borderRadius: 8, background: s.status === "pago" ? "rgba(0,166,80,0.06)" : "rgba(255,193,7,0.06)", border: `1px solid ${s.status === "pago" ? "rgba(0,166,80,0.2)" : "rgba(255,193,7,0.3)"}` }}>
+                  <div>
+                    <p style={{ color: "#333", fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                      {s.status === "pago" ? "✅ PIX enviado" : "⏳ Aguardando pagamento"}
+                    </p>
+                    <p style={{ color: CINZA, fontSize: 11 }}>Chave: {s.pixKey}</p>
+                    <p style={{ color: CINZA, fontSize: 11 }}>{new Date(s.createdAt).toLocaleDateString("pt-BR")} às {new Date(s.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p style={{ color: s.status === "pago" ? VERDE : "#f39c12", fontWeight: 700, fontSize: 15 }}>
+                      R$ {s.valor.toFixed(2).replace(".", ",")}
+                    </p>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: s.status === "pago" ? "rgba(0,166,80,0.1)" : "rgba(255,193,7,0.15)", color: s.status === "pago" ? VERDE : "#f39c12", fontWeight: 700 }}>
+                      {s.status === "pago" ? "Pago" : "Pendente"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
