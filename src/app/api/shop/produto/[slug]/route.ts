@@ -11,9 +11,11 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   // Registra clique — com ref de afiliado ou orgânico
   const ref = req.nextUrl.searchParams.get("ref");
   const ip = req.headers.get("x-forwarded-for") || "";
+  let afiliadoWhatsapp: string | null = null;
   if (ref) {
     const afiliado = await prisma.afiliadoShop.findUnique({ where: { codigo: ref } });
     if (afiliado) {
+      afiliadoWhatsapp = afiliado.whatsapp || null;
       await prisma.cliqueShop.create({
         data: { afiliadoId: afiliado.id, produtoId: produto.id, ip, tipo: "afiliado" },
       }).catch(() => {});
@@ -24,5 +26,5 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     }).catch(() => {});
   }
 
-  return NextResponse.json({ produto });
+  return NextResponse.json({ produto, afiliadoWhatsapp });
 }
