@@ -8,16 +8,20 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 
   if (!produto) return NextResponse.json({ erro: "Produto não encontrado" }, { status: 404 });
 
-  // Registra clique se vier com ?ref=CODIGO
+  // Registra clique — com ref de afiliado ou orgânico
   const ref = req.nextUrl.searchParams.get("ref");
+  const ip = req.headers.get("x-forwarded-for") || "";
   if (ref) {
     const afiliado = await prisma.afiliadoShop.findUnique({ where: { codigo: ref } });
     if (afiliado) {
-      const ip = req.headers.get("x-forwarded-for") || "";
       await prisma.cliqueShop.create({
-        data: { afiliadoId: afiliado.id, produtoId: produto.id, ip },
+        data: { afiliadoId: afiliado.id, produtoId: produto.id, ip, tipo: "afiliado" },
       }).catch(() => {});
     }
+  } else {
+    await prisma.cliqueShop.create({
+      data: { produtoId: produto.id, ip, tipo: "organico" },
+    }).catch(() => {});
   }
 
   return NextResponse.json({ produto });

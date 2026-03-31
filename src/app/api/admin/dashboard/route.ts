@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
     cliquesHoje,
     cliquesMes,
     rankingAfiliados,
+    cliquesOrganicosTotal,
+    cliquesOrganicosMes,
   ] = await Promise.all([
     // vendas pagas hoje
     prisma.vendaShop.aggregate({
@@ -70,11 +72,15 @@ export async function GET(req: NextRequest) {
       _sum: { valor: true },
     }),
     // total de cliques em links de afiliado
-    prisma.cliqueShop.count(),
+    prisma.cliqueShop.count({ where: { tipo: "afiliado" } }),
     // cliques hoje
-    prisma.cliqueShop.count({ where: { createdAt: { gte: hoje } } }),
+    prisma.cliqueShop.count({ where: { tipo: "afiliado", createdAt: { gte: hoje } } }),
     // cliques este mês
-    prisma.cliqueShop.count({ where: { createdAt: { gte: inicioMes } } }),
+    prisma.cliqueShop.count({ where: { tipo: "afiliado", createdAt: { gte: inicioMes } } }),
+    // cliques orgânicos total
+    prisma.cliqueShop.count({ where: { tipo: "organico" } }),
+    // cliques orgânicos este mês
+    prisma.cliqueShop.count({ where: { tipo: "organico", createdAt: { gte: inicioMes } } }),
     // top 5 afiliados por cliques e vendas
     prisma.afiliadoShop.findMany({
       where: { ativo: true },
@@ -109,6 +115,8 @@ export async function GET(req: NextRequest) {
       totalCliques,
       cliquesHoje,
       cliquesMes,
+      cliquesOrganicosTotal,
+      cliquesOrganicosMes,
     },
     vendasRecentes,
     produtosRanking: produtosRanking.map(p => ({

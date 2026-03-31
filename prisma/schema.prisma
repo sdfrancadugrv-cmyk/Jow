@@ -351,13 +351,14 @@ model SaqueShop {
 }
 
 model CliqueShop {
-  id         String       @id @default(cuid())
-  afiliadoId String
+  id         String        @id @default(cuid())
+  afiliadoId String?
   produtoId  String
   ip         String?
-  createdAt  DateTime     @default(now())
-  afiliado   AfiliadoShop @relation(fields: [afiliadoId], references: [id])
-  produto    ProdutoShop  @relation(fields: [produtoId], references: [id])
+  tipo       String        @default("afiliado") // "afiliado" | "organico"
+  createdAt  DateTime      @default(now())
+  afiliado   AfiliadoShop? @relation(fields: [afiliadoId], references: [id])
+  produto    ProdutoShop   @relation(fields: [produtoId], references: [id])
 
   @@index([afiliadoId])
   @@index([produtoId])
