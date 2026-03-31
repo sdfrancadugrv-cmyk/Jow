@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jennifer-ai.vercel.app";
+    const appUrl = "https://jennifer-ai.vercel.app";
 
     // Gera PIX direto via Mercado Pago
     const emailPagador = `${telefoneCliente.replace(/\D/g, "")}@compradores.jennifer.shop`;
