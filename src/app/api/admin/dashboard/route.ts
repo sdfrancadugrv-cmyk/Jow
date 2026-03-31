@@ -23,9 +23,9 @@ export async function GET(req: NextRequest) {
     totalCliques,
     cliquesHoje,
     cliquesMes,
-    rankingAfiliados,
     cliquesOrganicosTotal,
     cliquesOrganicosMes,
+    rankingAfiliados,
   ] = await Promise.all([
     // vendas pagas hoje
     prisma.vendaShop.aggregate({
