@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!afiliado) return NextResponse.json({ erro: "Afiliado não encontrado" }, { status: 404 });
 
     const valorNum = parseFloat(valor);
-    if (!valorNum || valorNum < 10) return NextResponse.json({ erro: "Valor mínimo de saque: R$ 10,00" }, { status: 400 });
+    if (!valorNum || valorNum < 0.01) return NextResponse.json({ erro: "Valor inválido" }, { status: 400 });
     if (valorNum > afiliado.saldo) return NextResponse.json({ erro: "Saldo insuficiente" }, { status: 400 });
     if (!pixKey) return NextResponse.json({ erro: "Informe a chave PIX" }, { status: 400 });
 

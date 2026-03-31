@@ -102,12 +102,11 @@ function PainelRevendedorContent() {
               <p style={{ color: CINZA, fontSize: 12, marginBottom: 4 }}>SALDO DISPONÍVEL</p>
               <p style={{ color: VERDE, fontSize: "1.6rem", fontWeight: 700 }}>R$ {(afiliado.saldo || 0).toFixed(2).replace(".", ",")}</p>
             </div>
-            <button onClick={() => setMostraSaque(!mostraSaque)} disabled={(afiliado.saldo || 0) < 10}
-              style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: (afiliado.saldo || 0) >= 10 ? VERDE : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: (afiliado.saldo || 0) >= 10 ? "pointer" : "default" }}>
+            <button onClick={() => setMostraSaque(!mostraSaque)} disabled={(afiliado.saldo || 0) <= 0}
+              style={{ padding: "10px 20px", borderRadius: 8, border: "none", background: (afiliado.saldo || 0) > 0 ? VERDE : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: (afiliado.saldo || 0) > 0 ? "pointer" : "default" }}>
               Sacar PIX
             </button>
           </div>
-          {(afiliado.saldo || 0) < 10 && <p style={{ color: CINZA, fontSize: 12, marginTop: 8 }}>Mínimo para saque: R$ 10,00</p>}
 
           {mostraSaque && (
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10, borderTop: `1px solid ${BORDA}`, paddingTop: 16 }}>
