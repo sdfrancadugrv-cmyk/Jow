@@ -20,5 +20,11 @@ export async function GET(req: NextRequest) {
 
   if (!afiliado) return NextResponse.json({ erro: "Afiliado não encontrado" }, { status: 404 });
 
-  return NextResponse.json({ afiliado });
+  const produtos = await prisma.produtoShop.findMany({
+    where: { ativo: true },
+    select: { nome: true, slug: true, precoVenda: true, comissaoPorc: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return NextResponse.json({ afiliado, produtos });
 }
