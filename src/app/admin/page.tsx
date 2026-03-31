@@ -32,8 +32,7 @@ const MODULOS = [
     categoria: "Kadosh App (Orchestrator)",
     cor: "#4A90D9",
     itens: [
-      { nome: "App Principal", rota: "/app",          icone: "🤖", desc: "AI Orchestrator com voz" },
-      { nome: "WhatsApp",      rota: "/app/whatsapp", icone: "💬", desc: "Gestão de leads" },
+      { nome: "WhatsApp", rota: "/app/whatsapp", icone: "💬", desc: "Gestão de leads" },
     ],
   },
 ];
