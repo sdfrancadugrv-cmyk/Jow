@@ -25,6 +25,7 @@ export default function ProviderLoginPage() {
   const [providerId, setProviderId] = useState("");
   const [isExisting, setIsExisting] = useState(false);
   const [fotoBase64, setFotoBase64] = useState("");
+  const [outroServico, setOutroServico] = useState("");
 
   const toggleService = (value: string) => {
     setSelectedServices(prev =>
@@ -106,7 +107,9 @@ export default function ProviderLoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          serviceType: selectedServices.join(","),
+          serviceType: selectedServices.includes("outros") && outroServico.trim()
+            ? selectedServices.filter(s => s !== "outros").concat(outroServico.trim()).join(",")
+            : selectedServices.join(","),
           foto: fotoBase64 || null,
           ...loc,
         }),
@@ -208,6 +211,15 @@ export default function ProviderLoginPage() {
                   </div>
                 ))}
               </div>
+              {selectedServices.includes("outros") && (
+                <input
+                  value={outroServico}
+                  onChange={e => setOutroServico(e.target.value)}
+                  placeholder="Descreva seu serviço..."
+                  style={{ ...inputStyle, marginTop: 10 }}
+                  autoFocus
+                />
+              )}
               {selectedServices.length > 0 && (
                 <p style={{ fontSize: 12, color: GOLD, marginTop: 8 }}>
                   {selectedServices.length} selecionado{selectedServices.length > 1 ? "s" : ""} · Plano: <strong>{getProviderPriceLabel(selectedServices.join(","))}/mês</strong>
