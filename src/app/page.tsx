@@ -255,7 +255,7 @@ export default function LandingPage() {
       if (action === "goto_login")       { router.push("/login"); return; }
       if (action && action.startsWith("goto_services_")) {
         const s = action.replace("goto_services_", "");
-        router.push(`/services/new${s ? `?s=${encodeURIComponent(s)}` : ""}`);
+        router.push(`/prestadores${s ? `?servico=${encodeURIComponent(s)}` : ""}`);
         return;
       }
       if (action === "goto_provider")    { router.push("/provider/register"); return; }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { SERVICE_CATEGORIES, SERVICE_LABELS } from "@/lib/service-types";
 
 const BG = "#070B18";
@@ -9,8 +10,9 @@ const GOLD_LIGHT = "#FFE082";
 const MUTED = "#7A6018";
 const LABEL = "#A08030";
 
-export default function PrestadoresPage() {
-  const [servico, setServico] = useState("");
+function PrestadoresContent() {
+  const searchParams = useSearchParams();
+  const [servico, setServico] = useState(searchParams?.get("servico") || "");
   const [cidade, setCidade] = useState("");
   const [prestadores, setPrestadores] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function PrestadoresPage() {
     setLoading(false);
   }
 
-  useEffect(() => { buscar(); }, []); // carrega todos ao entrar
+  useEffect(() => { buscar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <main style={{ minHeight: "100vh", background: BG, padding: "24px 16px" }}>
@@ -138,5 +140,13 @@ export default function PrestadoresPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PrestadoresPage() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: "100vh", background: "#070B18", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#7A6018" }}>Carregando...</p></main>}>
+      <PrestadoresContent />
+    </Suspense>
   );
 }

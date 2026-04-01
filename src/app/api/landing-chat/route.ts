@@ -75,9 +75,9 @@ Quando o usuário demonstrar interesse em agenda ou atendimento ou perguntar sob
 Quando o usuário demonstrar interesse em criar sistemas ou aplicações ou perguntar sobre o modo Expert, use EXATAMENTE:
 "Como Expert, posso criar qualquer aplicação que você tenha em mente, desde que seja executável pelo computador — ou seja, qualquer coisa relacionada à computação eu posso criar."
 
-Quando o usuário demonstrar interesse em contratar um serviço local (faxineira, pedreiro, eletricista, encanador, pintor, etc.):
-NÃO explique como funciona. NÃO mencione preços. Confirme o serviço em 1 frase curta e emita [BUSCAR_SERVICO] imediatamente.
-Exemplos: "Vou buscar um eletricista perto de você." [BUSCAR_SERVICO] / "Procurando faxineira disponível na sua região." [BUSCAR_SERVICO]
+Quando o usuário demonstrar interesse em contratar um serviço local (faxineira, pedreiro, eletricista, encanador, pintor, médico, advogado, etc.):
+NÃO explique como funciona. NÃO mencione preços. Confirme o serviço em 1 frase curta e emita [BUSCAR_SERVICO:nome] onde nome é o tipo do serviço em português simples (ex: pedreiro, eletricista, faxineira, médico, advogado).
+Exemplos: "Vou buscar um eletricista perto de você." [BUSCAR_SERVICO:eletricista] / "Procurando faxineira disponível na sua região." [BUSCAR_SERVICO:faxineira]
 
 Quando o usuário quiser SE CADASTRAR como prestador de serviços para oferecer trabalho:
 Diga apenas "Vou te levar para o cadastro de prestadores." e emita [CADASTRAR_PRESTADOR]
@@ -216,8 +216,13 @@ export async function POST(req: NextRequest) {
     if (text.includes("[ASSINAR]")) {
       action = "goto_register";
       text = text.replace("[ASSINAR]", "").trim();
+    } else if (text.includes("[BUSCAR_SERVICO:")) {
+      const match = text.match(/\[BUSCAR_SERVICO:([^\]]+)\]/);
+      const tipo = match?.[1]?.trim() || "";
+      action = `goto_services_${tipo}`;
+      text = text.replace(/\[BUSCAR_SERVICO:[^\]]+\]/, "").trim();
     } else if (text.includes("[BUSCAR_SERVICO]")) {
-      action = "goto_services";
+      action = "goto_services_";
       text = text.replace("[BUSCAR_SERVICO]", "").trim();
     } else if (text.includes("[CADASTRAR_PRESTADOR]")) {
       action = "goto_provider";
