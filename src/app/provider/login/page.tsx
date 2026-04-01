@@ -24,6 +24,7 @@ export default function ProviderLoginPage() {
   const [cityInput, setCityInput] = useState("");
   const [providerId, setProviderId] = useState("");
   const [isExisting, setIsExisting] = useState(false);
+  const [fotoBase64, setFotoBase64] = useState("");
 
   const toggleService = (value: string) => {
     setSelectedServices(prev =>
@@ -106,6 +107,7 @@ export default function ProviderLoginPage() {
         body: JSON.stringify({
           name,
           serviceType: selectedServices.join(","),
+          foto: fotoBase64 || null,
           ...loc,
         }),
       });
@@ -168,6 +170,23 @@ export default function ProviderLoginPage() {
             <div>
               <label style={labelStyle}>Seu nome completo</label>
               <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Como os clientes vão te ver" />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Sua foto de perfil <span style={{ color: MUTED, fontSize: 11 }}>(opcional)</span></label>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {fotoBase64 && <img src={fotoBase64} alt="preview" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: `2px solid ${GOLD}` }} />}
+                <label style={{ padding: "10px 16px", borderRadius: 10, border: `1px solid rgba(212,160,23,0.4)`, background: "rgba(255,255,255,0.04)", color: GOLD_LIGHT, fontSize: 13, cursor: "pointer" }}>
+                  {fotoBase64 ? "Trocar foto" : "📷 Escolher foto"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setFotoBase64(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              </div>
             </div>
 
             <div>

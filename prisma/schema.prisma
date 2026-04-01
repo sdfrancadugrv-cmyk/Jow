@@ -113,6 +113,7 @@ model ServiceProvider {
   facebookId       String?  @unique
   authProvider     String   @default("email") // email | google | facebook | phone
   serviceType      String?
+  foto             String?
   dailyRate        Float?
   lat              Float?
   lng              Float?
