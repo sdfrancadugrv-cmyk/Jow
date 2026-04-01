@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getProviderPriceLabel } from "@/lib/service-types";
 
 const GOLD = "#D4A017";
 const GOLD_LIGHT = "#FFE082";
@@ -14,6 +15,14 @@ export default function ProviderSubscribePage() {
   const [erro, setErro] = useState("");
   const [pix, setPix] = useState<{ qrCode: string; qrBase64: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [precoLabel, setPrecoLabel] = useState("R$29,90");
+
+  useEffect(() => {
+    fetch("/api/provider/me")
+      .then(r => r.json())
+      .then(d => { if (d.provider?.serviceType) setPrecoLabel(getProviderPriceLabel(d.provider.serviceType)); })
+      .catch(() => {});
+  }, []);
 
   async function gerarPix() {
     setLoading(true); setErro("");
@@ -48,7 +57,7 @@ export default function ProviderSubscribePage() {
         </p>
 
         <div style={{ padding: "28px 24px", borderRadius: 20, border: "1px solid rgba(212,160,23,0.35)", background: "rgba(212,160,23,0.06)", marginBottom: 24 }}>
-          <p style={{ color: GOLD_LIGHT, fontSize: 36, fontWeight: 700, marginBottom: 4 }}>R$29,90</p>
+          <p style={{ color: GOLD_LIGHT, fontSize: 36, fontWeight: 700, marginBottom: 4 }}>{precoLabel}</p>
           <p style={{ color: MUTED, fontSize: 13, marginBottom: 24 }}>acesso por 30 dias</p>
 
           {!pix ? (
