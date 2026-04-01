@@ -5,7 +5,7 @@ import { getAuthProvider } from "@/lib/provider-auth";
 import prisma from "@/lib/prisma";
 import { getProviderPrice } from "@/lib/service-types";
 
-const APP_URL = "https://kadosh-ai.vercel.app";
+const APP_URL = "https://jennifer-ai.vercel.app";
 
 export async function POST(req: NextRequest) {
   try {
