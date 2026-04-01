@@ -33,11 +33,9 @@ export default function ProviderDashboardPage() {
         .then(r => { if (r.status === 401) { router.push("/provider/login"); return null; } return r.json(); })
         .then(data => {
           if (!data) return;
-          if (data.provider?.status === "active") {
+          if (data.provider) {
             setProvider(data.provider);
             setLoading(false);
-          } else {
-            router.push("/provider/subscribe");
           }
         })
         .catch(() => setLoading(false));
@@ -76,8 +74,21 @@ export default function ProviderDashboardPage() {
           <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.4rem", background: `linear-gradient(180deg, ${GOLD_LIGHT} 0%, ${GOLD} 60%)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
             JENNIFER
           </h1>
-          <a href="/" style={{ fontSize: 11, color: LABEL, letterSpacing: "0.1em", textDecoration: "none" }}>SAIR</a>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <button onClick={() => router.push("/provider/login")} style={{ fontSize: 11, color: LABEL, letterSpacing: "0.1em", background: "none", border: "none", cursor: "pointer" }}>EDITAR PERFIL</button>
+            <a href="/" style={{ fontSize: 11, color: LABEL, letterSpacing: "0.1em", textDecoration: "none" }}>SAIR</a>
+          </div>
         </div>
+
+        {/* Banner assinatura pendente */}
+        {provider.status !== "active" && (
+          <div style={{ marginBottom: 20, padding: "14px 18px", borderRadius: 12, background: "rgba(249,115,22,0.1)", border: "1px solid rgba(249,115,22,0.4)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <p style={{ color: "#F97316", fontSize: 13, fontWeight: 600 }}>⚠️ Assinatura pendente — você ainda não está recebendo pedidos.</p>
+            <button onClick={() => router.push("/provider/subscribe")} style={{ background: "#F97316", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 12, padding: "8px 14px", cursor: "pointer", whiteSpace: "nowrap" }}>
+              Assinar agora
+            </button>
+          </div>
+        )}
 
         {/* Perfil */}
         <div style={{ padding: "20px", borderRadius: 16, border: "1px solid rgba(212,160,23,0.3)", background: "rgba(212,160,23,0.06)", marginBottom: 24 }}>

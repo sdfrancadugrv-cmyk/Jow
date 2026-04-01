@@ -64,6 +64,7 @@ export default function ProviderSubscribePage() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+              <button onClick={() => setPix(null)} style={{ background: "none", border: "none", color: MUTED, fontSize: 12, cursor: "pointer", textDecoration: "underline", alignSelf: "flex-start" }}>← Gerar novo PIX</button>
               <p style={{ color: GOLD_LIGHT, fontSize: 13 }}>Escaneie o QR Code ou copie o código PIX</p>
               {pix.qrBase64 && (
                 <img
