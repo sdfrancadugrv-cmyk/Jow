@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const needsProfile = !provider.serviceType || !provider.city || provider.name === "Prestador";
 
   const response = NextResponse.json({ ok: true, needsProfile, providerId: provider.id });
-  response.cookies.set("kadosh_provider_token", token, {
+  response.cookies.set("JENNIFER_provider_token", token, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",

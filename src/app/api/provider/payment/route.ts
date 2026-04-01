@@ -15,19 +15,18 @@ export async function POST(req: NextRequest) {
     const provider = await prisma.serviceProvider.findUnique({ where: { id: auth.sub } });
     if (!provider) return NextResponse.json({ error: "Prestador não encontrado" }, { status: 404 });
 
-    const { method, payerEmail, formData } = await req.json();
+    const { method, formData } = await req.json();
 
     const priceAmount = getProviderPrice(provider.serviceType || "");
+    const payerEmail = provider.email || `${(provider.phone || "").replace(/\D/g, "")}@prestadores.jennifer.app`;
     const payment = new Payment(mp);
 
     // ── PIX ──────────────────────────────────────────────────────────
     if (method === "pix") {
-      if (!payerEmail) return NextResponse.json({ error: "Email obrigatório" }, { status: 400 });
-
       const result = await payment.create({
         body: {
           transaction_amount: priceAmount / 100,
-          description: "Kadosh Prestador — 30 dias",
+          description: "Jennifer Prestador — 30 dias",
           payment_method_id: "pix",
           payer: { email: payerEmail },
           external_reference: `provider|${provider.id}`,

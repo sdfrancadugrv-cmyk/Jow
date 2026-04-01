@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const GOLD = "#D4A017";
@@ -10,27 +10,18 @@ const MUTED = "#7A6018";
 
 export default function ProviderSubscribePage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState("");
   const [pix, setPix] = useState<{ qrCode: string; qrBase64: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/provider/me")
-      .then(r => r.json())
-      .then(d => { if (d.provider?.email) setEmail(d.provider.email); })
-      .catch(() => {});
-  }, []);
-
   async function gerarPix() {
-    if (!email) { setErro("Informe seu e-mail"); return; }
     setLoading(true); setErro("");
     try {
       const res = await fetch("/api/provider/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: "pix", payerEmail: email }),
+        body: JSON.stringify({ method: "pix" }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setErro(data.error || "Erro ao gerar PIX"); return; }
@@ -62,13 +53,6 @@ export default function ProviderSubscribePage() {
 
           {!pix ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="Seu e-mail"
-                style={{ padding: "12px 16px", borderRadius: 12, border: "1px solid rgba(212,160,23,0.4)", background: "rgba(255,255,255,0.06)", color: GOLD_LIGHT, fontSize: 14, outline: "none" }}
-              />
               {erro && <p style={{ color: "#F97316", fontSize: 13 }}>{erro}</p>}
               <button
                 onClick={gerarPix}
