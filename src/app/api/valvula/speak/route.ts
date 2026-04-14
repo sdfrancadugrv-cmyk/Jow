@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
       } catch {}
     }
 
-    // fallback: OpenAI nova (boa em português)
-    const mp3 = await openai.audio.speech.create({ model: "tts-1", voice: "nova", input: text, speed: 1.05 });
+    // OpenAI shimmer HD — voz mais quente e humanizada
+    const mp3 = await openai.audio.speech.create({ model: "tts-1-hd", voice: "shimmer", input: text, speed: 1.0 });
     const buf = Buffer.from(await mp3.arrayBuffer());
 
     return new NextResponse(buf as unknown as BodyInit, {
