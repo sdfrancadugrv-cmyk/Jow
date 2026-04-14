@@ -475,7 +475,10 @@ export default function ValvulaPage() {
             <label style={lbl}>WhatsApp *</label>
             <input style={inp} value={form.telefone} onChange={e => setForm(f => ({...f, telefone: formatPhone(e.target.value)}))} placeholder="(53) 99999-9999" required />
             <label style={lbl}>Endereço de entrega *</label>
-            <input style={inp} value={form.endereco} onChange={e => setForm(f => ({...f, endereco: e.target.value}))} placeholder="Rua, número, bairro, cidade" required />
+            <AddressAutocomplete
+              value={form.endereco}
+              onChange={v => setForm(f => ({...f, endereco: v}))}
+            />
             <div style={{ background: LIGHT_GREEN, border: `1px solid ${GREEN}30`, borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 14, color: GREEN, fontWeight: 600 }}>
               💰 Total: {valor}
             </div>
@@ -706,6 +709,126 @@ function CalcSection() {
       <p style={{ marginTop: 16, fontSize: 14, color: "#666" }}>
         💡 A válvula se paga em apenas <strong style={{ color: GREEN }}>{payback} meses</strong>
       </p>
+    </div>
+  );
+}
+
+// ─── autocomplete de endereço (Nominatim OSM) ────────────────────────────────
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  address: { road?: string; suburb?: string; city?: string; town?: string; state?: string; postcode?: string; house_number?: string; };
+}
+
+function AddressAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [query, setQuery] = useState(value);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleInput(v: string) {
+    setQuery(v);
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (v.length < 4) { setSuggestions([]); setOpen(false); return; }
+    debounceRef.current = setTimeout(() => fetchSuggestions(v), 400);
+  }
+
+  async function fetchSuggestions(q: string) {
+    setLoading(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=br&accept-language=pt-BR`;
+      const res = await fetch(url, { headers: { "Accept-Language": "pt-BR" } });
+      const data: NominatimResult[] = await res.json();
+      setSuggestions(data);
+      setOpen(data.length > 0);
+    } catch { setSuggestions([]); }
+    finally { setLoading(false); }
+  }
+
+  function pickSuggestion(s: NominatimResult) {
+    // monta endereço no formato: Rua X, 123, Bairro, Cidade - RS
+    const a = s.address;
+    const parts = [
+      a.road, a.house_number, a.suburb,
+      a.city || a.town, a.state,
+    ].filter(Boolean);
+    const formatted = parts.join(", ");
+    setQuery(formatted);
+    onChange(formatted);
+    setSuggestions([]);
+    setOpen(false);
+  }
+
+  async function useMyLocation() {
+    if (!navigator.geolocation) return;
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pt-BR`);
+        const data = await res.json();
+        if (data?.display_name) {
+          const a = data.address || {};
+          const parts = [a.road, a.house_number, a.suburb, a.city || a.town, a.state].filter(Boolean);
+          const formatted = parts.join(", ");
+          setQuery(formatted);
+          onChange(formatted);
+        }
+      } catch {}
+      finally { setGeoLoading(false); }
+    }, () => setGeoLoading(false));
+  }
+
+  return (
+    <div style={{ position: "relative", marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ flex: 1, position: "relative" }}>
+          <input
+            style={{ ...inp, marginBottom: 0, paddingRight: loading ? 38 : 14 }}
+            value={query}
+            onChange={e => handleInput(e.target.value)}
+            onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
+            onBlur={() => setTimeout(() => setOpen(false), 200)}
+            placeholder="Digite o endereço..."
+            required
+            autoComplete="off"
+          />
+          {loading && (
+            <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, border: `2px solid ${GREEN}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={useMyLocation}
+          title="Usar minha localização"
+          style={{ background: geoLoading ? "#e5e5e5" : GREEN, color: "#fff", border: "none", borderRadius: 10, width: 46, height: 46, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0, transition: "all 0.2s" }}
+        >
+          {geoLoading ? <span style={{ width: 16, height: 16, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", display: "inline-block", animation: "spin 0.7s linear infinite" }} /> : "📍"}
+        </button>
+      </div>
+
+      {/* dropdown de sugestões */}
+      {open && suggestions.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 54, background: "#fff", border: "1.5px solid #e5e5e5", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.12)", zIndex: 999, overflow: "hidden", marginTop: 4 }}>
+          {suggestions.map((s, i) => (
+            <div
+              key={s.place_id}
+              onMouseDown={() => pickSuggestion(s)}
+              style={{ padding: "12px 16px", cursor: "pointer", borderBottom: i < suggestions.length - 1 ? "1px solid #f5f5f5" : "none", display: "flex", alignItems: "flex-start", gap: 10, transition: "background 0.1s" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "#f9fafb")}
+              onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
+            >
+              <span style={{ color: GREEN, flexShrink: 0, marginTop: 1 }}>📍</span>
+              <span style={{ fontSize: 13, color: "#333", lineHeight: 1.4 }}>{s.display_name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
