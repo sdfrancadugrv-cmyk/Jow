@@ -210,10 +210,7 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   const isListening = voiceState === "listening";
   const isThinking = voiceState === "thinking";
 
-  // abre caixa automaticamente quando usuário precisa agir
-  useEffect(() => {
-    if (isListening) setBoxOpen(true);
-  }, [isListening]);
+  // caixa nunca abre sozinha — só quando usuário toca no botão
 
   return (
     <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
