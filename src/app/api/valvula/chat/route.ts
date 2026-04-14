@@ -14,7 +14,7 @@ PRODUTO: HydroBlu — Válvula Economizadora de Água
 
 OPÇÕES DE COMPRA:
 1. Instala você mesmo — R$ 67,90 (vem com manual detalhado)
-2. Com técnico especializado — R$ 127,50 (RECOMENDADO — garantia de instalação correta)
+2. Com técnico especializado — R$ 119,00 (RECOMENDADO — garantia de instalação correta)
 
 NÚMEROS PARA CONTEXTUALIZAR:
 - Família média gasta R$ 150-300/mês de água

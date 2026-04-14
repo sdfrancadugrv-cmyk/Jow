@@ -27,19 +27,46 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   const [transcript, setTranscript] = useState("");
   const [sofiaText, setSofiaText] = useState("");
   const [history, setHistory] = useState<ChatMsg[]>([]);
-  const [started, setStarted] = useState(false);
   const [micPermission, setMicPermission] = useState<"unknown" | "granted" | "denied">("unknown");
-  const [waveBars] = useState(() => Array.from({ length: 20 }, (_, i) => i));
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // guarda: true enquanto Sofia está falando — bloqueia o mic completamente
+  const isSpeakingRef = useRef(false);
+  const startedRef = useRef(false);
+  const historyRef = useRef<ChatMsg[]>([]);
 
-  // faz Sofia falar via TTS
+  // sincroniza historyRef com state
+  useEffect(() => { historyRef.current = history; }, [history]);
+
+  // ── auto-start na montagem ──────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => startSofia(), 1200);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── faz Sofia falar (microfone fica INERTE enquanto fala) ──────────────────
   const speak = useCallback(async (text: string, msgs: ChatMsg[]) => {
+    // garante que mic para antes de falar
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    isSpeakingRef.current = true;
     setSofiaText(text);
     setVoiceState("speaking");
+
+    const afterSpeak = () => {
+      isSpeakingRef.current = false;
+      // aguarda 700ms para eco dissipar antes de abrir o mic
+      setTimeout(() => {
+        setVoiceState("listening");
+        startListening();
+      }, 700);
+    };
+
     try {
       const res = await fetch("/api/valvula/speak", {
         method: "POST",
@@ -51,48 +78,64 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        setVoiceState("listening");
-        startListening();
-      };
+      audio.onended = () => { URL.revokeObjectURL(url); afterSpeak(); };
+      audio.onerror  = () => { URL.revokeObjectURL(url); afterSpeak(); };
       await audio.play();
     } catch {
-      // fallback: Web Speech API
       if ("speechSynthesis" in window) {
         const utt = new SpeechSynthesisUtterance(text);
         utt.lang = "pt-BR";
         utt.rate = 1.05;
-        utt.onend = () => { setVoiceState("listening"); startListening(); };
+        utt.onend = afterSpeak;
+        utt.onerror = afterSpeak;
         window.speechSynthesis.speak(utt);
       } else {
-        setVoiceState("listening");
-        startListening();
+        afterSpeak();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // inicia gravação do microfone
+  // ── inicia gravação — só ativa se Sofia NÃO está falando ──────────────────
   const startListening = useCallback(async () => {
+    // trava dupla: ref (síncrono) + state
+    if (isSpeakingRef.current) return;
+
     try {
-      const stream = streamRef.current || await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      // pede stream com cancelamento de eco ativado
+      if (!streamRef.current) {
+        const s = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        });
+        streamRef.current = s;
+      }
       setMicPermission("granted");
 
+      // verifica de novo após await (pode ter mudado enquanto esperava)
+      if (isSpeakingRef.current) return;
+
       chunksRef.current = [];
-      const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg" });
+      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/ogg";
+      const mr = new MediaRecorder(streamRef.current, { mimeType: mime });
       mediaRecorderRef.current = mr;
 
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
-        const blob = new Blob(chunksRef.current, { type: mr.mimeType });
-        if (blob.size < 1000) { setVoiceState("listening"); startListening(); return; }
+        // se Sofia começou a falar enquanto gravava, descarta
+        if (isSpeakingRef.current) return;
+        const blob = new Blob(chunksRef.current, { type: mime });
+        if (blob.size < 2000) {
+          // silêncio — aguarda mais um pouco e abre mic de novo
+          if (!isSpeakingRef.current) {
+            setTimeout(() => { if (!isSpeakingRef.current) startListening(); }, 400);
+          }
+          return;
+        }
         await processAudio(blob);
       };
 
       mr.start();
-      // para automaticamente após 8s de silêncio / fala do user
+      // para após 8s — usuário deve falar nesse período
       setTimeout(() => { if (mr.state === "recording") mr.stop(); }, 8000);
     } catch {
       setMicPermission("denied");
@@ -101,72 +144,65 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // para gravação manualmente
   const stopListening = useCallback(() => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
   }, []);
 
-  // processa áudio → texto → IA → voz
+  // ── processa áudio → texto → IA → voz ────────────────────────────────────
   const processAudio = useCallback(async (blob: Blob) => {
+    if (isSpeakingRef.current) return;
     setVoiceState("thinking");
     try {
-      // STT
       const fd = new FormData();
       fd.append("audio", blob, "audio.webm");
       const sttRes = await fetch("/api/valvula/transcribe", { method: "POST", body: fd });
       const { text: userText } = await sttRes.json();
-      if (!userText?.trim()) { setVoiceState("listening"); startListening(); return; }
-
+      if (!userText?.trim()) {
+        if (!isSpeakingRef.current) { setVoiceState("listening"); startListening(); }
+        return;
+      }
       setTranscript(userText);
-
-      const newHistory: ChatMsg[] = [...history, { role: "user", content: userText }];
-
-      // checar se menciona compra
-      const buyWords = ["comprar", "quero", "compra", "pedir", "pedido", "finalizar", "sim", "quero comprar", "como compro"];
+      const cur = historyRef.current;
+      const newHistory: ChatMsg[] = [...cur, { role: "user", content: userText }];
+      const buyWords = ["comprar", "quero comprar", "como compro", "finalizar", "quero pagar", "quero pedir"];
       const wantsBuy = buyWords.some(w => userText.toLowerCase().includes(w));
 
-      // IA
       const aiRes = await fetch("/api/valvula/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newHistory }),
       });
       const { reply } = await aiRes.json();
-
       const updatedHistory: ChatMsg[] = [...newHistory, { role: "assistant", content: reply }];
       setHistory(updatedHistory);
 
       if (wantsBuy) {
         onBuyClick();
-        const buyReply = reply + " Abri o formulário de compra para você, é só preencher!";
-        await speak(buyReply, updatedHistory);
+        await speak(reply + " Abri o formulário de compra para você!", updatedHistory);
       } else {
         await speak(reply, updatedHistory);
       }
     } catch {
-      setVoiceState("listening");
-      startListening();
+      if (!isSpeakingRef.current) { setVoiceState("listening"); startListening(); }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [history, speak, startListening, onBuyClick]);
+  }, [speak, startListening, onBuyClick]);
 
-  // inicia Sofia automaticamente
+  // ── start ─────────────────────────────────────────────────────────────────
   async function startSofia() {
-    if (started) return;
-    setStarted(true);
+    if (startedRef.current) return;
+    startedRef.current = true;
     const initial: ChatMsg[] = [{ role: "assistant", content: INTRO }];
     setHistory(initial);
     await speak(INTRO, initial);
   }
 
-  // interrompe Sofia e ouve agora
   function interruptAndListen() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     window.speechSynthesis?.cancel();
+    isSpeakingRef.current = false;
     setVoiceState("listening");
-    startListening();
+    setTimeout(() => startListening(), 200);
   }
 
   const isSpeaking = voiceState === "speaking";
@@ -174,66 +210,35 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   const isThinking = voiceState === "thinking";
 
   return (
-    <div style={{
-      position: "fixed",
-      bottom: 24,
-      right: 24,
-      zIndex: 1000,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-end",
-      gap: 12,
-    }}>
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
 
-      {/* caixa de fala / status */}
-      {started && (
-        <div style={{
-          background: "#fff",
-          borderRadius: 20,
-          boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
-          border: `1px solid ${GREEN}30`,
-          width: 300,
-          overflow: "hidden",
-        }}>
-          {/* header Sofia */}
+      {/* caixa de status */}
+      {sofiaText && (
+        <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.15)", border: `1px solid ${GREEN}30`, width: 300, overflow: "hidden" }}>
+          {/* header */}
           <div style={{ background: GREEN, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "rgba(255,255,255,0.2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18,
-              boxShadow: isSpeaking ? "0 0 0 4px rgba(255,255,255,0.3)" : "none",
-              animation: isSpeaking ? "pulse-ring 1.2s infinite" : "none",
-            }}>💧</div>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, animation: isSpeaking ? "pulse-ring 1.2s infinite" : "none" }}>💧</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>Sofia</div>
               <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 11 }}>
                 {isThinking ? "pensando..." : isListening ? "ouvindo você..." : isSpeaking ? "falando..." : "pronta"}
               </div>
             </div>
-            {/* indicador de onda */}
             {isSpeaking && (
               <div style={{ display: "flex", alignItems: "center", gap: 2, height: 28 }}>
-                {waveBars.slice(0, 7).map((_, i) => (
-                  <div key={i} style={{
-                    width: 3, borderRadius: 2,
-                    background: "rgba(255,255,255,0.8)",
-                    height: `${8 + Math.sin(Date.now() / 200 + i) * 8}px`,
-                    animation: `wave-bar 0.6s ${i * 0.08}s ease-in-out infinite alternate`,
-                  }} />
+                {[0,1,2,3,4,5,6].map(i => (
+                  <div key={i} style={{ width: 3, borderRadius: 2, background: "rgba(255,255,255,0.85)", animation: `wave-bar 0.5s ${i * 0.07}s ease-in-out infinite alternate` }} />
                 ))}
               </div>
             )}
           </div>
 
-          {/* texto do que Sofia disse */}
-          {sofiaText && (
-            <div style={{ padding: "12px 16px 8px", maxHeight: 100, overflowY: "auto" }}>
-              <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0 }}>{sofiaText}</p>
-            </div>
-          )}
+          {/* texto Sofia */}
+          <div style={{ padding: "12px 16px 8px", maxHeight: 90, overflowY: "auto" }}>
+            <p style={{ fontSize: 13, color: "#333", lineHeight: 1.5, margin: 0 }}>{sofiaText}</p>
+          </div>
 
-          {/* o que o usuário falou */}
+          {/* texto usuário */}
           {transcript && (
             <div style={{ padding: "0 16px 10px" }}>
               <div style={{ background: "#f5f5f5", borderRadius: 10, padding: "8px 12px", fontSize: 12, color: "#666", borderLeft: `3px solid ${GREEN}` }}>
@@ -242,71 +247,45 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
             </div>
           )}
 
-          {/* barra de ação */}
+          {/* ações */}
           <div style={{ padding: "10px 16px", borderTop: "1px solid #f0f0f0", display: "flex", gap: 8 }}>
             {isListening && (
-              <button
-                onClick={stopListening}
-                style={{
-                  flex: 1, background: "#ef4444", color: "#fff", border: "none",
-                  borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700,
-                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                }}
-              >
-                <span style={{ width: 10, height: 10, background: "#fff", borderRadius: "50%", display: "inline-block", animation: "blink 1s infinite" }} />
+              <button onClick={stopListening} style={{ flex: 1, background: "#ef4444", color: "#fff", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <span style={{ width: 9, height: 9, background: "#fff", borderRadius: "50%", display: "inline-block", animation: "blink 1s infinite" }} />
                 Enviar resposta
               </button>
             )}
             {isSpeaking && (
-              <button
-                onClick={interruptAndListen}
-                style={{
-                  flex: 1, background: "#f5f5f5", color: "#555", border: "none",
-                  borderRadius: 10, padding: "10px", fontSize: 13, cursor: "pointer",
-                }}
-              >
-                🎙 Quero falar
+              <button onClick={interruptAndListen} style={{ flex: 1, background: "#f5f5f5", color: "#555", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, cursor: "pointer" }}>
+                🎙 Quero falar agora
               </button>
             )}
-            {(voiceState === "idle" || isThinking) && (
-              <div style={{ flex: 1, textAlign: "center", fontSize: 12, color: "#aaa", padding: "10px 0" }}>
-                {isThinking ? "⏳ processando..." : ""}
-              </div>
+            {isThinking && (
+              <div style={{ flex: 1, textAlign: "center", fontSize: 12, color: "#aaa", padding: "10px 0" }}>⏳ processando...</div>
             )}
           </div>
         </div>
       )}
 
-      {/* botão principal — pulsa no ritmo da fala */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        {!started && (
-          <div style={{ background: "#fff", borderRadius: 12, padding: "10px 16px", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", fontSize: 13, color: "#333", fontWeight: 600 }}>
-            👋 Fale comigo!
-          </div>
-        )}
-        <button
-          onClick={started ? (isListening ? stopListening : interruptAndListen) : startSofia}
-          style={{
-            width: 60, height: 60, borderRadius: "50%",
-            background: isListening ? "#ef4444" : GREEN,
-            border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 26,
-            boxShadow: isSpeaking
-              ? `0 0 0 8px ${GREEN}40, 0 0 0 16px ${GREEN}20`
-              : isListening
-              ? "0 0 0 8px rgba(239,68,68,0.3)"
-              : "0 4px 24px rgba(31,122,99,0.5)",
-            animation: isSpeaking ? "sofia-pulse 1s ease-in-out infinite" : isListening ? "mic-pulse 1.2s ease-in-out infinite" : "none",
-            transition: "all 0.3s",
-          }}
-          aria-label={started ? "Falar com Sofia" : "Iniciar conversa"}
-        >
-          {isListening ? "🎙" : isThinking ? "⏳" : "💧"}
-        </button>
-      </div>
+      {/* botão flutuante */}
+      <button
+        onClick={isSpeaking ? interruptAndListen : isListening ? stopListening : () => startSofia()}
+        style={{
+          width: 62, height: 62, borderRadius: "50%",
+          background: isListening ? "#ef4444" : GREEN,
+          border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26,
+          boxShadow: isSpeaking ? `0 0 0 8px ${GREEN}40, 0 0 0 18px ${GREEN}15`
+            : isListening ? "0 0 0 8px rgba(239,68,68,0.3)"
+            : "0 4px 24px rgba(31,122,99,0.5)",
+          animation: isSpeaking ? "sofia-pulse 1s ease-in-out infinite"
+            : isListening ? "mic-pulse 1.2s ease-in-out infinite" : "none",
+          transition: "background 0.3s, box-shadow 0.3s",
+        }}
+      >
+        {isListening ? "🎙" : isThinking ? "⏳" : "💧"}
+      </button>
 
-      {/* permissão negada */}
       {micPermission === "denied" && (
         <div style={{ background: "#fff", borderRadius: 12, padding: "10px 14px", boxShadow: "0 4px 20px rgba(0,0,0,0.1)", fontSize: 12, color: "#ef4444", maxWidth: 220, textAlign: "center" }}>
           Permita o microfone para conversar com a Sofia
@@ -315,23 +294,23 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
 
       <style>{`
         @keyframes sofia-pulse {
-          0%, 100% { box-shadow: 0 0 0 6px ${GREEN}40, 0 0 0 12px ${GREEN}15; }
-          50%       { box-shadow: 0 0 0 12px ${GREEN}30, 0 0 0 20px ${GREEN}08; }
+          0%,100% { box-shadow: 0 0 0 6px ${GREEN}40, 0 0 0 12px ${GREEN}15; }
+          50%      { box-shadow: 0 0 0 14px ${GREEN}25, 0 0 0 24px ${GREEN}08; }
         }
         @keyframes mic-pulse {
-          0%, 100% { box-shadow: 0 0 0 6px rgba(239,68,68,0.3); }
-          50%       { box-shadow: 0 0 0 14px rgba(239,68,68,0.1); }
+          0%,100% { box-shadow: 0 0 0 6px rgba(239,68,68,0.35); }
+          50%      { box-shadow: 0 0 0 16px rgba(239,68,68,0.1); }
         }
         @keyframes wave-bar {
           from { height: 4px; }
-          to   { height: 20px; }
+          to   { height: 22px; }
         }
         @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.3; }
+          0%,100% { opacity: 1; }
+          50%      { opacity: 0.2; }
         }
         @keyframes pulse-ring {
-          0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+          0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
           70%  { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
           100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
         }
@@ -372,7 +351,7 @@ export default function ValvulaPage() {
     if (!form.nome || !form.telefone || !form.endereco) return;
     setSubmitting(true);
     try {
-      const valor = form.opcao === "tecnico" ? 127.50 : 67.90;
+      const valor = form.opcao === "tecnico" ? 119.00 : 67.90;
       const orderRes = await fetch("/api/valvula/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -420,7 +399,7 @@ export default function ValvulaPage() {
 
   // ── PIX ───────────────────────────────────────────────────────────────────
   if (step === "pix") {
-    const valor = form.opcao === "tecnico" ? "R$ 127,50" : "R$ 67,90";
+    const valor = form.opcao === "tecnico" ? "R$ 119,00" : "R$ 67,90";
     return (
       <main style={{ minHeight: "100vh", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ maxWidth: 440, width: "100%", textAlign: "center" }}>
@@ -446,7 +425,7 @@ export default function ValvulaPage() {
 
   // ── FORMULÁRIO ────────────────────────────────────────────────────────────
   if (step === "form") {
-    const valor = form.opcao === "tecnico" ? "R$ 127,50" : "R$ 67,90";
+    const valor = form.opcao === "tecnico" ? "R$ 119,00" : "R$ 67,90";
     return (
       <main style={{ minHeight: "100vh", background: "#fff", padding: "40px 24px" }}>
         <div style={{ maxWidth: 520, margin: "0 auto" }}>
@@ -457,7 +436,7 @@ export default function ValvulaPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
             {[
               { key: "self",    label: "Instalo eu mesmo",  price: "R$ 67,90",  sub: "Entrega para todo o Brasil" },
-              { key: "tecnico", label: "Com técnico",       price: "R$ 127,50", sub: "Pelotas e região", badge: true },
+              { key: "tecnico", label: "Com técnico",       price: "R$ 119,00", sub: "Pelotas e região", badge: true },
             ].map(op => (
               <div key={op.key} onClick={() => setForm(f => ({ ...f, opcao: op.key as "self"|"tecnico" }))}
                 style={{ border: `2px solid ${form.opcao === op.key ? GREEN : "#e5e5e5"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer", background: form.opcao === op.key ? LIGHT_GREEN : "#fafafa", position: "relative", transition: "all 0.15s" }}>
@@ -552,11 +531,13 @@ export default function ValvulaPage() {
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
           <h2 style={{ fontSize: "clamp(22px,4vw,34px)", fontWeight: 800, textAlign: "center", marginBottom: 40, color: "#1a1a1a" }}>Veja como funciona</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}>
-            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }}>
-              <iframe width="100%" height="260" src="https://www.youtube.com/embed/A76CCMtsKGo" title="HydroBlu demo" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            {/* YouTube Shorts — aspect 9:16 */}
+            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)", position: "relative", paddingTop: "177.78%" }}>
+              <iframe style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} src="https://www.youtube.com/embed/A76CCMtsKGo" title="HydroBlu demo" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
             </div>
-            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }}>
-              <iframe width="100%" height="260" src="https://www.youtube.com/embed/HtGnKHlcXgU" title="HydroBlu instalação" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+            {/* Google Drive */}
+            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)", position: "relative", paddingTop: "177.78%" }}>
+              <iframe style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} src="https://drive.google.com/file/d/1Utl_eDm_k2pbHe3zh52E049z0Gnydjyl/preview" title="HydroBlu instalação" frameBorder="0" allow="autoplay" allowFullScreen />
             </div>
           </div>
         </div>
@@ -589,10 +570,19 @@ export default function ValvulaPage() {
       <section style={{ padding: "60px 24px", background: "#fafafa" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
           <h2 style={{ fontSize: "clamp(22px,4vw,34px)", fontWeight: 800, textAlign: "center", marginBottom: 40, color: "#1a1a1a" }}>Quem já usa HydroBlu</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
-            {["/valvula/prova_social_150_29.png", "/valvula/prova_social_230_166_corrigida.png", "/valvula/ws1.jpeg", "/valvula/ws3.jpeg"].map((img, i) => (
+          {/* provas horizontais (landscape) */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, marginBottom: 20 }}>
+            {["/valvula/prova_social_150_29.png", "/valvula/prova_social_230_166_corrigida.png"].map((img, i) => (
               <div key={i} style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
-                <img src={img} alt={`Resultado ${i+1}`} style={{ width: "100%", height: 200, objectFit: "cover" }} />
+                <img src={img} alt={`Prova ${i+1}`} style={{ width: "100%", height: "auto", display: "block" }} />
+              </div>
+            ))}
+          </div>
+          {/* prints WhatsApp 9:16 — exibe em tamanho natural proporcional */}
+          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+            {["/valvula/ws1.jpeg", "/valvula/ws2.jpeg", "/valvula/ws3.jpeg", "/valvula/ws4.jpeg"].map((img, i) => (
+              <div key={i} style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", width: "calc(25% - 12px)", minWidth: 140, maxWidth: 200 }}>
+                <img src={img} alt={`WhatsApp ${i+1}`} style={{ width: "100%", height: "auto", display: "block" }} />
               </div>
             ))}
           </div>
@@ -624,7 +614,7 @@ export default function ValvulaPage() {
               <div style={{ display: "inline-block", background: "#fff3cd", color: "#856404", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, marginBottom: 12, border: "1px solid #ffc10740" }}>
                 📍 Disponível em Pelotas e região
               </div>
-              <div style={{ fontSize: 48, fontWeight: 900, color: GREEN }}>R$<span style={{ fontSize: 36 }}>127</span><span style={{ fontSize: 22 }}>,50</span></div>
+              <div style={{ fontSize: 48, fontWeight: 900, color: GREEN }}>R$<span style={{ fontSize: 36 }}>119</span><span style={{ fontSize: 22 }}>,00</span></div>
               <div style={{ color: "#888", fontSize: 13, marginTop: 8, marginBottom: 24 }}>pagamento único</div>
               <ul style={{ textAlign: "left", listStyle: "none", padding: 0, marginBottom: 28 }}>
                 {["✅ Válvula HydroBlu", "✅ Instalação por técnico", "✅ Garantia de funcionamento", "✅ Suporte pós-instalação", "✅ Resultado máximo garantido"].map(item => (
