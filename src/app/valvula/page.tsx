@@ -107,21 +107,22 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
       setTimeout(() => { setVoiceState("listening"); startListening(); }, 800);
     };
 
-    // 1ª tentativa: voz nativa do dispositivo (Android/iOS pt-BR)
+    // voz nativa do dispositivo (Android/iOS pt-BR)
     if ("speechSynthesis" in window) {
-      // garante que voices carregaram
+      let fired = false;
       const tryNative = () => {
+        if (fired) return; // evita disparo duplo (voiceschanged + setTimeout)
+        fired = true;
         const voice = getBestPtVoice();
         if (voice || window.speechSynthesis.getVoices().length > 0) {
           speakNative(text, afterSpeak);
         } else {
-          // fallback OpenAI se não tiver voz pt-BR
           fetchTTS(text, afterSpeak);
         }
       };
       if (window.speechSynthesis.getVoices().length === 0) {
         window.speechSynthesis.addEventListener("voiceschanged", tryNative, { once: true });
-        setTimeout(tryNative, 500); // segurança
+        setTimeout(tryNative, 600);
       } else {
         tryNative();
       }
