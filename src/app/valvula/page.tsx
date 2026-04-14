@@ -33,68 +33,123 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // guarda: true enquanto Sofia está falando — bloqueia o mic completamente
   const isSpeakingRef = useRef(false);
   const startedRef = useRef(false);
   const historyRef = useRef<ChatMsg[]>([]);
+  const [waitingTap, setWaitingTap] = useState(true); // aguarda 1ª interação do usuário
 
-  // sincroniza historyRef com state
   useEffect(() => { historyRef.current = history; }, [history]);
 
-  // ── auto-start na montagem ──────────────────────────────────────────────────
+  // ── aguarda 1ª interação do usuário (requisito do browser para autoplay) ──
   useEffect(() => {
-    const t = setTimeout(() => startSofia(), 1200);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const handler = () => {
+      setWaitingTap(false);
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("scroll", handler);
+    };
+    document.addEventListener("click", handler, { once: true });
+    document.addEventListener("touchstart", handler, { once: true });
+    document.addEventListener("scroll", handler, { once: true });
+    return () => {
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("scroll", handler);
+    };
   }, []);
 
-  // ── faz Sofia falar (microfone fica INERTE enquanto fala) ──────────────────
-  const speak = useCallback(async (text: string, msgs: ChatMsg[]) => {
-    // garante que mic para antes de falar
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
+  // ── dispara Sofia assim que usuário interagiu ─────────────────────────────
+  useEffect(() => {
+    if (!waitingTap) {
+      const t = setTimeout(() => startSofia(), 300);
+      return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waitingTap]);
+
+  // ── escolhe a melhor voz pt-BR disponível no dispositivo ─────────────────
+  function getBestPtVoice(): SpeechSynthesisVoice | null {
+    if (!("speechSynthesis" in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    // prioridade: pt-BR nativa do dispositivo (Google/Apple soam muito melhor)
+    return (
+      voices.find(v => v.lang === "pt-BR" && v.localService) ||
+      voices.find(v => v.lang === "pt-BR") ||
+      voices.find(v => v.lang.startsWith("pt")) ||
+      null
+    );
+  }
+
+  // ── fala via Web Speech API (voz nativa do celular — muito mais natural) ──
+  function speakNative(text: string, afterSpeak: () => void) {
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = "pt-BR";
+    utt.rate = 0.95;
+    utt.pitch = 1.05;
+    const voice = getBestPtVoice();
+    if (voice) utt.voice = voice;
+    utt.onend = afterSpeak;
+    utt.onerror = afterSpeak;
+    synth.speak(utt);
+  }
+
+  // ── faz Sofia falar (microfone INERTE enquanto fala) ──────────────────────
+  const speak = useCallback(async (text: string, msgs: ChatMsg[]) => {
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
     isSpeakingRef.current = true;
     setSofiaText(text);
     setVoiceState("speaking");
 
     const afterSpeak = () => {
       isSpeakingRef.current = false;
-      // aguarda 700ms para eco dissipar antes de abrir o mic
-      setTimeout(() => {
-        setVoiceState("listening");
-        startListening();
-      }, 700);
+      setTimeout(() => { setVoiceState("listening"); startListening(); }, 800);
     };
 
+    // 1ª tentativa: voz nativa do dispositivo (Android/iOS pt-BR)
+    if ("speechSynthesis" in window) {
+      // garante que voices carregaram
+      const tryNative = () => {
+        const voice = getBestPtVoice();
+        if (voice || window.speechSynthesis.getVoices().length > 0) {
+          speakNative(text, afterSpeak);
+        } else {
+          // fallback OpenAI se não tiver voz pt-BR
+          fetchTTS(text, afterSpeak);
+        }
+      };
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.addEventListener("voiceschanged", tryNative, { once: true });
+        setTimeout(tryNative, 500); // segurança
+      } else {
+        tryNative();
+      }
+    } else {
+      fetchTTS(text, afterSpeak);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function fetchTTS(text: string, afterSpeak: () => void) {
     try {
       const res = await fetch("/api/valvula/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) throw new Error("tts failed");
+      if (!res.ok) throw new Error();
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => { URL.revokeObjectURL(url); afterSpeak(); };
-      audio.onerror  = () => { URL.revokeObjectURL(url); afterSpeak(); };
+      audio.onerror = () => { URL.revokeObjectURL(url); afterSpeak(); };
       await audio.play();
     } catch {
-      if ("speechSynthesis" in window) {
-        const utt = new SpeechSynthesisUtterance(text);
-        utt.lang = "pt-BR";
-        utt.rate = 1.05;
-        utt.onend = afterSpeak;
-        utt.onerror = afterSpeak;
-        window.speechSynthesis.speak(utt);
-      } else {
-        afterSpeak();
-      }
+      afterSpeak();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }
 
   // ── inicia gravação — só ativa se Sofia NÃO está falando ──────────────────
   const startListening = useCallback(async () => {
@@ -210,10 +265,15 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
   const isListening = voiceState === "listening";
   const isThinking = voiceState === "thinking";
 
-  // caixa nunca abre sozinha — só quando usuário toca no botão
-
   return (
     <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+
+      {/* aviso "toque para Sofia falar" — some após 1ª interação */}
+      {waitingTap && (
+        <div style={{ background: GREEN, color: "#fff", borderRadius: 14, padding: "10px 16px", fontSize: 13, fontWeight: 600, boxShadow: "0 4px 20px rgba(31,122,99,0.4)", maxWidth: 200, textAlign: "center", animation: "blink-soft 2s ease-in-out infinite" }}>
+          👆 Toque em qualquer lugar e a Sofia começa a falar!
+        </div>
+      )}
 
       {/* caixa de status — só aparece se o usuário abriu ou está ouvindo */}
       {boxOpen && sofiaText && (
@@ -321,6 +381,10 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
           0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
           70%  { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
           100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        @keyframes blink-soft {
+          0%,100% { opacity: 1; transform: scale(1); }
+          50%      { opacity: 0.85; transform: scale(1.03); }
         }
       `}</style>
     </div>
