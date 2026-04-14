@@ -456,8 +456,8 @@ export default function ValvulaPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
             {[
-              { key: "self",    label: "Instalo eu mesmo",  price: "R$ 67,90",  sub: "Vem com manual" },
-              { key: "tecnico", label: "Com técnico",       price: "R$ 127,50", sub: "RECOMENDADO", badge: true },
+              { key: "self",    label: "Instalo eu mesmo",  price: "R$ 67,90",  sub: "Entrega para todo o Brasil" },
+              { key: "tecnico", label: "Com técnico",       price: "R$ 127,50", sub: "Pelotas e região", badge: true },
             ].map(op => (
               <div key={op.key} onClick={() => setForm(f => ({ ...f, opcao: op.key as "self"|"tecnico" }))}
                 style={{ border: `2px solid ${form.opcao === op.key ? GREEN : "#e5e5e5"}`, borderRadius: 14, padding: "16px 14px", cursor: "pointer", background: form.opcao === op.key ? LIGHT_GREEN : "#fafafa", position: "relative", transition: "all 0.15s" }}>
@@ -618,6 +618,9 @@ export default function ValvulaPage() {
             <div style={{ border: `2px solid ${GREEN}`, borderRadius: 20, padding: "32px 24px", textAlign: "center", position: "relative", background: LIGHT_GREEN }}>
               <div style={{ position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)", background: GREEN, color: "#fff", fontSize: 10, fontWeight: 800, padding: "4px 16px", borderRadius: 20, whiteSpace: "nowrap" }}>MAIS ESCOLHIDO</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: GREEN, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>Com técnico</div>
+              <div style={{ display: "inline-block", background: "#fff3cd", color: "#856404", fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20, marginBottom: 12, border: "1px solid #ffc10740" }}>
+                📍 Disponível em Pelotas e região
+              </div>
               <div style={{ fontSize: 48, fontWeight: 900, color: GREEN }}>R$<span style={{ fontSize: 36 }}>127</span><span style={{ fontSize: 22 }}>,50</span></div>
               <div style={{ color: "#888", fontSize: 13, marginTop: 8, marginBottom: 24 }}>pagamento único</div>
               <ul style={{ textAlign: "left", listStyle: "none", padding: 0, marginBottom: 28 }}>
