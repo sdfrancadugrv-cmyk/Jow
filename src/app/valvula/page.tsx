@@ -205,19 +205,25 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
     setTimeout(() => startListening(), 200);
   }
 
+  const [boxOpen, setBoxOpen] = useState(false);
   const isSpeaking = voiceState === "speaking";
   const isListening = voiceState === "listening";
   const isThinking = voiceState === "thinking";
 
-  return (
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+  // abre caixa automaticamente quando usuário precisa agir
+  useEffect(() => {
+    if (isListening) setBoxOpen(true);
+  }, [isListening]);
 
-      {/* caixa de status */}
-      {sofiaText && (
-        <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.15)", border: `1px solid ${GREEN}30`, width: 300, overflow: "hidden" }}>
-          {/* header */}
+  return (
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+
+      {/* caixa de status — só aparece se o usuário abriu ou está ouvindo */}
+      {boxOpen && sofiaText && (
+        <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 8px 40px rgba(0,0,0,0.18)", border: `1px solid ${GREEN}30`, width: 300, overflow: "hidden" }}>
+          {/* header com botão fechar */}
           <div style={{ background: GREEN, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, animation: isSpeaking ? "pulse-ring 1.2s infinite" : "none" }}>💧</div>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, animation: isSpeaking ? "pulse-ring 1.2s infinite" : "none" }}>💧</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, color: "#fff", fontSize: 14 }}>Sofia</div>
               <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 11 }}>
@@ -225,12 +231,13 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
               </div>
             </div>
             {isSpeaking && (
-              <div style={{ display: "flex", alignItems: "center", gap: 2, height: 28 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 2, height: 26 }}>
                 {[0,1,2,3,4,5,6].map(i => (
                   <div key={i} style={{ width: 3, borderRadius: 2, background: "rgba(255,255,255,0.85)", animation: `wave-bar 0.5s ${i * 0.07}s ease-in-out infinite alternate` }} />
                 ))}
               </div>
             )}
+            <button onClick={() => setBoxOpen(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#fff", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
           </div>
 
           {/* texto Sofia */}
@@ -267,9 +274,13 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
         </div>
       )}
 
-      {/* botão flutuante */}
+      {/* botão flutuante — clica para abrir/fechar caixa ou interagir */}
       <button
-        onClick={isSpeaking ? interruptAndListen : isListening ? stopListening : () => startSofia()}
+        onClick={() => {
+          if (isListening) { stopListening(); return; }
+          if (isSpeaking) { interruptAndListen(); setBoxOpen(true); return; }
+          setBoxOpen(v => !v);
+        }}
         style={{
           width: 62, height: 62, borderRadius: "50%",
           background: isListening ? "#ef4444" : GREEN,
