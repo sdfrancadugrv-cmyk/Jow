@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/provider-renewal",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/process-buffer",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/followup",
+      "schedule": "0 14 * * *"
     }
   ]
 }

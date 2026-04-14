@@ -177,6 +177,50 @@ function combinePendingMessages(pending: BufferedMessage[]): { content: any; las
   return { content, lastType };
 }
 
+// Verifica a biblioteca de mídia do agente e envia se algum gatilho for detectado
+async function checkAndSendMedia(agent: any, phone: string, userText: string): Promise<void> {
+  const mediaLib = (agent.mediaLibrary as any[]) ?? [];
+  if (mediaLib.length === 0 || !userText) return;
+
+  const textLower = userText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  for (const item of mediaLib) {
+    const gatilho = (item.gatilho || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (!gatilho || !textLower.includes(gatilho)) continue;
+
+    const url: string = item.url || "";
+    const legenda: string = item.legenda || "";
+    const tipo: string = item.tipo || "imagem";
+
+    try {
+      if (tipo === "video") {
+        await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-video`, {
+          method: "POST",
+          headers: ZAPI_HEADERS,
+          body: JSON.stringify({ phone, video: url, caption: legenda, delay: 1500 }),
+        });
+      } else if (tipo === "documento") {
+        await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-document/pdf`, {
+          method: "POST",
+          headers: ZAPI_HEADERS,
+          body: JSON.stringify({ phone, document: url, fileName: legenda || "documento.pdf", delay: 1500 }),
+        });
+      } else {
+        // imagem (padrão)
+        await fetch(`${ZAPI_BASE}/${agent.instanceId}/token/${agent.token}/send-image`, {
+          method: "POST",
+          headers: ZAPI_HEADERS,
+          body: JSON.stringify({ phone, image: url, caption: legenda, delay: 1500 }),
+        });
+      }
+      console.log("[Mídia] enviada para", phone, "| gatilho:", item.gatilho, "| tipo:", tipo);
+      break; // envia só a primeira mídia que bater
+    } catch (err) {
+      console.error("[Mídia] erro ao enviar:", err);
+    }
+  }
+}
+
 // Processa um buffer de mensagens e envia a resposta ao lead
 export async function processConversationBuffer(convoId: string): Promise<void> {
   // Recarrega a conversa atualizada
@@ -350,6 +394,10 @@ export async function processConversationBuffer(convoId: string): Promise<void> 
       });
       console.log("[Buffer] texto status:", sendResult.status);
     }
+
+    // Verifica biblioteca de mídia — envia mídia se a msg do lead contém palavra-gatilho
+    await checkAndSendMedia(agent, phone, userText);
+
   } catch (err) {
     console.error("[Buffer] erro ao processar conversa:", err);
     // Libera o lock em caso de erro para que o cron possa tentar novamente

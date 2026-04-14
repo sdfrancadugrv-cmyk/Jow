@@ -7,25 +7,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Clientes do Jow
 model Client {
-  id               String   @id @default(cuid())
-  email            String?  @unique
+  id               String    @id @default(cuid())
+  email            String?   @unique
   password         String?
-  phone            String?  @unique
+  phone            String?   @unique
   name             String
-  stripeCustomerId String?  @unique
+  stripeCustomerId String?   @unique
   subscriptionId   String?
-  status           String   @default("inactive") // active | inactive | cancelled
-  plan             String   @default("basic")
-  isAdmin          Boolean  @default(false)
+  status           String    @default("inactive")
+  plan             String    @default("basic")
+  isAdmin          Boolean   @default(false)
   planExpiresAt    DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   devices          Device[]
 }
 
-// Dispositivos registrados (máx 2 por cliente)
 model Device {
   id        String   @id @default(cuid())
   clientId  String
@@ -36,7 +34,6 @@ model Device {
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
-// Memória de cada cliente
 model Memory {
   id        String   @id @default(cuid())
   clientId  String   @default("owner")
@@ -47,7 +44,6 @@ model Memory {
   createdAt DateTime @default(now())
 }
 
-// Histórico de conversas
 model Conversation {
   id        String    @id @default(cuid())
   clientId  String    @default("owner")
@@ -62,70 +58,67 @@ model Message {
   content        String
   agentsUsed     String?
   createdAt      DateTime     @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
   conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
 }
 
-// Agentes de WhatsApp
 model WhatsappAgent {
-  id           String   @id @default(cuid())
-  clientId     String
-  instanceId   String   // Z-API instance ID
-  token        String   // Z-API token
-  phone        String   // número do WhatsApp
-  name         String   // nome do agente
-  personality  String   // prompt de personalidade
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  conversations WhatsappConversation[]
+  id             String                 @id @default(cuid())
+  clientId       String
+  instanceId     String
+  token          String
+  phone          String
+  name           String
+  personality    String
+  followupRules  Json                   @default("[]")
+  mediaLibrary   Json                   @default("[]")
+  active         Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  conversations  WhatsappConversation[]
 }
 
-// Histórico de conversa por contato no WhatsApp
 model WhatsappConversation {
-  id        String   @id @default(cuid())
-  agentId   String
-  contact   String   // número do contato
-  messages         Json     @default("[]")
-  processedIds     Json     @default("[]")
-  // Buffer de debounce: agrupa msgs rápidas antes de responder
-  pendingMessages  Json     @default("[]")  // msgs aguardando processamento
-  pendingMsgIds    Json     @default("[]")  // IDs no buffer (dedup)
-  bufferUpdatedAt  DateTime?               // última atualização do buffer
-  bufferVersion    String   @default("")   // lock otimista anti-duplicação
-  bufferIsFirst    Boolean  @default(false) // primeiro contato do dia desta sessão
-  humanMode        Boolean  @default(false) // humano assumiu — bot pausado
-  updatedAt        DateTime @updatedAt
-  agent     WhatsappAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  agentId         String
+  contact         String
+  messages        Json          @default("[]")
+  processedIds    Json          @default("[]")
+  pendingMessages Json          @default("[]")
+  pendingMsgIds   Json          @default("[]")
+  bufferUpdatedAt DateTime?
+  bufferVersion   String        @default("")
+  bufferIsFirst   Boolean       @default(false)
+  humanMode       Boolean       @default(false)
+  updatedAt       DateTime      @updatedAt
+  agent           WhatsappAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, contact])
 }
 
-// ─── KADOSH SERVIÇOS LOCAIS ───────────────────────────────────────────────────
-
 model ServiceProvider {
-  id               String   @id @default(cuid())
-  email            String?  @unique
+  id               String          @id @default(cuid())
+  email            String?         @unique
   password         String?
   name             String
-  phone            String?  @unique
-  googleId         String?  @unique
-  facebookId       String?  @unique
-  authProvider     String   @default("email") // email | google | facebook | phone
+  phone            String?         @unique
+  googleId         String?         @unique
+  facebookId       String?         @unique
+  authProvider     String          @default("email")
   serviceType      String?
   foto             String?
   dailyRate        Float?
   lat              Float?
   lng              Float?
   city             String?
-  rating           Float    @default(5.0)
-  reviewCount      Int      @default(0)
-  stripeCustomerId String?  @unique
+  rating           Float           @default(5.0)
+  reviewCount      Int             @default(0)
+  stripeCustomerId String?         @unique
   subscriptionId   String?
-  status           String   @default("inactive")
+  status           String          @default("inactive")
   expiresAt        DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   bids             Bid[]
   reviews          ServiceReview[]
 }
@@ -141,7 +134,7 @@ model OtpCode {
 }
 
 model ServiceRequest {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   clientName    String
   clientPhone   String
   clientLat     Float
@@ -149,65 +142,61 @@ model ServiceRequest {
   serviceType   String
   description   String?
   scheduledDate String
-  status        String   @default("open")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        String          @default("open")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   bids          Bid[]
   reviews       ServiceReview[]
 }
 
 model Bid {
-  id         String   @id @default(cuid())
+  id         String          @id @default(cuid())
   requestId  String
   providerId String
   price      Float
-  status     String   @default("active")
-  createdAt  DateTime @default(now())
-  request    ServiceRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status     String          @default("active")
+  createdAt  DateTime        @default(now())
   provider   ServiceProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  request    ServiceRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
   review     ServiceReview?
 
   @@unique([requestId, providerId])
 }
 
-// ─── KADOSH VENDEDOR ──────────────────────────────────────────────────────────
-
 model ProdutoVendedor {
-  id          String   @id @default(cuid())
-  clientId    String
-  slug        String   @unique
-  nome        String
-  destaques   String   // o que o cliente quer destacar — vira o prompt base
-  imageLinks  String[] // links do Google Drive
-  videoLinks  String[] // YouTube URLs (múltiplos)
-  salesLink   String   // link de compra do produto
-  preco       String   // ex: "R$ 97,00"
-  estrutura   Json     // { publico, proposta, dores, beneficios, objecoes, cta, abertura, gatilhos, quando_usar_video }
-  template          String   @default("produto") // "produto" | "profissional"
-  modalidadeVenda   String   @default("link")    // "link" | "pedido"
-  whatsappContato   String?  // WhatsApp do dono exibido no botão de contato
-  pixKey            String?  // Chave PIX para receber pagamentos manuais
-  opcoes            Json?    // [{nome, descricao, preco, precoNum, comissao}]
+  id                String   @id @default(cuid())
+  clientId          String
+  slug              String   @unique
+  nome              String
+  destaques         String
+  imageLinks        String[]
+  videoLinks        String[]
+  salesLink         String
+  preco             String
+  estrutura         Json
+  template          String   @default("produto")
+  modalidadeVenda   String   @default("link")
+  whatsappContato   String?
+  pixKey            String?
+  opcoes            Json?
   permitirAfiliados Boolean  @default(false)
   ativo             Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([clientId])
 }
 
-// ─── KADOSH AFILIADOS ─────────────────────────────────────────────────────────
-
 model Afiliado {
-  id        String   @id @default(cuid())
-  slug      String   // slug do ProdutoVendedor
+  id        String          @id @default(cuid())
+  slug      String
   nome      String
   whatsapp  String
-  codigo    String   @unique
-  saldo     Float    @default(0)
-  createdAt DateTime @default(now())
-  vendas    VendaAfiliado[]
+  codigo    String          @unique
+  saldo     Float           @default(0)
+  createdAt DateTime        @default(now())
   saques    SaqueAfiliado[]
+  vendas    VendaAfiliado[]
 
   @@index([slug])
 }
@@ -232,14 +221,12 @@ model SaqueAfiliado {
   afiliadoId String
   valor      Float
   pixKey     String
-  status     String   @default("pendente") // pendente | pago
+  status     String   @default("pendente")
   createdAt  DateTime @default(now())
   afiliado   Afiliado @relation(fields: [afiliadoId], references: [id], onDelete: Cascade)
 
   @@index([afiliadoId])
 }
-
-// ─── KADOSH PEDIDOS DE INSTALAÇÃO ─────────────────────────────────────────────
 
 model PedidoInstalacao {
   id          String   @id @default(cuid())
@@ -247,10 +234,10 @@ model PedidoInstalacao {
   nome        String
   telefone    String
   endereco    String
-  valor       String   // ex: "R$ 97,00"
-  opcaoNome   String?  // qual opção foi selecionada
+  valor       String
+  opcaoNome   String?
   comissao    Float    @default(0)
-  status      String   @default("aguardando") // aguardando | pago | agendado | instalado | cancelado
+  status      String   @default("aguardando")
   afiliadoId  String?
   obs         String?
   createdAt   DateTime @default(now())
@@ -260,36 +247,34 @@ model PedidoInstalacao {
   @@index([status])
 }
 
-// ─── JENNIFER SHOP — DROPSHIPPING + AFILIADOS ────────────────────────────────
-
 model ProdutoShop {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  nome          String
-  descricao     String   // descrição longa do produto
-  promptVendas  String   // como a Jennifer deve vender este produto
-  fotos            String[] // URLs das fotos
-  videos           String[] // URLs YouTube
-  fotosResultados  String[] // URLs fotos de prova social (resultados)
-  linkFonte     String   // link ML, Shopee, etc.
-  custoCompra   Float    // quanto paga para comprar
-  prazoEntrega  String   // ex: "5 a 10 dias úteis"
-  precoVenda          Float    // preço que cobra do cliente (sem instalação)
-  precoComInstalacao  Float?   // se preenchido, mostra opção "com instalação" neste valor
-  comissaoPorc  Float    @default(10) // % comissão do afiliado
-  tipoVenda     String   @default("pix") // "pix" | "instalacao"
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  vendas        VendaShop[]
-  cliques       CliqueShop[]
-  solicitacoes  SolicitacaoInstalacao[]
+  id                 String                  @id @default(cuid())
+  slug               String                  @unique
+  nome               String
+  descricao          String
+  promptVendas       String
+  fotos              String[]
+  videos             String[]
+  fotosResultados    String[]
+  linkFonte          String
+  custoCompra        Float
+  prazoEntrega       String
+  precoVenda         Float
+  precoComInstalacao Float?
+  comissaoPorc       Float                   @default(10)
+  tipoVenda          String                  @default("pix")
+  ativo              Boolean                 @default(true)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  cliques            CliqueShop[]
+  solicitacoes       SolicitacaoInstalacao[]
+  vendas             VendaShop[]
 
   @@index([ativo])
 }
 
 model SolicitacaoInstalacao {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   produtoId String
   nome      String
   telefone  String
@@ -297,43 +282,43 @@ model SolicitacaoInstalacao {
   cidade    String
   estado    String
   endereco  String
-  status    String   @default("pendente") // pendente | confirmado | cancelado
-  createdAt DateTime @default(now())
+  status    String      @default("pendente")
+  createdAt DateTime    @default(now())
   produto   ProdutoShop @relation(fields: [produtoId], references: [id])
 
   @@index([produtoId])
 }
 
 model AfiliadoShop {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   nome      String
   whatsapp  String
   email     String?
-  codigo    String   @unique
-  saldo     Float    @default(0)
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  vendas    VendaShop[]
-  saques    SaqueShop[]
+  codigo    String       @unique
+  saldo     Float        @default(0)
+  ativo     Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   cliques   CliqueShop[]
+  saques    SaqueShop[]
+  vendas    VendaShop[]
 }
 
 model VendaShop {
-  id               String        @id @default(cuid())
-  produtoId        String
-  afiliadoId       String?
-  nomeCliente      String
-  telefoneCliente  String   @default("")
-  enderecoCliente  String   @default("")
-  whatsappCliente  String   @default("")
-  valorPago        Float
-  comissaoValor    Float         @default(0)
-  paymentId        String?
-  status           String        @default("pendente") // pendente | pago | cancelado
-  createdAt        DateTime      @default(now())
-  produto          ProdutoShop   @relation(fields: [produtoId], references: [id])
-  afiliado         AfiliadoShop? @relation(fields: [afiliadoId], references: [id])
+  id              String        @id @default(cuid())
+  produtoId       String
+  afiliadoId      String?
+  nomeCliente     String
+  telefoneCliente String        @default("")
+  enderecoCliente String        @default("")
+  whatsappCliente String        @default("")
+  valorPago       Float
+  comissaoValor   Float         @default(0)
+  paymentId       String?
+  status          String        @default("pendente")
+  createdAt       DateTime      @default(now())
+  afiliado        AfiliadoShop? @relation(fields: [afiliadoId], references: [id])
+  produto         ProdutoShop   @relation(fields: [produtoId], references: [id])
 
   @@index([afiliadoId])
   @@index([produtoId])
@@ -344,7 +329,7 @@ model SaqueShop {
   afiliadoId String
   valor      Float
   pixKey     String
-  status     String       @default("pendente") // pendente | pago
+  status     String       @default("pendente")
   createdAt  DateTime     @default(now())
   afiliado   AfiliadoShop @relation(fields: [afiliadoId], references: [id])
 
@@ -356,7 +341,7 @@ model CliqueShop {
   afiliadoId String?
   produtoId  String
   ip         String?
-  tipo       String        @default("afiliado") // "afiliado" | "organico"
+  tipo       String        @default("afiliado")
   createdAt  DateTime      @default(now())
   afiliado   AfiliadoShop? @relation(fields: [afiliadoId], references: [id])
   produto    ProdutoShop   @relation(fields: [produtoId], references: [id])
@@ -365,14 +350,28 @@ model CliqueShop {
   @@index([produtoId])
 }
 
-// ─── KADOSH PROFESSOR ─────────────────────────────────────────────────────────
+model ValvulaOrder {
+  id         String   @id @default(cuid())
+  nome       String
+  telefone   String
+  endereco   String
+  opcao      String   // "self" | "tecnico"
+  valor      Float
+  paymentId  String?
+  status     String   @default("pendente") // pendente | pago | enviado | cancelado
+  obs        String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status])
+}
 
 model ConfigProfessor {
   id        String   @id @default(cuid())
   clientId  String   @unique
   plano     String
-  linguas   String[] // idiomas escolhidos
-  concursos String[] // concursos escolhidos
+  linguas   String[]
+  concursos String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -380,9 +379,9 @@ model ConfigProfessor {
 model AulaProfessor {
   id        String   @id @default(cuid())
   clientId  String
-  materia   String   // ex: "Matemática - Frações", "Inglês - Present Perfect"
-  resumo    String?  // resumo gerado ao encerrar
-  mensagens Json     // histórico completo [{role, content}]
+  materia   String
+  resumo    String?
+  mensagens Json
   plano     String   @default("professor-start")
   createdAt DateTime @default(now())
 
@@ -392,28 +391,28 @@ model AulaProfessor {
 model AvaliacaoProfessor {
   id        String   @id @default(cuid())
   clientId  String
-  materias  String[] // matérias selecionadas
-  formato   String   // prova | redacao | simulado | trabalho
-  resultado String?  // parecer do professor após avaliação
-  nota      String?  // nota ou conceito dado pelo professor
-  mensagens Json     // histórico da avaliação
+  materias  String[]
+  formato   String
+  resultado String?
+  nota      String?
+  mensagens Json
   createdAt DateTime @default(now())
 
   @@index([clientId])
 }
 
 model ServiceReview {
-  id              String   @id @default(cuid())
+  id              String          @id @default(cuid())
   requestId       String
-  bidId           String   @unique
+  bidId           String          @unique
   providerId      String
   clientPhone     String
   providerRating  Float
   providerComment String?
   clientRating    Float
   clientComment   String?
-  createdAt       DateTime @default(now())
-  request         ServiceRequest  @relation(fields: [requestId], references: [id])
+  createdAt       DateTime        @default(now())
   bid             Bid             @relation(fields: [bidId], references: [id])
   provider        ServiceProvider @relation(fields: [providerId], references: [id])
+  request         ServiceRequest  @relation(fields: [requestId], references: [id])
 }

@@ -39,14 +39,23 @@ export async function POST(req: NextRequest) {
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
-  const { instanceId, token, phone, name, personality } = await req.json();
+  const { instanceId, token, phone, name, personality, followupRules, mediaLibrary } = await req.json();
 
   if (!instanceId || !token || !phone || !name || !personality) {
     return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
   }
 
   const agent = await prisma.whatsappAgent.create({
-    data: { clientId: user.sub, instanceId, token, phone, name, personality },
+    data: {
+      clientId: user.sub,
+      instanceId,
+      token,
+      phone,
+      name,
+      personality,
+      followupRules: followupRules ?? [],
+      mediaLibrary: mediaLibrary ?? [],
+    },
   });
 
   // Configura o webhook na Z-API automaticamente

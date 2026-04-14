@@ -34,6 +34,44 @@ export async function POST(req: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Pedido de válvula: "valvula|orderId|telefone"
+    if (parts[0] === "valvula") {
+      const orderId = parts[1];
+      const telefone = parts[2];
+
+      await prisma.valvulaOrder.update({
+        where: { id: orderId },
+        data: { paymentId: String(paymentId), status: "pago" },
+      });
+
+      const ownerPhone = process.env.OWNER_PHONE;
+      if (ownerPhone) {
+        const order = await prisma.valvulaOrder.findUnique({ where: { id: orderId } });
+        await sendWhatsApp(
+          ownerPhone,
+          `💧 *NOVA VENDA — HydroBlu!*\n\n` +
+          `👤 Cliente: ${order?.nome}\n` +
+          `📱 Telefone: ${order?.telefone}\n` +
+          `📍 Endereço: ${order?.endereco}\n` +
+          `📦 Opção: ${order?.opcao === "tecnico" ? "Com instalação" : "Sem instalação"}\n` +
+          `💰 Valor: *R$ ${order?.valor.toFixed(2).replace(".", ",")}*\n` +
+          `🆔 Pedido: #${orderId.slice(-6).toUpperCase()}`
+        );
+      }
+
+      if (telefone) {
+        await sendWhatsApp(
+          telefone,
+          `✅ *Pagamento confirmado! Obrigado.*\n\n` +
+          `Sua HydroBlu foi pedida com sucesso!\n` +
+          `🆔 Pedido: *#${orderId.slice(-6).toUpperCase()}*\n\n` +
+          `Em breve entraremos em contato para confirmar a entrega. 💧`
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
     // Venda de afiliado: "venda|afiliadoId|produtoSlug|clientePhone|valorPago"
     if (parts[0] === "venda") {
       const afiliadoId  = parts[1];
