@@ -107,32 +107,19 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
       setTimeout(() => { setVoiceState("listening"); startListening(); }, 800);
     };
 
-    // voz nativa do dispositivo (Android/iOS pt-BR)
-    if ("speechSynthesis" in window) {
-      let fired = false;
-      const tryNative = () => {
-        if (fired) return; // evita disparo duplo (voiceschanged + setTimeout)
-        fired = true;
-        const voice = getBestPtVoice();
-        if (voice || window.speechSynthesis.getVoices().length > 0) {
-          speakNative(text, afterSpeak);
-        } else {
-          fetchTTS(text, afterSpeak);
-        }
-      };
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.addEventListener("voiceschanged", tryNative, { once: true });
-        setTimeout(tryNative, 600);
+    // ElevenLabs/OpenAI primeiro — voz natural. Nativo só como último recurso.
+    fetchTTS(text, () => {
+      // se a API falhou, usa voz nativa
+      if ("speechSynthesis" in window) {
+        speakNative(text, afterSpeak);
       } else {
-        tryNative();
+        afterSpeak();
       }
-    } else {
-      fetchTTS(text, afterSpeak);
-    }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function fetchTTS(text: string, afterSpeak: () => void) {
+  async function fetchTTS(text: string, onFail: () => void) {
     try {
       const res = await fetch("/api/valvula/speak", {
         method: "POST",
@@ -144,11 +131,12 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
-      audio.onended = () => { URL.revokeObjectURL(url); afterSpeak(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); afterSpeak(); };
+      const afterSpeak = () => { URL.revokeObjectURL(url); isSpeakingRef.current = false; setTimeout(() => { setVoiceState("listening"); startListening(); }, 800); };
+      audio.onended = afterSpeak;
+      audio.onerror = () => { URL.revokeObjectURL(url); onFail(); };
       await audio.play();
     } catch {
-      afterSpeak();
+      onFail();
     }
   }
 
