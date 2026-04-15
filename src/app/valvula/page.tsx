@@ -619,6 +619,14 @@ export default function ValvulaPage() {
               allowFullScreen
             />
           </div>
+          <div style={{ marginTop: 20, borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.12)" }}>
+            <video
+              src="/valvula/demo.mp4"
+              controls
+              playsInline
+              style={{ width: "100%", display: "block" }}
+            />
+          </div>
         </div>
       </section>
 
