@@ -593,6 +593,35 @@ export default function ValvulaPage() {
         </div>
       </section>
 
+      {/* OBJEÇÕES + VÍDEO */}
+      <section style={{ padding: "48px 24px 0", background: "#fff" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 32 }}>
+            {[
+              { icon: "🔧", text: "Não precisa de obra" },
+              { icon: "✅", text: "Não é ilegal" },
+              { icon: "💧", text: "Não reduz pressão" },
+              { icon: "🏠", text: "Funciona em casa normal" },
+            ].map((item, i) => (
+              <div key={i} style={{ background: "#e8f5f1", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 22 }}>{item.icon}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#1a1a1a" }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ borderRadius: 18, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.12)", position: "relative", paddingTop: "56.25%" }}>
+            <iframe
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+              src="https://www.youtube.com/embed/A76CCMtsKGo"
+              title="HydroBlu como funciona"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      </section>
+
       {/* PRODUTO */}
       <section style={{ padding: "60px 24px", background: "#fafafa" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
