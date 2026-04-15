@@ -671,14 +671,6 @@ export default function ValvulaPage() {
               </div>
             ))}
           </div>
-          {/* prints WhatsApp 9:16 — exibe em tamanho natural proporcional */}
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            {["/valvula/ws1.jpeg", "/valvula/ws2.jpeg", "/valvula/ws3.jpeg", "/valvula/ws4.jpeg"].map((img, i) => (
-              <div key={i} style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,0.08)", width: "calc(25% - 12px)", minWidth: 140, maxWidth: 200 }}>
-                <img src={img} alt={`WhatsApp ${i+1}`} style={{ width: "100%", height: "auto", display: "block" }} />
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
