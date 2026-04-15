@@ -354,6 +354,7 @@ model ValvulaOrder {
   id         String   @id @default(cuid())
   nome       String
   telefone   String
+  cep        String   @default("")
   endereco   String
   opcao      String   // "self" | "tecnico"
   valor      Float

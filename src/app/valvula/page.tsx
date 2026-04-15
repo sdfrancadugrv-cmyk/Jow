@@ -7,7 +7,7 @@ const LIGHT_GREEN = "#e8f5f1";
 
 // ─── tipos ────────────────────────────────────────────────────────────────────
 interface ChatMsg { role: "user" | "assistant"; content: string; }
-interface FormData  { nome: string; telefone: string; endereco: string; opcao: "self" | "tecnico"; }
+interface FormData  { nome: string; telefone: string; endereco: string; cep: string; opcao: "self" | "tecnico"; }
 type Step = "sales" | "form" | "pix" | "done";
 type VoiceState = "idle" | "thinking" | "speaking" | "listening";
 
@@ -19,6 +19,11 @@ function formatPhone(v: string) {
   if (d.length <= 2) return `(${d}`;
   if (d.length <= 7) return `(${d.slice(0,2)}) ${d.slice(2)}`;
   return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+function formatCep(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0,5)}-${d.slice(5)}`;
 }
 
 // ─── componente de voz da Sofia ───────────────────────────────────────────────
@@ -383,7 +388,7 @@ function SofiaVoice({ onBuyClick }: { onBuyClick: () => void }) {
 // ─── componente principal ─────────────────────────────────────────────────────
 export default function ValvulaPage() {
   const [step, setStep] = useState<Step>("sales");
-  const [form, setForm] = useState<FormData>({ nome: "", telefone: "", endereco: "", opcao: "tecnico" });
+  const [form, setForm] = useState<FormData>({ nome: "", telefone: "", endereco: "", cep: "", opcao: "tecnico" });
   const [submitting, setSubmitting] = useState(false);
   const [pixData, setPixData] = useState<{ qr: string; qrBase64: string; orderId: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -409,7 +414,7 @@ export default function ValvulaPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nome || !form.telefone || !form.endereco) return;
+    if (!form.nome || !form.telefone || !form.cep || !form.endereco) return;
     setSubmitting(true);
     try {
       const valor = form.opcao === "tecnico" ? 119.00 : 67.90;
@@ -514,6 +519,8 @@ export default function ValvulaPage() {
             <input style={inp} value={form.nome} onChange={e => setForm(f => ({...f, nome: e.target.value}))} placeholder="Seu nome completo" required />
             <label style={lbl}>WhatsApp *</label>
             <input style={inp} value={form.telefone} onChange={e => setForm(f => ({...f, telefone: formatPhone(e.target.value)}))} placeholder="(53) 99999-9999" required />
+            <label style={lbl}>CEP *</label>
+            <input style={inp} value={form.cep} onChange={e => setForm(f => ({...f, cep: formatCep(e.target.value)}))} placeholder="00000-000" maxLength={9} required />
             <label style={lbl}>Endereço de entrega *</label>
             <AddressAutocomplete
               value={form.endereco}

@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
           `💧 *NOVA VENDA — HydroBlu!*\n\n` +
           `👤 Cliente: ${order?.nome}\n` +
           `📱 Telefone: ${order?.telefone}\n` +
+          `📮 CEP: ${(order as any)?.cep || "—"}\n` +
           `📍 Endereço: ${order?.endereco}\n` +
           `📦 Opção: ${order?.opcao === "tecnico" ? "Com instalação" : "Sem instalação"}\n` +
           `💰 Valor: *R$ ${order?.valor.toFixed(2).replace(".", ",")}*\n` +

@@ -22,14 +22,14 @@ export async function GET(req: NextRequest) {
 // POST — cria pedido pendente (antes do pagamento)
 export async function POST(req: NextRequest) {
   try {
-    const { nome, telefone, endereco, opcao, valor } = await req.json();
+    const { nome, telefone, cep, endereco, opcao, valor } = await req.json();
 
     if (!nome || !telefone || !endereco || !opcao || !valor) {
       return NextResponse.json({ error: "Dados incompletos" }, { status: 400 });
     }
 
     const order = await prisma.valvulaOrder.create({
-      data: { nome, telefone, endereco, opcao, valor },
+      data: { nome, telefone, cep: cep || "", endereco, opcao, valor },
     });
 
     return NextResponse.json({ id: order.id });
