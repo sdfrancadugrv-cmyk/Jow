@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         if (res.ok) {
           const buf = Buffer.from(await res.arrayBuffer());
           return new NextResponse(buf as unknown as BodyInit, {
-            headers: { "Content-Type": "audio/mpeg", "Content-Length": buf.length.toString(), "Cache-Control": "no-store" },
+            headers: { "Content-Type": "audio/mpeg", "Content-Length": buf.length.toString(), "Cache-Control": "no-store", "X-Voice-Provider": "elevenlabs" },
           });
         }
       } catch {}
