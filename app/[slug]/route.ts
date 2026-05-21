@@ -3,7 +3,7 @@ import { getSite } from "@/lib/store";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const site = getSite(slug);
+  const site = await getSite(slug);
 
   if (!site) {
     return new NextResponse(

@@ -4,13 +4,13 @@ import { randomUUID } from "crypto";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  return NextResponse.json(getProdutos(slug));
+  return NextResponse.json(await getProdutos(slug));
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const body = await req.json();
-  const produto = createProduto({
+  const produto = await createProduto({
     id: randomUUID(),
     site_slug: slug,
     nome: body.nome,
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
 
 export async function PATCH(req: NextRequest) {
   const { id, ...updates } = await req.json();
-  return NextResponse.json(updateProduto(id, updates));
+  return NextResponse.json(await updateProduto(id, updates));
 }
 
 export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
-  deleteProduto(id);
+  await deleteProduto(id);
   return NextResponse.json({ ok: true });
 }

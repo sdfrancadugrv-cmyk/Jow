@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
     const html = buildCarSite(nome, tagline, cidade);
     const slug = slugify(nome);
     const senha = gerarSenha();
-    createSite({slug,nicho,nome,html,whatsapp:"",prompt_voz:lastUserMsg,produto_tipo:"basico",admin_senha:senha,criado_em:new Date().toISOString()});
+    await createSite({slug,nicho,nome,html,whatsapp:"",prompt_voz:lastUserMsg,produto_tipo:"basico",admin_senha:senha,criado_em:new Date().toISOString()});
     return NextResponse.json({type:"site",html,slug,nome,nicho,admin_senha:senha,message:`Site da ${nome} pronto! Veja o preview.`});
   }
 
@@ -449,7 +449,7 @@ export async function POST(req: NextRequest) {
     const nome=titleM?.[1]?.trim()||nicho;
     const slug=slugify(nome);
     const senha=gerarSenha();
-    createSite({slug,nicho,nome,html,whatsapp:"",prompt_voz:lastUserMsg,produto_tipo:"basico",admin_senha:senha,criado_em:new Date().toISOString()});
+    await createSite({slug,nicho,nome,html,whatsapp:"",prompt_voz:lastUserMsg,produto_tipo:"basico",admin_senha:senha,criado_em:new Date().toISOString()});
     return NextResponse.json({type:"site",html,slug,nome,nicho,admin_senha:senha,message:"Site pronto!"});
   }
   return NextResponse.json({type:"message",message:"Não consegui gerar o site. Tente novamente."});

@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const { messages, siteSlug } = await req.json();
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const site = getSite(siteSlug);
+  const site = await getSite(siteSlug);
   const promptBase =
     site?.prompt_voz ||
     "Você é um assistente virtual deste estabelecimento. Responda perguntas sobre produtos e serviços de forma cordial e prestativa.";

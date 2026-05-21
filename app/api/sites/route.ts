@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSite, getSites } from "@/lib/store";
 
 export async function GET() {
-  return NextResponse.json(getSites());
+  return NextResponse.json(await getSites());
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const site = createSite({
+  const site = await createSite({
     slug: body.slug,
     nicho: body.nicho,
     nome: body.nome,

@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const { siteSlug, tema } = await req.json();
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const site = getSite(siteSlug);
+  const site = await getSite(siteSlug);
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o",

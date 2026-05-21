@@ -1,15 +1,40 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 
 type Site = { slug: string; nome: string; nicho: string; whatsapp: string; prompt_voz: string; produto_tipo: string };
 type Produto = { id: string; nome: string; preco: string; foto_url: string; descricao: string; categoria: string };
 type Artigo = { id: string; titulo: string; conteudo: string; publicado: boolean; criado_em: string };
 type Ticket = { id: string; mensagem: string; status: string; criado_em: string };
+type Midia = { id: string; tipo: "imagem" | "youtube" | "gdrive" | "video"; url: string; url_embed: string; url_thumb: string; label: string; posicao: number; ativo: boolean };
 
-const TABS = ["Dashboard", "Produtos", "Artigos", "Configurações", "Suporte"] as const;
+const TABS = ["Dashboard", "Produtos", "Mídias", "Artigos", "Configurações", "Suporte"] as const;
 type Tab = (typeof TABS)[number];
+
+const TIPO_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+  youtube: { label: "YouTube", color: "#dc2626", bg: "#fef2f2" },
+  gdrive:  { label: "Drive",   color: "#1d4ed8", bg: "#eff6ff" },
+  imagem:  { label: "Imagem",  color: "#059669", bg: "#ecfdf5" },
+  video:   { label: "Vídeo",   color: "#7c3aed", bg: "#f5f3ff" },
+};
+
+function MidiaThumb({ m }: { m: Midia }) {
+  if (m.tipo === "imagem") {
+    return <img src={m.url_thumb || m.url} alt={m.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='60'%3E%3Crect width='80' height='60' fill='%23e5e7eb'/%3E%3Ctext x='40' y='35' font-size='10' text-anchor='middle' fill='%239ca3af'%3EImagem%3C/text%3E%3C/svg%3E"; }} />;
+  }
+  if (m.tipo === "youtube" && m.url_thumb) {
+    return <img src={m.url_thumb} alt={m.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />;
+  }
+  if (m.tipo === "gdrive" && m.url_thumb) {
+    return <img src={m.url_thumb} alt={m.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />;
+  }
+  return (
+    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#f3f4f6" }}>
+      <span style={{ fontSize: 28 }}>{m.tipo === "video" ? "🎬" : "📁"}</span>
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const params = useParams();
@@ -44,6 +69,17 @@ export default function AdminPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [configOk, setConfigOk] = useState(false);
 
+  // Mídias
+  const [midias, setMidias] = useState<Midia[]>([]);
+  const [descobertas, setDescrobertas] = useState<Midia[]>([]);
+  const [novaUrl, setNovaUrl] = useState("");
+  const [novaLabel, setNovaLabel] = useState("");
+  const [addingMidia, setAddingMidia] = useState(false);
+  const [midiaOk, setMidiaOk] = useState("");
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [previewMidia, setPreviewMidia] = useState<Midia | null>(null);
+  const dragIdx = useRef<number | null>(null);
+
   useEffect(() => {
     const stored = localStorage.getItem(`vox_admin_${slug}`);
     if (stored === "ok") { setAuthed(true); loadAll(); }
@@ -62,6 +98,16 @@ export default function AdminPage() {
     setTickets(t);
     setConfig({ whatsapp: s.whatsapp ?? "", prompt_voz: s.prompt_voz ?? "", produto_tipo: s.produto_tipo ?? "basico" });
   }, [slug]);
+
+  const loadMidias = useCallback(async () => {
+    const r = await fetch(`/api/sites/${slug}/midias`).then((res) => res.json());
+    setMidias(r.midias ?? []);
+    setDescrobertas(r.descobertas ?? []);
+  }, [slug]);
+
+  useEffect(() => {
+    if (authed && tab === "Mídias") loadMidias();
+  }, [authed, tab, loadMidias]);
 
   const login = async () => {
     setLoggingIn(true); setLoginErr("");
@@ -122,6 +168,54 @@ export default function AdminPage() {
     setTimeout(() => setConfigOk(false), 3000);
   };
 
+  // ── MÍDIAS ──
+  const addMidia = async () => {
+    if (!novaUrl.trim()) return;
+    setAddingMidia(true);
+    const r = await fetch(`/api/sites/${slug}/midias`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: novaUrl.trim(), label: novaLabel.trim() || undefined }) });
+    const m = await r.json();
+    setMidias((prev) => [...prev, m]);
+    setNovaUrl(""); setNovaLabel("");
+    setMidiaOk("Mídia adicionada!");
+    setAddingMidia(false);
+    setTimeout(() => setMidiaOk(""), 3000);
+  };
+
+  const importarDescoberta = async (d: Midia) => {
+    const r = await fetch(`/api/sites/${slug}/midias`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: d.url, label: d.label }) });
+    const m = await r.json();
+    setMidias((prev) => [...prev, m]);
+    setDescrobertas((prev) => prev.filter((x) => x.id !== d.id));
+  };
+
+  const ignorarDescoberta = (id: string) => setDescrobertas((prev) => prev.filter((d) => d.id !== id));
+
+  const removeMidia = async (id: string) => {
+    await fetch(`/api/sites/${slug}/midias`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setMidias((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  const saveOrder = async () => {
+    setSavingOrder(true);
+    await fetch(`/api/sites/${slug}/midias`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reorder", ids: midias.map((m) => m.id) }) });
+    setSavingOrder(false);
+    setMidiaOk("Ordem salva!");
+    setTimeout(() => setMidiaOk(""), 3000);
+  };
+
+  // Drag-and-drop handlers
+  const onDragStart = (idx: number) => { dragIdx.current = idx; };
+  const onDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === idx) return;
+    const next = [...midias];
+    const [moved] = next.splice(dragIdx.current, 1);
+    next.splice(idx, 0, moved);
+    dragIdx.current = idx;
+    setMidias(next);
+  };
+  const onDragEnd = () => { dragIdx.current = null; };
+
   // ── LOGIN ──
   if (!authed) {
     return (
@@ -161,6 +255,27 @@ export default function AdminPage() {
   // ── ADMIN ──
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      {/* Modal preview */}
+      {previewMidia && (
+        <div onClick={() => setPreviewMidia(null)} style={{ position: "fixed", inset: 0, zIndex: 99999, background: "rgba(0,0,0,.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", maxWidth: 720, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: "1px solid var(--border)" }}>
+              <p style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", margin: 0 }}>{previewMidia.label}</p>
+              <button onClick={() => setPreviewMidia(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "var(--muted)", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ background: "#000", minHeight: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {(previewMidia.tipo === "youtube" || previewMidia.tipo === "gdrive") ? (
+                <iframe src={previewMidia.url_embed} style={{ width: "100%", height: 400, border: "none" }} allowFullScreen />
+              ) : previewMidia.tipo === "video" ? (
+                <video src={previewMidia.url} controls style={{ maxWidth: "100%", maxHeight: 400 }} />
+              ) : (
+                <img src={previewMidia.url} alt={previewMidia.label} style={{ maxWidth: "100%", maxHeight: 500, objectFit: "contain" }} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -184,16 +299,16 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "0 24px", display: "flex", gap: 4 }}>
+      <div style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "0 24px", display: "flex", gap: 4, overflowX: "auto" }}>
         {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            style={{ padding: "12px 16px", background: "none", border: "none", borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent", color: tab === t ? "var(--accent)" : "var(--muted)", fontWeight: tab === t ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all .15s" }}>
+            style={{ padding: "12px 16px", background: "none", border: "none", borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent", color: tab === t ? "var(--accent)" : "var(--muted)", fontWeight: tab === t ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all .15s", whiteSpace: "nowrap" }}>
             {t}
           </button>
         ))}
       </div>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "28px 24px" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 24px" }}>
 
         {/* ── DASHBOARD ── */}
         {tab === "Dashboard" && (
@@ -202,6 +317,7 @@ export default function AdminPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 16, marginBottom: 28 }}>
               {[
                 { label: "Produtos", val: produtos.length, icon: "📦", color: "#7c3aed" },
+                { label: "Mídias", val: midias.length, icon: "🖼️", color: "#0891b2" },
                 { label: "Artigos", val: artigos.length, icon: "📝", color: "#059669" },
                 { label: "Tickets abertos", val: tickets.filter((t) => t.status === "aberto").length, icon: "🎫", color: "#dc2626" },
                 { label: "Plano", val: site?.produto_tipo === "pro" ? "VOX Pro" : "VOX Básico", icon: "⭐", color: "#d97706" },
@@ -216,8 +332,8 @@ export default function AdminPage() {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 24px" }}>
               <p style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", marginBottom: 12 }}>Links do seu site</p>
               {[
-                { label: "Site público", url: `http://localhost:3000/${slug}` },
-                { label: "Painel admin", url: `http://localhost:3000/${slug}/admin` },
+                { label: "Site público", url: `https://voxshellai.vercel.app/${slug}` },
+                { label: "Painel admin", url: `https://voxshellai.vercel.app/${slug}/admin` },
               ].map((l) => (
                 <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   <span style={{ fontSize: 12, color: "var(--muted)", width: 90 }}>{l.label}</span>
@@ -227,6 +343,162 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── MÍDIAS ── */}
+        {tab === "Mídias" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text)", margin: 0 }}>Mídias do site</h2>
+              {midias.length > 0 && (
+                <button onClick={saveOrder} disabled={savingOrder}
+                  style={{ padding: "8px 18px", background: "var(--accent)", color: "white", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                  {savingOrder ? "Salvando..." : midiaOk || "💾 Salvar ordem"}
+                </button>
+              )}
+            </div>
+
+            {/* Formulário adicionar */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "20px 24px", marginBottom: 24 }}>
+              <p style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", marginBottom: 4 }}>Adicionar mídia</p>
+              <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 14 }}>Cole um link do YouTube, Google Drive, ou URL direta de imagem/vídeo.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <input value={novaUrl} onChange={(e) => setNovaUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addMidia()}
+                    placeholder="https://youtube.com/watch?v=... ou https://drive.google.com/file/d/... ou URL de imagem"
+                    style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, outline: "none", background: "var(--bg)", color: "var(--text)" }} />
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <input value={novaLabel} onChange={(e) => setNovaLabel(e.target.value)}
+                    placeholder="Nome / legenda (opcional)"
+                    style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, outline: "none", background: "var(--bg)", color: "var(--text)" }} />
+                  <button onClick={addMidia} disabled={addingMidia || !novaUrl.trim()}
+                    style={{ padding: "10px 20px", background: novaUrl.trim() && !addingMidia ? "var(--accent)" : "var(--border)", color: "white", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: novaUrl.trim() ? "pointer" : "default", whiteSpace: "nowrap" }}>
+                    {addingMidia ? "Adicionando..." : "＋ Adicionar"}
+                  </button>
+                </div>
+              </div>
+              {midiaOk && <p style={{ color: "#059669", fontSize: 12, marginTop: 8, fontWeight: 600 }}>✓ {midiaOk}</p>}
+
+              {/* Dicas de tipo */}
+              <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                {[
+                  { icon: "▶️", label: "YouTube", ex: "youtube.com/watch?v=..." },
+                  { icon: "📁", label: "Google Drive", ex: "drive.google.com/file/d/..." },
+                  { icon: "🖼️", label: "Imagem direta", ex: ".jpg / .png / .webp" },
+                  { icon: "🎬", label: "Vídeo direto", ex: ".mp4 / .webm" },
+                ].map((t) => (
+                  <div key={t.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--muted)", background: "var(--bg)", padding: "4px 10px", borderRadius: 20, border: "1px solid var(--border)" }}>
+                    <span>{t.icon}</span><span>{t.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Mídias descobertas do HTML (não gerenciadas ainda) */}
+            {descobertas.length > 0 && (
+              <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 14, padding: "16px 20px", marginBottom: 24 }}>
+                <p style={{ fontWeight: 600, fontSize: 13, color: "#92400e", margin: "0 0 4px" }}>🔍 Mídias encontradas no seu site</p>
+                <p style={{ fontSize: 12, color: "#b45309", margin: "0 0 14px" }}>Estas imagens já estão no site. Clique em "Gerenciar" para adicioná-las ao painel, ou "Ignorar" para dispensar.</p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 12 }}>
+                  {descobertas.map((d) => (
+                    <div key={d.id} style={{ background: "white", border: "1px solid #fde68a", borderRadius: 10, overflow: "hidden" }}>
+                      <div style={{ height: 100, overflow: "hidden", background: "#f9fafb", cursor: "pointer" }} onClick={() => setPreviewMidia(d)}>
+                        <MidiaThumb m={d} />
+                      </div>
+                      <div style={{ padding: "10px 12px" }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: "#18181b", margin: "0 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.label}</p>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => importarDescoberta(d)}
+                            style={{ flex: 1, padding: "5px 0", background: "#7c3aed", color: "white", border: "none", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+                            Gerenciar
+                          </button>
+                          <button onClick={() => ignorarDescoberta(d.id)}
+                            style={{ padding: "5px 10px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>
+                            Ignorar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Lista de mídias gerenciadas — drag-and-drop */}
+            {midias.length === 0 && descobertas.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--muted)", fontSize: 14 }}>
+                <p style={{ fontSize: 40, margin: "0 0 12px" }}>🖼️</p>
+                <p>Nenhuma mídia adicionada ainda.</p>
+                <p style={{ fontSize: 12 }}>Use o formulário acima para adicionar imagens ou vídeos.</p>
+              </div>
+            ) : midias.length > 0 && (
+              <div>
+                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                  Arraste os cards para reordenar. A ordem aqui define a sequência das mídias no site.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {midias.map((m, idx) => {
+                    const badge = TIPO_BADGE[m.tipo] ?? TIPO_BADGE.imagem;
+                    return (
+                      <div
+                        key={m.id}
+                        draggable
+                        onDragStart={() => onDragStart(idx)}
+                        onDragOver={(e) => onDragOver(e, idx)}
+                        onDragEnd={onDragEnd}
+                        style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", cursor: "grab", transition: "box-shadow .15s", userSelect: "none" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,.12)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+                      >
+                        {/* Drag handle */}
+                        <div style={{ color: "var(--muted)", fontSize: 18, flexShrink: 0, lineHeight: 1, cursor: "grab" }}>⠿</div>
+
+                        {/* Thumbnail */}
+                        <div onClick={() => setPreviewMidia(m)} style={{ width: 72, height: 54, borderRadius: 8, overflow: "hidden", flexShrink: 0, cursor: "pointer", border: "1px solid var(--border)" }}>
+                          <MidiaThumb m={m} />
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, color: badge.color, background: badge.bg, textTransform: "uppercase" }}>{badge.label}</span>
+                            <p style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.label}</p>
+                          </div>
+                          <p style={{ fontSize: 11, color: "var(--muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.url}</p>
+                        </div>
+
+                        {/* Posição */}
+                        <div style={{ flexShrink: 0, width: 28, height: 28, background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>
+                          {idx + 1}
+                        </div>
+
+                        {/* Ações */}
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button onClick={() => setPreviewMidia(m)}
+                            style={{ padding: "5px 10px", background: "var(--accent-light)", color: "var(--accent)", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                            Ver
+                          </button>
+                          <button onClick={() => removeMidia(m.id)}
+                            style={{ padding: "5px 10px", background: "#fef2f2", color: "var(--danger)", border: "1px solid #fecaca", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>
+                            🗑
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                  <button onClick={saveOrder} disabled={savingOrder}
+                    style={{ padding: "10px 24px", background: "var(--accent)", color: "white", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    {savingOrder ? "Salvando..." : midiaOk ? `✓ ${midiaOk}` : "💾 Salvar ordem"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

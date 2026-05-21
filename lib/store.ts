@@ -1,8 +1,69 @@
-import fs from "fs";
-import path from "path";
+import { neon } from "@neondatabase/serverless";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "db.json");
+function sql() {
+  return neon(process.env.DATABASE_URL!);
+}
+
+async function ensureSchema() {
+  const db = sql();
+  await db`
+    CREATE TABLE IF NOT EXISTS sites (
+      slug TEXT PRIMARY KEY,
+      nicho TEXT NOT NULL DEFAULT '',
+      nome TEXT NOT NULL DEFAULT '',
+      html TEXT NOT NULL DEFAULT '',
+      whatsapp TEXT NOT NULL DEFAULT '',
+      prompt_voz TEXT NOT NULL DEFAULT '',
+      produto_tipo TEXT NOT NULL DEFAULT 'basico',
+      admin_senha TEXT NOT NULL DEFAULT '',
+      criado_em TEXT NOT NULL DEFAULT ''
+    )
+  `;
+  await db`
+    CREATE TABLE IF NOT EXISTS produtos (
+      id TEXT PRIMARY KEY,
+      site_slug TEXT NOT NULL,
+      nome TEXT NOT NULL DEFAULT '',
+      preco TEXT NOT NULL DEFAULT '',
+      foto_url TEXT NOT NULL DEFAULT '',
+      descricao TEXT NOT NULL DEFAULT '',
+      categoria TEXT NOT NULL DEFAULT ''
+    )
+  `;
+  await db`
+    CREATE TABLE IF NOT EXISTS artigos (
+      id TEXT PRIMARY KEY,
+      site_slug TEXT NOT NULL,
+      titulo TEXT NOT NULL DEFAULT '',
+      conteudo TEXT NOT NULL DEFAULT '',
+      publicado BOOLEAN NOT NULL DEFAULT false,
+      criado_em TEXT NOT NULL DEFAULT ''
+    )
+  `;
+  await db`
+    CREATE TABLE IF NOT EXISTS tickets (
+      id TEXT PRIMARY KEY,
+      site_slug TEXT NOT NULL,
+      mensagem TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'aberto',
+      criado_em TEXT NOT NULL DEFAULT '',
+      resposta TEXT
+    )
+  `;
+  await db`
+    CREATE TABLE IF NOT EXISTS midias (
+      id TEXT PRIMARY KEY,
+      site_slug TEXT NOT NULL,
+      tipo TEXT NOT NULL DEFAULT 'imagem',
+      url TEXT NOT NULL DEFAULT '',
+      url_embed TEXT NOT NULL DEFAULT '',
+      url_thumb TEXT NOT NULL DEFAULT '',
+      label TEXT NOT NULL DEFAULT '',
+      posicao INTEGER NOT NULL DEFAULT 0,
+      ativo BOOLEAN NOT NULL DEFAULT true
+    )
+  `;
+}
 
 export type ProdutoTipo = "basico" | "pro";
 
@@ -46,97 +107,201 @@ export type Ticket = {
   resposta?: string;
 };
 
-export type DB = {
-  sites: Site[];
-  produtos: Produto[];
-  artigos: Artigo[];
-  tickets: Ticket[];
+export type Midia = {
+  id: string;
+  site_slug: string;
+  tipo: "imagem" | "youtube" | "gdrive" | "video";
+  url: string;
+  url_embed: string;
+  url_thumb: string;
+  label: string;
+  posicao: number;
+  ativo: boolean;
 };
 
-const empty: DB = { sites: [], produtos: [], artigos: [], tickets: [] };
-
-function readDB(): DB {
-  try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    if (!fs.existsSync(DB_PATH)) { fs.writeFileSync(DB_PATH, JSON.stringify(empty, null, 2)); return empty; }
-    return JSON.parse(fs.readFileSync(DB_PATH, "utf-8")) as DB;
-  } catch { return empty; }
+export async function getSites(): Promise<Site[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM sites ORDER BY criado_em DESC`;
+  return rows as unknown as Site[];
 }
 
-function writeDB(db: DB) {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+export async function getSite(slug: string): Promise<Site | null> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM sites WHERE slug = ${slug} LIMIT 1`;
+  return (rows[0] as unknown as Site) ?? null;
 }
 
-export const getSites = () => readDB().sites;
-export const getSite = (slug: string) => readDB().sites.find((s) => s.slug === slug) ?? null;
-
-export function createSite(site: Site): Site {
-  const db = readDB();
-  db.sites = db.sites.filter((s) => s.slug !== site.slug);
-  db.sites.push(site);
-  writeDB(db);
+export async function createSite(site: Site): Promise<Site> {
+  await ensureSchema();
+  const db = sql();
+  await db`
+    INSERT INTO sites (slug, nicho, nome, html, whatsapp, prompt_voz, produto_tipo, admin_senha, criado_em)
+    VALUES (${site.slug}, ${site.nicho}, ${site.nome}, ${site.html}, ${site.whatsapp}, ${site.prompt_voz}, ${site.produto_tipo}, ${site.admin_senha}, ${site.criado_em})
+    ON CONFLICT (slug) DO UPDATE SET
+      nicho = EXCLUDED.nicho,
+      nome = EXCLUDED.nome,
+      html = EXCLUDED.html,
+      whatsapp = EXCLUDED.whatsapp,
+      prompt_voz = EXCLUDED.prompt_voz,
+      produto_tipo = EXCLUDED.produto_tipo,
+      admin_senha = EXCLUDED.admin_senha,
+      criado_em = EXCLUDED.criado_em
+  `;
   return site;
 }
 
-export function updateSite(slug: string, updates: Partial<Site>): Site | null {
-  const db = readDB();
-  const i = db.sites.findIndex((s) => s.slug === slug);
-  if (i === -1) return null;
-  db.sites[i] = { ...db.sites[i], ...updates };
-  writeDB(db);
-  return db.sites[i];
+export async function updateSite(slug: string, updates: Partial<Site>): Promise<Site | null> {
+  await ensureSchema();
+  const db = sql();
+  const fields = Object.entries(updates).filter(([k]) => k !== "slug");
+  if (fields.length === 0) return getSite(slug);
+  // Build SET clause dynamically isn't ideal with neon tagged templates, so use individual updates
+  const current = await getSite(slug);
+  if (!current) return null;
+  const merged = { ...current, ...updates };
+  await db`
+    UPDATE sites SET
+      nicho = ${merged.nicho},
+      nome = ${merged.nome},
+      html = ${merged.html},
+      whatsapp = ${merged.whatsapp},
+      prompt_voz = ${merged.prompt_voz},
+      produto_tipo = ${merged.produto_tipo},
+      admin_senha = ${merged.admin_senha},
+      criado_em = ${merged.criado_em}
+    WHERE slug = ${slug}
+  `;
+  return merged;
 }
 
-export const getProdutos = (slug: string) => readDB().produtos.filter((p) => p.site_slug === slug);
-
-export function createProduto(p: Produto): Produto {
-  const db = readDB(); db.produtos.push(p); writeDB(db); return p;
+export async function getProdutos(slug: string): Promise<Produto[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM produtos WHERE site_slug = ${slug}`;
+  return rows as unknown as Produto[];
 }
 
-export function updateProduto(id: string, u: Partial<Produto>): Produto | null {
-  const db = readDB();
-  const i = db.produtos.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  db.produtos[i] = { ...db.produtos[i], ...u };
-  writeDB(db);
-  return db.produtos[i];
+export async function createProduto(p: Produto): Promise<Produto> {
+  await ensureSchema();
+  const db = sql();
+  await db`
+    INSERT INTO produtos (id, site_slug, nome, preco, foto_url, descricao, categoria)
+    VALUES (${p.id}, ${p.site_slug}, ${p.nome}, ${p.preco}, ${p.foto_url}, ${p.descricao}, ${p.categoria})
+  `;
+  return p;
 }
 
-export function deleteProduto(id: string): boolean {
-  const db = readDB();
-  const len = db.produtos.length;
-  db.produtos = db.produtos.filter((p) => p.id !== id);
-  if (db.produtos.length === len) return false;
-  writeDB(db); return true;
+export async function updateProduto(id: string, u: Partial<Produto>): Promise<Produto | null> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM produtos WHERE id = ${id} LIMIT 1`;
+  if (!rows[0]) return null;
+  const merged = { ...(rows[0] as unknown as Produto), ...u };
+  await db`
+    UPDATE produtos SET nome = ${merged.nome}, preco = ${merged.preco}, foto_url = ${merged.foto_url}, descricao = ${merged.descricao}, categoria = ${merged.categoria}
+    WHERE id = ${id}
+  `;
+  return merged;
 }
 
-export const getArtigos = (slug: string) => readDB().artigos.filter((a) => a.site_slug === slug);
-
-export function createArtigo(a: Artigo): Artigo {
-  const db = readDB(); db.artigos.push(a); writeDB(db); return a;
+export async function deleteProduto(id: string): Promise<boolean> {
+  await ensureSchema();
+  const db = sql();
+  const result = await db`DELETE FROM produtos WHERE id = ${id}`;
+  return (result as unknown as { count: number }).count > 0;
 }
 
-export function deleteArtigo(id: string): boolean {
-  const db = readDB();
-  const len = db.artigos.length;
-  db.artigos = db.artigos.filter((a) => a.id !== id);
-  if (db.artigos.length === len) return false;
-  writeDB(db); return true;
+export async function getArtigos(slug: string): Promise<Artigo[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM artigos WHERE site_slug = ${slug} ORDER BY criado_em DESC`;
+  return rows as unknown as Artigo[];
 }
 
-export const getTickets = (slug: string) => readDB().tickets.filter((t) => t.site_slug === slug);
-export const getAllTickets = () => readDB().tickets;
-
-export function createTicket(t: Ticket): Ticket {
-  const db = readDB(); db.tickets.push(t); writeDB(db); return t;
+export async function createArtigo(a: Artigo): Promise<Artigo> {
+  await ensureSchema();
+  const db = sql();
+  await db`
+    INSERT INTO artigos (id, site_slug, titulo, conteudo, publicado, criado_em)
+    VALUES (${a.id}, ${a.site_slug}, ${a.titulo}, ${a.conteudo}, ${a.publicado}, ${a.criado_em})
+  `;
+  return a;
 }
 
-export function updateTicket(id: string, u: Partial<Ticket>): Ticket | null {
-  const db = readDB();
-  const i = db.tickets.findIndex((t) => t.id === id);
-  if (i === -1) return null;
-  db.tickets[i] = { ...db.tickets[i], ...u };
-  writeDB(db);
-  return db.tickets[i];
+export async function deleteArtigo(id: string): Promise<boolean> {
+  await ensureSchema();
+  const db = sql();
+  const result = await db`DELETE FROM artigos WHERE id = ${id}`;
+  return (result as unknown as { count: number }).count > 0;
+}
+
+export async function getTickets(slug: string): Promise<Ticket[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM tickets WHERE site_slug = ${slug} ORDER BY criado_em DESC`;
+  return rows as unknown as Ticket[];
+}
+
+export async function getAllTickets(): Promise<Ticket[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM tickets ORDER BY criado_em DESC`;
+  return rows as unknown as Ticket[];
+}
+
+export async function createTicket(t: Ticket): Promise<Ticket> {
+  await ensureSchema();
+  const db = sql();
+  await db`
+    INSERT INTO tickets (id, site_slug, mensagem, status, criado_em, resposta)
+    VALUES (${t.id}, ${t.site_slug}, ${t.mensagem}, ${t.status}, ${t.criado_em}, ${t.resposta ?? null})
+  `;
+  return t;
+}
+
+export async function updateTicket(id: string, u: Partial<Ticket>): Promise<Ticket | null> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM tickets WHERE id = ${id} LIMIT 1`;
+  if (!rows[0]) return null;
+  const merged = { ...(rows[0] as unknown as Ticket), ...u };
+  await db`
+    UPDATE tickets SET status = ${merged.status}, resposta = ${merged.resposta ?? null}
+    WHERE id = ${id}
+  `;
+  return merged;
+}
+
+export async function getMidias(slug: string): Promise<Midia[]> {
+  await ensureSchema();
+  const db = sql();
+  const rows = await db`SELECT * FROM midias WHERE site_slug = ${slug} ORDER BY posicao ASC`;
+  return rows as unknown as Midia[];
+}
+
+export async function createMidia(m: Midia): Promise<Midia> {
+  await ensureSchema();
+  const db = sql();
+  await db`
+    INSERT INTO midias (id, site_slug, tipo, url, url_embed, url_thumb, label, posicao, ativo)
+    VALUES (${m.id}, ${m.site_slug}, ${m.tipo}, ${m.url}, ${m.url_embed}, ${m.url_thumb}, ${m.label}, ${m.posicao}, ${m.ativo})
+  `;
+  return m;
+}
+
+export async function deleteMidia(id: string): Promise<boolean> {
+  await ensureSchema();
+  const db = sql();
+  const result = await db`DELETE FROM midias WHERE id = ${id}`;
+  return (result as unknown as { count: number }).count > 0;
+}
+
+export async function reorderMidias(slug: string, orderedIds: string[]): Promise<void> {
+  await ensureSchema();
+  const db = sql();
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db`UPDATE midias SET posicao = ${i} WHERE id = ${orderedIds[i]} AND site_slug = ${slug}`;
+  }
 }
